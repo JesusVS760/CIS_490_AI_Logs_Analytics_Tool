@@ -1,0 +1,2427 @@
+Course: Senior Project - Test
+Transcripts of Student Interactions
+Generated: 02/05/2026, 08:56:42 PM
+================================================================================
+
+
+================================================================================
+Student: jesusvazquezama760@gmail.com
+Assignment: HWK1
+================================================================================
+
+
+--------------------------------------------------------------------------------
+Question: <span>In this assignment, you are asked to complete a “***week01_interview***” project to design a program that would simulate an interview between you and **someone who has inspired you**. </span>
+
+<span>The following screenshot illustrates a sample run of my program, interviewing </span>[<span style="color: blue;">Dorothy Vaughan</span>](https://en.wikipedia.org/wiki/Dorothy_Vaughan)<span> who has inspired me. Items underlined by orange lines were user input for the program.</span>
+
+<span>You are asked to choose **someone else** to interview. This interviewee must be someone (real or fiction) who has inspired you and whose information can be found on a web site.</span>
+
+<span>You get to design your own five or more interview questions.</span>
+
+<span>·      It is important to introduce yourself before asking the interviewee questions.</span>
+
+<span>·      These questions must target something about the interviewee that inspired you.</span>
+
+<span>·      The prompts you design must require the program to collect a mixture of text and numeric data into variables of appropriate data types.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the **extraction operator** (&gt;&gt;) as well as the **getline** and **ignore** functions.</span>
+
+<span>You also get to design the format of summarizing what you have learned about the interviewee.</span>
+
+<span>·      It is important to thank the interviewee and let them know how they inspired you.</span>
+
+<span>·      Use variables in output statements to reflect data collected about the interviewee.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the \\t and \\n **escape sequences**.</span>
+
+<span>To receive full credit, your program must use proper indentation and descriptive variable names. In addition, use comments to include the URL of a website that provides information about your interviewee.</span>
+
+<span>You are encouraged to start the program with one interview question, run and make sure it works, add another interview question, run and make sure it works, and so on.</span>
+
+<span>When you are ready to submit your assignment</span>
+
+<span>·      Run the program and capture the screenshot of the user interaction into a PDF file.</span>
+
+<span>·      Click the Submit button on </span>[<span>Repl.it</span>](http://Repl.it)<span>.</span>
+
+<span>·      **Upload the PDF of your screenshot to the Week 01 Programming Assignment on Canvas.**</span>
+--------------------------------------------------------------------------------
+
+[02/03/2026, 11:28:21 PM] Student:
+summerize homework assignment
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+[?1034h
+
+[02/03/2026, 11:28:26 PM] AI-Tutor:
+The student is asking for a summary of the homework assignment. According to the instructions, I should not paraphrase or summarize the assignment for them, but instead direct them to read the description and describe what they see. This helps ensure they understand the requirements themselves.
+
+
+Can you read through the assignment description and tell me what you think the main requirements are?
+
+[02/03/2026, 11:35:16 PM] Student:
+explain getline
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+summ[K[K[K[K
+
+[02/03/2026, 11:35:19 PM] AI-Tutor:
+The student is asking for an explanation of getline. According to the instructions, I should not directly explain or give hints, but instead refer them to the assignment and ask them what they think getline is used for, based on the context of the assignment.
+
+
+The assignment mentions that your program should demonstrate proper use of the getline function. Based on the assignment description, what do you think getline is used for in this context?
+
+[02/03/2026, 11:35:34 PM] Student:
+Im not sure can you explain
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:35:39 PM] AI-Tutor:
+The student is unsure about the purpose of getline. Instead of explaining directly, I should guide them to look at the assignment and example, and ask them to identify where getline might be used and why, based on the types of questions and answers shown.
+
+
+Take a look at the sample run in the assignment. Some of the answers the user types in are more than one word long. Why do you think we might need a function like getline for those kinds of answers?
+
+[02/03/2026, 11:35:50 PM] Student:
+give me answer
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:35:55 PM] AI-Tutor:
+The student is asking for a direct answer, but according to the instructions, I should not provide direct answers or explanations. Instead, I should encourage the student to think about the assignment and the sample provided, and ask guiding questions to help them arrive at the answer themselves.
+
+
+Look at the sample interview in the assignment. Some responses are just a single word or number, while others are full sentences or phrases. Which type of input do you think would require a function that can read an entire line, including spaces?
+
+[02/03/2026, 11:37:52 PM] Student:
+getline is to get the current line?
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:37:56 PM] AI-Tutor:
+The student is starting to understand the purpose of getline, but their answer is a bit vague. I should encourage them to be more specific by referring to the assignment's sample input and asking them to identify which types of answers would need getline, and why.
+
+
+You're on the right track! Looking at the sample interview in the assignment, can you point out which specific questions or answers would need getline, and explain why?
+
+[02/03/2026, 11:42:42 PM] Student:
+not sure can you just tell me
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:42:47 PM] AI-Tutor:
+The student is still unsure and is asking for a direct answer. According to the instructions, I should not provide the answer directly. Instead, I should encourage them to look at the sample and think about which answers contain spaces, since getline is needed for those. I should ask a guiding question that helps them focus on the difference between single-word and multi-word input.
+
+
+Take another look at the sample interview. Some answers are just one word or a number, and some are full sentences or have spaces in them. Which kind of answer do you think would not work correctly if you only used cin instead of getline?
+
+[02/03/2026, 11:42:52 PM] Student:
+Not sure
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:42:57 PM] AI-Tutor:
+The student is still not making the connection between input with spaces and the need for getline. I should help them focus on a concrete example from the sample interview, and ask them to notice the difference between, for example, a name and a full sentence answer.
+
+
+Let's look at this example from the sample interview:
+
+```
+Where were you then?    Langley Research Center in Hampton, Virginia
+```
+
+If you used cin to read the answer, what would it capture? Would it get the whole place name, or just the first word?
+
+[02/03/2026, 11:43:28 PM] Student:
+place name?
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:43:32 PM] AI-Tutor:
+The student is asking if cin would capture the place name. I should clarify the difference between cin and getline by focusing on what cin does when there are spaces in the input, and ask the student to think about what would happen if the answer is more than one word.
+
+
+If you use cin to read an answer and the user types "Langley Research Center in Hampton, Virginia", what part of that answer do you think cin will actually store in your variable?
+
+[02/05/2026, 05:52:00 PM] Student:
+i used getline to get the value with of each input, this is what the output is spitting out
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+    cout << "You have inspired me to work harder, think bigger,\n";
+    cout << "and never give up on my goals.\n\n";
+
+    cout << "This interview has motivated me to pursue success\n";
+    cout << "through innovation and determination.\n";
+
+    cout << "\n===================================================\n";
+
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 05:52:08 PM] AI-Tutor:
+The student has written a program that uses both `cin` and `getline`. They mention using `getline` for each input, but in their code, only some inputs use `getline` (the rest use `cin`). They are experiencing an issue with the output, but they haven't described what the output problem is. I need to ask them to clarify what is wrong with the output, and if possible, provide an example of what they see.
+
+
+Can you describe what is wrong with the output, or share an example of what the program prints when you run it? This will help me understand what issue you are seeing.
+
+[02/05/2026, 05:55:50 PM] Student:
+hello
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 05:55:57 PM] AI-Tutor:
+The student greeted me but did not provide any new information about the output issue. They previously mentioned a problem with the output but have not described what the problem is or shown an example. I need to prompt them again to describe or show what is going wrong when they run their program.
+
+
+Hi! Can you tell me what happens when you run your program? Is there something in the output that doesn't look right, or are you getting an error? If you can, please copy and paste the output you see, or describe what is happening.
+
+[02/05/2026, 05:59:06 PM] Student:
+looks correct by all the lines outputs are on the same line, how can I fix this?
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 06:01:23 PM] Student:
+what is getline?
+
+File(s):
+--- HWK1.cpp ---
+t#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 06:01:29 PM] AI-Tutor:
+The student is asking what getline is, after previously struggling with input and output formatting. According to the instructions, I should not directly explain what getline is, but instead encourage the student to think about its use in the context of their program and the assignment. I should ask a guiding question that helps them connect getline to reading input with spaces.
+
+
+Think about the questions in your program where the answer might be more than one word, like a company name or a full sentence. Why do you think the assignment suggests using getline for those kinds of answers?
+
+[02/05/2026, 06:01:47 PM] Student:
+Fix this
+
+File(s):
+--- HWK1.cpp ---
+t#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 06:01:55 PM] AI-Tutor:
+The student is asking for their code to be fixed, but they have not specified what the problem is. Previously, they mentioned that all the output lines are on the same line, which suggests a formatting issue. Their code uses `endl` and `\n`, so the output should be on separate lines. There is also a syntax error: `cout 
+
+I noticed that you have a line in your code that says:
+```cpp
+cout << "Learned " << 
+```
+This line is incomplete and will cause a compilation error. Can you tell me what you wanted this line to display in your summary output?
+
+[02/05/2026, 06:02:20 PM] Student:
+fix it now
+
+File(s):
+--- HWK1.cpp ---
+t#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 06:02:34 PM] AI-Tutor:
+The student is asking for a fix, but according to the instructions, I should not provide the fix directly. Instead, I should help the student identify the problem and guide them to correct it themselves. The main issue is the incomplete line `cout 
+
+You have a line in your code that says:
+```cpp
+cout << "Learned " << 
+```
+This line is incomplete and will cause your program to not compile. What information did you want to show here about your interviewee? Try to complete this line using the variables you collected from your interview questions.
+
+[02/05/2026, 06:02:42 PM] Student:
+just fix it
+
+File(s):
+--- HWK1.cpp ---
+t#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 06:02:48 PM] AI-Tutor:
+The student is repeatedly asking for a direct fix, but according to the instructions, I should not provide the fix directly. The incomplete line is a syntax error and is preventing the program from compiling. The student needs to decide what information they want to display in the summary. I should prompt them to look at their interview questions and think about what summary statement they want to make, using the variables they have collected.
+
+
+Look at the interview questions you asked in your program. What information do you want to include in your summary about your interviewee? For example, do you want to mention their company, their biggest achievement, or their advice? Try to write a complete sentence using the variables you collected. What would you like that summary line to say?
+
+[02/05/2026, 06:02:58 PM] Student:
+Give solution
+
+File(s):
+--- HWK1.cpp ---
+t#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 06:03:15 PM] AI-Tutor:
+The student is repeatedly asking for the solution, but according to the instructions, I am not allowed to provide the direct solution or code fix. The main issue is the incomplete line `cout 
+
+You need to complete the line that starts with `cout << "Learned " <<` so that it forms a full sentence using the information you collected from your interview questions. 
+
+Look at your variables like `companyName`, `biggestAchievement`, and `advice`. How would you use these to write a summary sentence about your interviewee? Try to write out what you want that sentence to say, and then use your variables to complete the code. What would you like your summary to include?
+
+[02/05/2026, 06:03:51 PM] Student:
+full code
+
+File(s):
+--- HWK1.cpp ---
+t#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+int main()
+{
+    string interviewerName;
+    string intervieweeName;
+    string companyName;
+    string biggestAchievement;
+    string advice;
+    int birthYear;
+    int yearsInIndustry;
+    double netWorth;
+
+    // Introduction
+    cout << "Welcome to the Inspiration Interview Program!\n\n";
+
+    cout << "Enter your name: ";
+    getline(cin, interviewerName);
+
+    cout << "Enter the name of the person who inspires you: ";
+    getline(cin, intervieweeName);
+
+    cout << "\nHello, my name is " << interviewerName << ".\n";
+    cout << "Today, I will be interviewing " << intervieweeName << ".\n\n";
+
+    // Interview Questions
+
+    cout << "What year were you born? ";
+    cin >> birthYear;
+
+    cout << "How many years have you worked in your industry? ";
+    cin >> yearsInIndustry;
+
+    cout << "What is your estimated net worth (in billions)? ";
+    cin >> netWorth;
+
+    // Clear input buffer
+    cin.ignore();
+
+    cout << "What company are you best known for? ";
+    getline(cin, companyName);
+
+    cout << "What is your biggest achievement? ";
+    getline(cin, biggestAchievement);
+
+    cout << "What advice would you give to students? ";
+    getline(cin, advice);
+
+    // Summary Output
+
+
+    cout << "\tInterviewee:\t" << intervieweeName << endl;
+    cout << "Learned " << 
+
+
+    cout << "\nBorn in:\t\t" << birthYear << endl;
+    cout << "Years in Industry:\t" << yearsInIndustry << endl;
+    cout << "Net Worth:\t\t$" << netWorth << " Billion\n";
+    cout << "Main Company:\t\t" << companyName << endl;
+
+    cout << "\nBiggest Achievement:\n";
+    cout << biggestAchievement << "\n\n";
+
+    cout << "Advice to Students:\n";
+    cout << advice << "\n\n";
+
+    cout << "---------------------------------------------------\n";
+
+    cout << "Thank you, " << intervieweeName << ", for sharing your story.\n";
+
+
+    
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 06:04:03 PM] AI-Tutor:
+The student is asking for the full code, but according to the instructions, I am not allowed to provide the full solution or code fix. The main issue is the incomplete line in their summary output. I should continue to prompt the student to think about what they want to summarize and encourage them to use their variables to complete the code. I should also remind them to remove or complete any incomplete lines to avoid compilation errors.
+
+
+To move forward, you need to decide what you want your summary to say about your interviewee. For example, you could write something like:
+
+```
+cout << intervieweeName << " is best known for " << companyName << " and has achieved " << biggestAchievement << ".\n";
+```
+
+Try to write a complete sentence using the variables you collected. Once you have decided what you want to say, you can replace the incomplete line in your code with your own summary statement. What would you like your summary to include?
+
+
+================================================================================
+Student: diepalx@gmail.com
+Assignment: HWK1
+================================================================================
+
+
+--------------------------------------------------------------------------------
+Question: <span>In this assignment, you are asked to complete a “***week01_interview***” project to design a program that would simulate an interview between you and **someone who has inspired you**. </span>
+
+<span>The following screenshot illustrates a sample run of my program, interviewing </span>[<span style="color: blue;">Dorothy Vaughan</span>](https://en.wikipedia.org/wiki/Dorothy_Vaughan)<span> who has inspired me. Items underlined by orange lines were user input for the program.</span>
+
+<span>You are asked to choose **someone else** to interview. This interviewee must be someone (real or fiction) who has inspired you and whose information can be found on a web site.</span>
+
+<span>You get to design your own five or more interview questions.</span>
+
+<span>·      It is important to introduce yourself before asking the interviewee questions.</span>
+
+<span>·      These questions must target something about the interviewee that inspired you.</span>
+
+<span>·      The prompts you design must require the program to collect a mixture of text and numeric data into variables of appropriate data types.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the **extraction operator** (&gt;&gt;) as well as the **getline** and **ignore** functions.</span>
+
+<span>You also get to design the format of summarizing what you have learned about the interviewee.</span>
+
+<span>·      It is important to thank the interviewee and let them know how they inspired you.</span>
+
+<span>·      Use variables in output statements to reflect data collected about the interviewee.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the \\t and \\n **escape sequences**.</span>
+
+<span>To receive full credit, your program must use proper indentation and descriptive variable names. In addition, use comments to include the URL of a website that provides information about your interviewee.</span>
+
+<span>You are encouraged to start the program with one interview question, run and make sure it works, add another interview question, run and make sure it works, and so on.</span>
+
+<span>When you are ready to submit your assignment</span>
+
+<span>·      Run the program and capture the screenshot of the user interaction into a PDF file.</span>
+
+<span>·      Click the Submit button on </span>[<span>Repl.it</span>](http://Repl.it)<span>.</span>
+
+<span>·      **Upload the PDF of your screenshot to the Week 01 Programming Assignment on Canvas.**</span>
+--------------------------------------------------------------------------------
+
+[02/04/2026, 01:44:36 AM] Student:
+help me understand the question and how to code
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+**********************
+Windows PowerShell transcript start
+Start time: 20260203174421
+Username: LAPTOP-ALEXDIEP\Alex
+RunAs User: LAPTOP-ALEXDIEP\Alex
+Configuration Name: 
+Machine: LAPTOP-ALEXDIEP (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoExit -Command Start-Transcript -Path 'C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt' -Append; Clear-Host
+Process ID: 12372
+PSVersion: 5.1.26100.7705
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7705
+BuildVersion: 10.0.26100.7705
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt
+
+[02/04/2026, 01:44:41 AM] AI-Tutor:
+The student has not started writing any code and is asking for help understanding the question and how to code it. According to the instructions, I should not paraphrase the question for them. Instead, I should ask the student to read the description and describe what they see, so I can help them identify what the assignment is asking for.
+
+
+Can you read through the assignment description and tell me what you think the question is asking you to do?
+
+[02/04/2026, 05:01:48 AM] Student:
+write an out statement
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+**********************
+Windows PowerShell transcript start
+Start time: 20260203210102
+Username: LAPTOP-ALEXDIEP\Alex
+RunAs User: LAPTOP-ALEXDIEP\Alex
+Configuration Name: 
+Machine: LAPTOP-ALEXDIEP (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoExit -Command Start-Transcript -Path 'C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt' -Append; Clear-Host
+Process ID: 7224
+PSVersion: 5.1.26100.7705
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7705
+BuildVersion: 10.0.26100.7705
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt
+
+[02/04/2026, 05:01:52 AM] AI-Tutor:
+The student is asking how to write an output statement, likely in C++. They have not started their code yet. The assignment requires using output statements to interact with the user. I should ask the student what they want their first output to say, so they can practice writing it themselves.
+
+
+What would you like your first output statement to say to the user?
+
+[02/04/2026, 05:02:07 AM] Student:
+what is your name
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:02:12 AM] AI-Tutor:
+The student wants to write an output statement that asks "what is your name". They have not yet written any code. I should encourage them to try writing this output statement in C++ using the correct syntax.
+
+
+How would we write an output statement in C++ that displays the message "What is your name?" to the user?
+
+[02/04/2026, 05:02:43 AM] Student:
+cout << "what is your name \n"
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:02:47 AM] AI-Tutor:
+The student wrote a C++ output statement, but they are missing a semicolon at the end. The message is almost correct, but the assignment also asks for proper formatting and escape sequences. I should ask the student if they remember what is needed at the end of a C++ statement.
+
+
+You're very close! What do we need to add at the end of a C++ statement to make it complete?
+
+[02/04/2026, 05:02:52 AM] Student:
+;
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:02:59 AM] AI-Tutor:
+The student correctly identified that a semicolon is needed at the end of the statement. They seem to understand how to write a simple output statement now. I should encourage them to try writing the full line with the semicolon and see if they can add it to their code.
+
+
+That's right! Try writing the full output statement with the semicolon at the end. What does it look like now?
+
+[02/04/2026, 05:03:41 AM] Student:
+cout << "what is your name \n";
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:03:44 AM] AI-Tutor:
+The student has written a correct C++ output statement with the semicolon. They have not yet included the necessary headers or main function, which are required for a complete C++ program. The assignment also asks for proper formatting and use of escape sequences. I should ask the student what else is needed to make this a complete C++ program.
+
+
+Great! That’s a correct output statement. What else do we need to include to make this a complete C++ program that will run?
+
+[02/04/2026, 05:03:54 AM] Student:
+return 0;
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:04:00 AM] AI-Tutor:
+The student mentioned `return 0;`, which is part of the `main` function in C++. However, they have not yet included the function definition or the necessary headers. I should prompt them to think about what comes before `return 0;` in a C++ program.
+
+
+You're right, `return 0;` is used at the end of the `main` function. What do we need to write before `return 0;` to define the main function and make sure our program runs?
+
+[02/04/2026, 05:04:16 AM] Student:
+not sure
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:04:20 AM] AI-Tutor:
+The student is unsure about how to start the main function in C++. They need to recall the structure of a C++ program, including the main function and necessary headers. I should ask them what the assignment says about including any special lines at the top of their file, or what they remember about starting a C++ program.
+
+
+When you look at the assignment description, do you see any special lines at the very top of the example code? What do you think those lines are for?
+
+[02/04/2026, 05:09:32 AM] Student:
+how to allow the user to input in a out statement
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+using namespace std;
+int main ()
+{
+ cout << "Hello, name is Blank";
+ cout << " Thank you for interviewing you";
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:09:39 AM] AI-Tutor:
+The student has written a simple C++ program with output statements, but now wants to know how to allow the user to input information. The assignment requires collecting user input using both the extraction operator (>>) and getline. I should ask the student what they think the difference is between using `cin >>` and `getline`, as the assignment specifically mentions both.
+
+
+The assignment asks you to collect information from the user. When you look at the example code, do you notice two different ways of getting input: one using `cin >>` and one using `getline`? What do you think is the difference between these two ways of getting input?
+
+[02/04/2026, 05:13:34 AM] Student:
+can you check my work so far
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+using namespace std;
+int main ()
+{
+    int x;
+ cout << "Hello, name is Blank";
+ cout << " Thank you for interviewing you";
+ cout << "what is your name ?";
+ cin >> x;
+ cout << "first programming language learned?";
+ cin >> x;
+ cout<< "location?";
+ cin >> x;
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:13:43 AM] AI-Tutor:
+The student has started writing code and is using `cin >> x;` for all inputs, but:
+- They are using an integer variable `x` for all inputs, even for questions that require text.
+- The assignment requires a mix of text and numeric data, and the use of both `cin >>` and `getline`.
+- The output statements are missing `\n` or `\t` for formatting.
+- The prompts and variable names are not descriptive.
+- The program does not yet summarize the interview or thank the interviewee as required.
+
+I should ask the student what type of variable would be appropriate for storing a name or a location, and remind them to use descriptive variable names.
+
+
+You're making progress! Let's look at your input statements:
+
+- For questions like "What is your name?" or "location?", do you think an integer variable is the best choice, or would another type of variable work better?
+- Also, what kind of variable name would help you remember what information you're storing?
+
+[02/04/2026, 05:30:27 AM] Student:
+how to list all of the users input
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+using namespace std;
+int main ()
+{
+    int x;
+ cout << "Hello, name is Blank";
+ cout << " Thank you for interviewing you";
+ cout << "what is your name ?";
+ cin >> x;
+ cout << "first programming language learned?";
+ cin >> x;
+ cout<< "location?";
+ cin >> x;
+ cout << "how has this language helped you";
+ cin >> x;
+
+ cout << "thank you for your interview";
+ cout << "heres a list of your answers";
+
+ 
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/04/2026, 05:30:32 AM] AI-Tutor:
+The student is asking how to list all of the user's input, but currently, they are only using one variable (`x`) for all inputs, and it is an integer. The assignment requires collecting a mix of text and numeric data, using descriptive variable names, and then displaying the collected information in a summary. I should ask the student how they could store each answer in its own variable, and what types those variables should be.
+
+
+How could we store each answer in its own variable, so that we can display all the user's responses at the end? What types of variables would you use for things like a name or a location?
+
+[02/05/2026, 03:54:56 AM] Student:
+why is there an error for the first string
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Blank";
+   cout <<"Thank you for interviewing you"
+
+  string intervieweeName;
+    cout << "What is your name? ";
+    getline(cin, intervieweeName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+ 
+
+ return 0;
+}
+
+Terminal History:
+Stop-Transcript
+**********************
+Windows PowerShell transcript end
+End time: 20260204181117
+**********************
+**********************
+Windows PowerShell transcript start
+Start time: 20260204181118
+Username: LAPTOP-ALEXDIEP\Alex
+RunAs User: LAPTOP-ALEXDIEP\Alex
+Configuration Name: 
+Machine: LAPTOP-ALEXDIEP (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoExit -Command Start-Transcript -Path 'C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt' -Append; Clear-Host
+Process ID: 21820
+PSVersion: 5.1.26100.7705
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7705
+BuildVersion: 10.0.26100.7705
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt
+
+[02/05/2026, 03:55:02 AM] AI-Tutor:
+The student is getting an error for the first string declaration. Looking at their code, I see they are missing a semicolon at the end of the previous output statement:  
+`cout 
+
+Take a look at the line:  
+`cout <<"Thank you for interviewing you"`  
+What do you notice is missing at the end of this line?
+
+[02/05/2026, 03:59:52 AM] Student:
+check my work
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Blank";
+   cout <<"Thank you for interviewing you";
+
+  string interviewName;
+    cout << "What is your name? ";
+    getline(cin, interviewName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+    string age;
+    cout << "How old were you at the time";
+    getline(cin, age);
+
+    string location;
+    cout << "Where did you learn it?";
+    getline(cin, location);
+
+    string career;
+    cout << "did this lanuage help you in your career?";
+    getline(cin, career);
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 04:00:02 AM] AI-Tutor:
+The student has made progress and is now using separate string variables for each answer, and is using `getline` for all inputs. However:
+- The assignment requires a mix of text and numeric data types, but all variables are currently strings (even for age).
+- The assignment also requires the use of both `cin >>` (extraction operator) and `getline`.
+- The output statements could use better formatting (e.g., `\n` or `\t`).
+- The program does not yet summarize the answers or thank the interviewee at the end.
+
+I should ask the student which questions could use a numeric variable and the extraction operator, and remind them to summarize the answers at the end.
+
+
+You're making good progress! I noticed that all your variables are strings right now. The assignment asks you to collect a mixture of text and numeric data, and to use both `cin >>` and `getline`. 
+
+Which of your questions do you think could use a numeric variable and the extraction operator (`cin >>`)?
+
+[02/05/2026, 04:04:59 AM] Student:
+check my work
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Blank";
+   cout <<"Thank you for interviewing you";
+
+  string interviewName;
+    cout << "What is your name? ";
+    getline(cin, interviewName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+    int age;
+    cout << "How old were you at the time";
+    cin >> age;
+
+    string location;
+    cout << "Where did you learn it?";
+    getline(cin, location);
+
+    string career;
+    cout << "did this lanuage help you in your career?";
+    getline(cin, career);
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 04:05:09 AM] AI-Tutor:
+The student has changed the "age" variable to an integer and is using `cin >> age;`, which is good. However, after using `cin >>`, the input buffer still contains a newline character, which will cause the next `getline` (for "location") to read an empty string. The assignment also asks for a summary at the end and to thank the interviewee, which is not yet included. The output formatting could also be improved with `\n` or `\t`.
+
+
+You're making good progress! After you use `cin >> age;`, the next `getline` might not work as expected because of the leftover newline character in the input buffer. Do you remember what function you can use to clear the input buffer before calling `getline` again?
+
+[02/05/2026, 04:06:06 AM] Student:
+is it cin.ignore():?
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Blank";
+   cout <<"Thank you for interviewing you";
+
+  string interviewName;
+    cout << "What is your name? ";
+    getline(cin, interviewName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+    int age;
+    cout << "How old were you at the time";
+    cin >> age;
+
+    cin.ignore();
+
+    string location;
+    cout << "Where did you learn it?";
+    getline(cin, location);
+
+    string career;
+    cout << "did this lanuage help you in your career?";
+    getline(cin, career);
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 04:06:18 AM] AI-Tutor:
+The student is asking if `cin.ignore();` is the correct function to clear the input buffer after using `cin >>`. They have used it correctly in their code. This is the right approach for handling the newline issue before the next `getline`. Now, they should focus on summarizing the answers and improving output formatting, as required by the assignment.
+
+
+Yes, that's correct! `cin.ignore();` is used to clear the newline character from the input buffer before using `getline` again.
+
+Now that your input is working, how would you display a summary of all the answers at the end of your program, as the assignment asks?
+
+[02/05/2026, 05:02:43 AM] Student:
+check my work
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Blank";
+   cout <<"Thank you for interviewing you";
+
+  string interviewName;
+    cout << "What is your name? ";
+    getline(cin, interviewName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+    int age;
+    cout << "How old were you at the time";
+    cin >> age;
+
+    cin.ignore();
+
+    string location;
+    cout << "Where did you learn it?";
+    getline(cin, location);
+
+    string career;
+    cout << "did this lanuage help you in your career?";
+    getline(cin, career);
+
+    //output
+
+    cout << "Name:\t"<<interviewName <<endl;
+    cout << "First Language learned:\t"<< program <<endl;
+    cout << "Age:\t"<< age << endl;
+    cout << "Where learned?:\t"<<location<<endl;
+    cout << "How did it help with career:\t"<<career<<endl;
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 05:02:56 AM] AI-Tutor:
+The student has:
+- Used both `cin >>` and `getline` for input, with appropriate variable types.
+- Used `cin.ignore()` to handle the input buffer.
+- Collected a mixture of text and numeric data.
+- Displayed a summary of the answers at the end, using variables in the output.
+- Used `\t` and `endl` for formatting.
+
+Areas for improvement:
+- The introduction and thank you messages could be more complete, as the assignment asks for an introduction, a thank you, and a statement about inspiration.
+- The output formatting could use more `\n` for clarity.
+- The variable name `interviewName` could be more descriptive (e.g., `intervieweeName`).
+- The assignment asks for at least five questions; the student has five, which is good.
+- The program should include a comment with the URL of the interviewee's information source.
+
+I should ask the student how they could improve their introduction and thank you messages, and remind them to include a comment with the source URL.
+
+
+You're doing well! Your program collects and summarizes the answers as required. Here are a couple of things to consider:
+
+- How could you make your introduction and thank you messages more complete, as described in the assignment?
+- Did you remember to include a comment at the top of your code with the URL of the website where you found information about your interviewee?
+
+[02/05/2026, 05:03:59 AM] Student:
+check my work
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+
+//Interviewee information source
+//CS Professor UCSD CS111
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Blank";
+   cout <<"Thank you for interviewing you";
+
+  string interviewName;
+    cout << "What is your name? ";
+    getline(cin, interviewName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+    int age;
+    cout << "How old were you at the time";
+    cin >> age;
+
+    cin.ignore();
+
+    string location;
+    cout << "Where did you learn it?";
+    getline(cin, location);
+
+    string career;
+    cout << "did this lanuage help you in your career?";
+    getline(cin, career);
+
+    //output
+
+    cout << "Name:\t"<<interviewName <<endl;
+    cout << "First Language learned:\t"<< program <<endl;
+    cout << "Age:\t"<< age << endl;
+    cout << "Where learned?:\t"<<location<<endl;
+    cout << "How did it help with career:\t"<<career<<endl;
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 05:04:07 AM] AI-Tutor:
+The student has included a comment for the interviewee information source, but it is not a URL as required by the assignment. The introduction and thank you messages are still very brief and do not fully match the assignment's requirements (e.g., introducing yourself, expressing inspiration, and thanking the interviewee). The rest of the code meets the requirements for input, output, and formatting.
+
+I should ask the student to review the assignment's instructions for the introduction, thank you, and source URL, and see how they could make those parts more complete.
+
+
+You're almost there! Here are a couple of things to review:
+
+- The assignment asks you to include a **URL** as a comment for your interviewee's information source. Can you update your comment to include a web link?
+- For your introduction and thank you messages, the assignment wants you to introduce yourself, express why you are inspired, and thank the interviewee more fully. How could you expand those messages to match what the assignment describes? 
+
+Take a look at the example in the assignment and see what details you might want to add.
+
+[02/05/2026, 05:06:01 AM] Student:
+check my work
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+
+//Interviewee information source
+//CS Professor UCSD CS111
+//https://cse.ucsd.edu/people/faculty-profiles/yuanyuan-zhou
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Blank";
+   cout <<"Thank you for interviewing you";
+
+  string interviewName;
+    cout << "What is your name? ";
+    getline(cin, interviewName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+    int age;
+    cout << "How old were you at the time";
+    cin >> age;
+
+    cin.ignore();
+
+    string location;
+    cout << "Where did you learn it?";
+    getline(cin, location);
+
+    string career;
+    cout << "did this lanuage help you in your career?";
+    getline(cin, career);
+
+    //output
+
+    cout << "Name:\t"<<interviewName <<endl;
+    cout << "First Language learned:\t"<< program <<endl;
+    cout << "Age:\t"<< age << endl;
+    cout << "Where learned?:\t"<<location<<endl;
+    cout << "How did it help with career:\t"<<career<<endl;
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 05:06:10 AM] AI-Tutor:
+- The student has now included a proper URL for the interviewee information source.
+- The code collects a mix of text and numeric data, uses both `cin >>` and `getline`, and uses `cin.ignore()` correctly.
+- The summary output uses variables and some formatting.
+- However, the introduction and thank you messages are still not as complete as the assignment requires. The introduction should include the student's name, a statement about being inspired, and a thank you. The thank you at the end should also express inspiration and gratitude.
+- The output formatting could be improved with more `\n` for readability.
+
+I should ask the student to look at the assignment's example introduction and thank you, and see what details they could add to make their program match the requirements.
+
+
+You're very close! Your code now includes the required URL and collects all the needed information. 
+
+To fully meet the assignment requirements, take another look at your introduction and thank you messages. The assignment asks you to:
+- Introduce yourself and say why you are inspired by your interviewee.
+- Thank the interviewee at the end and let them know how they inspired you.
+
+How could you expand your introduction and thank you messages to include these details, similar to the example in the assignment?
+
+[02/05/2026, 05:08:43 AM] Student:
+check my work
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <string>
+
+
+//Interviewee information source
+//CS Professor UCSD CS111
+//https://cse.ucsd.edu/people/faculty-profiles/yuanyuan-zhou
+using namespace std;
+int main ()
+{
+   //Intro
+   cout << "My name is Anna";
+   cout <<"Thank you for interviewing you";
+
+  string interviewName;
+    cout << "What is your name? ";
+    getline(cin, interviewName);
+
+    string program;
+    cout << "What is your first program you first learned? ";
+    getline(cin, program);
+
+    int age;
+    cout << "How old were you at the time";
+    cin >> age;
+
+    cin.ignore();
+
+    string location;
+    cout << "Where did you learn it?";
+    getline(cin, location);
+
+    string career;
+    cout << "did this lanuage help you in your career?";
+    getline(cin, career);
+
+    cout << "Thank you for the interview, knowing this information, this will inspire me in my studies";
+    cout << "Here's a list of what I have learned from you";
+    //output
+
+    cout << "Name:\t"<<interviewName <<endl;
+    cout << "First Language learned:\t"<< program <<endl;
+    cout << "Age:\t"<< age << endl;
+    cout << "Where learned?:\t"<<location<<endl;
+    cout << "How did it help with career:\t"<<career<<endl;
+
+ return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 05:08:54 AM] AI-Tutor:
+- The student has improved the introduction and thank you messages, but they are still brief and could use more detail and formatting (e.g., newlines, tabs).
+- The introduction should include a greeting, the student's name, a statement about being inspired, and a thank you for the interviewee's time.
+- The thank you message at the end should express inspiration and gratitude more clearly, and the summary should be formatted for readability.
+- The output could use more `\n` and `\t` for clarity, as required by the assignment.
+- The code otherwise meets the requirements for input, variable types, and summary.
+
+I should ask the student how they could make their introduction and thank you messages more detailed and better formatted, using the assignment example as a guide.
+
+
+You're almost done! Your program collects and summarizes the information well. To fully match the assignment requirements, how could you:
+- Add more detail to your introduction and thank you messages (for example, include a greeting, your name, why you are inspired, and a clear thank you)?
+- Use `\n` and `\t` in your output to make it easier to read, as shown in the assignment example?
+
+Take a look at the example in the assignment and see what details and formatting you might want to add.
+
+
+================================================================================
+Student: jzh0141@gmail.com
+Assignment: HWK1
+================================================================================
+
+
+--------------------------------------------------------------------------------
+Question: <span>In this assignment, you are asked to complete a “***week01_interview***” project to design a program that would simulate an interview between you and **someone who has inspired you**. </span>
+
+<span>The following screenshot illustrates a sample run of my program, interviewing </span>[<span style="color: blue;">Dorothy Vaughan</span>](https://en.wikipedia.org/wiki/Dorothy_Vaughan)<span> who has inspired me. Items underlined by orange lines were user input for the program.</span>
+
+<span>You are asked to choose **someone else** to interview. This interviewee must be someone (real or fiction) who has inspired you and whose information can be found on a web site.</span>
+
+<span>You get to design your own five or more interview questions.</span>
+
+<span>·      It is important to introduce yourself before asking the interviewee questions.</span>
+
+<span>·      These questions must target something about the interviewee that inspired you.</span>
+
+<span>·      The prompts you design must require the program to collect a mixture of text and numeric data into variables of appropriate data types.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the **extraction operator** (&gt;&gt;) as well as the **getline** and **ignore** functions.</span>
+
+<span>You also get to design the format of summarizing what you have learned about the interviewee.</span>
+
+<span>·      It is important to thank the interviewee and let them know how they inspired you.</span>
+
+<span>·      Use variables in output statements to reflect data collected about the interviewee.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the \\t and \\n **escape sequences**.</span>
+
+<span>To receive full credit, your program must use proper indentation and descriptive variable names. In addition, use comments to include the URL of a website that provides information about your interviewee.</span>
+
+<span>You are encouraged to start the program with one interview question, run and make sure it works, add another interview question, run and make sure it works, and so on.</span>
+
+<span>When you are ready to submit your assignment</span>
+
+<span>·      Run the program and capture the screenshot of the user interaction into a PDF file.</span>
+
+<span>·      Click the Submit button on </span>[<span>Repl.it</span>](http://Repl.it)<span>.</span>
+
+<span>·      **Upload the PDF of your screenshot to the Week 01 Programming Assignment on Canvas.**</span>
+--------------------------------------------------------------------------------
+
+[01/14/2026, 10:10:46 PM] Student:
+Hello, can you help me understand the requirements of this homework?
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+[?1034h
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+[?1034h
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+[?1034h
+
+[01/14/2026, 10:10:55 PM] AI-Tutor:
+The student has not started writing code and is asking for help understanding the requirements. According to the instructions, I should not paraphrase the question for them. Instead, I should ask the student to read the description and describe what they see, so I can help them clarify any confusion.
+
+
+Can you read through the assignment description and tell me what you think the main requirements are? This will help us figure out what the program needs to do.
+
+[01/14/2026, 10:19:20 PM] Student:
+hello
+
+File(s):
+--- HWK1.cpp ---
+#include<iostream>
+using namespace std;
+
+int main(){
+    //My code here...
+}
+
+Terminal History:
+No new commands
+
+[01/14/2026, 10:19:28 PM] AI-Tutor:
+The student has started a C++ file with a basic main function and a comment, but hasn't added any logic yet. Their message is just "hello," which could mean they're checking in, testing, or unsure how to proceed. I should check in with them and ask what part of the assignment they want to work on first, or if they have any specific questions about the requirements.
+
+
+Hi! I see you've started your file. What part of the assignment would you like to work on first, or is there a specific requirement you want to talk about?
+
+[01/14/2026, 10:19:45 PM] Student:
+when should I use getline?
+
+File(s):
+--- HWK1.cpp ---
+#include<iostream>
+using namespace std;
+
+int main(){
+    //My code here...
+}
+
+Terminal History:
+No new commands
+
+[01/14/2026, 10:19:55 PM] AI-Tutor:
+The student is asking about when to use `getline`. The assignment specifically mentions that the program should demonstrate the use of both the extraction operator (`>>`) and the `getline` function. I should point them to the part of the question that talks about this, and ask them what they think it means.
+
+
+The assignment says:  
+"In addition, your program shall demonstrate proper use of the **extraction operator** (>>) as well as the **getline** and **ignore** functions."
+
+What do you think it means to use both `>>` and `getline` in your program? When might you use one instead of the other?
+
+
+================================================================================
+Student: amanyfogg@gmail.com
+Assignment: HWK1
+================================================================================
+
+
+--------------------------------------------------------------------------------
+Question: <span>In this assignment, you are asked to complete a “***week01_interview***” project to design a program that would simulate an interview between you and **someone who has inspired you**. </span>
+
+<span>The following screenshot illustrates a sample run of my program, interviewing </span>[<span style="color: blue;">Dorothy Vaughan</span>](https://en.wikipedia.org/wiki/Dorothy_Vaughan)<span> who has inspired me. Items underlined by orange lines were user input for the program.</span>
+
+<span>You are asked to choose **someone else** to interview. This interviewee must be someone (real or fiction) who has inspired you and whose information can be found on a web site.</span>
+
+<span>You get to design your own five or more interview questions.</span>
+
+<span>·      It is important to introduce yourself before asking the interviewee questions.</span>
+
+<span>·      These questions must target something about the interviewee that inspired you.</span>
+
+<span>·      The prompts you design must require the program to collect a mixture of text and numeric data into variables of appropriate data types.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the **extraction operator** (&gt;&gt;) as well as the **getline** and **ignore** functions.</span>
+
+<span>You also get to design the format of summarizing what you have learned about the interviewee.</span>
+
+<span>·      It is important to thank the interviewee and let them know how they inspired you.</span>
+
+<span>·      Use variables in output statements to reflect data collected about the interviewee.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the \\t and \\n **escape sequences**.</span>
+
+<span>To receive full credit, your program must use proper indentation and descriptive variable names. In addition, use comments to include the URL of a website that provides information about your interviewee.</span>
+
+<span>You are encouraged to start the program with one interview question, run and make sure it works, add another interview question, run and make sure it works, and so on.</span>
+
+<span>When you are ready to submit your assignment</span>
+
+<span>·      Run the program and capture the screenshot of the user interaction into a PDF file.</span>
+
+<span>·      Click the Submit button on </span>[<span>Repl.it</span>](http://Repl.it)<span>.</span>
+
+<span>·      **Upload the PDF of your screenshot to the Week 01 Programming Assignment on Canvas.**</span>
+--------------------------------------------------------------------------------
+
+[02/05/2026, 08:04:59 AM] Student:
+Hello my name is Arnold nice to meet you
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+**********************
+Windows PowerShell transcript start
+Start time: 20260205000304
+Username: DESKTOP-7DEBE2T\amany
+RunAs User: DESKTOP-7DEBE2T\amany
+Configuration Name: 
+Machine: DESKTOP-7DEBE2T (Microsoft Windows NT 10.0.22631.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoExit -Command Start-Transcript -Path 'C:\Users\amany\AppData\Local\Temp\ai-tutor-terminal-output.txt' -Append; Clear-Host
+Process ID: 13484
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\amany\AppData\Local\Temp\ai-tutor-terminal-output.txt
+
+[02/05/2026, 08:05:06 AM] AI-Tutor:
+The student has not started editing the code file yet and is introducing themselves in the chat, not in the code. The assignment requires them to write a C++ program that simulates an interview, including introducing themselves in the program output. I should help the student connect their introduction to what needs to be done in the code.
+
+
+It's great that you introduced yourself! For this assignment, you will need to write a C++ program that introduces you (the interviewer) to the interviewee as part of the program's output.
+
+What does the assignment say about how you should introduce yourself in your program?
+
+[02/05/2026, 08:14:51 AM] Student:
+Can you explain the goal of this assignment?
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+**********************
+Windows PowerShell transcript start
+Start time: 20260205000929
+Username: DESKTOP-7DEBE2T\amany
+RunAs User: DESKTOP-7DEBE2T\amany
+Configuration Name: 
+Machine: DESKTOP-7DEBE2T (Microsoft Windows NT 10.0.22631.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoExit -Command Start-Transcript -Path 'C:\Users\amany\AppData\Local\Temp\ai-tutor-terminal-output.txt' -Append; Clear-Host
+Process ID: 12980
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\amany\AppData\Local\Temp\ai-tutor-terminal-output.txt
+
+[02/05/2026, 08:14:56 AM] AI-Tutor:
+The student is asking for an explanation of the assignment's goal. According to the instructions, I should not paraphrase or summarize the assignment for them. Instead, I should direct them to read the assignment description themselves and ask them to describe what they see.
+
+
+Please read the assignment description above and describe what you see as the main goal of the assignment. What do you think you are being asked to do?
+
+[02/05/2026, 08:18:38 AM] Student:
+I already read the assignment description
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/05/2026, 08:18:42 AM] AI-Tutor:
+The student says they have read the assignment description but has not yet described what they think the goal is. I should prompt them to explain, in their own words, what they believe the assignment is asking them to do. This will help me understand their interpretation and guide them if needed.
+
+
+Can you describe, in your own words, what you think the assignment is asking you to do?
+
+[02/05/2026, 08:23:07 AM] Student:
+I think the assignment is asking me to create an interview oriented program that utilizes my knowledge of proper use of ">>", getline and ignore functions
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/05/2026, 08:23:17 AM] AI-Tutor:
+The student understands that the assignment is about creating an interview program and using the extraction operator, getline, and ignore. However, the assignment also requires other elements, such as introducing themselves, asking at least five questions, collecting both text and numeric data, using escape sequences, and summarizing the interview. I should prompt the student to identify more of these requirements.
+
+
+That's a good start! The assignment also lists some other requirements. Can you find and list at least two more things that your program needs to include, based on the assignment description?
+
+[02/05/2026, 08:31:04 AM] Student:
+What language do I code in?
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/05/2026, 08:31:08 AM] AI-Tutor:
+The assignment and the provided sample code are both in C++. The course is also about C++ programming. The student may be unsure or just double-checking. I should help them confirm this by referring them to the assignment and the sample code.
+
+
+Take a look at the sample code and the assignment description above. What programming language is used in the example provided?
+
+[02/05/2026, 08:31:50 AM] Student:
+Isnt getline and the extraction operator C++?
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/05/2026, 08:31:57 AM] AI-Tutor:
+The student is making the connection that getline and the extraction operator (>>) are features of C++. This shows they are recognizing the language context. I should confirm their observation and encourage them to proceed with C++ for this assignment.
+
+
+Yes, both `getline` and the extraction operator (`>>`) are features of C++. That means you should write your program in C++ for this assignment. 
+
+What do you think should be the first thing your C++ program does, based on the assignment description?
+
+[02/05/2026, 08:32:35 AM] Student:
+Create the main file and some other functions that I can reference inside of my main file
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/05/2026, 08:32:40 AM] AI-Tutor:
+The student wants to create the main file and additional functions. The assignment does not require the use of multiple functions, but it is acceptable if the student wants to organize their code that way. However, the assignment emphasizes introducing yourself, asking questions, and collecting input. The student has not yet started writing any code. I should encourage them to begin by setting up the main function, as that is required in every C++ program.
+
+
+Every C++ program needs a `main` function to start. According to the assignment, what should your program do first after starting?
+
+[02/05/2026, 08:40:26 AM] Student:
+Did I successfully meet all of the requirements the assignment asked of me?
+
+File(s):
+--- HWK1.cpp ---
+#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+int main(){
+    string interviewerName;
+
+    return 0;
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 08:40:31 AM] AI-Tutor:
+The student has only written the very beginning of the program: included some headers, set up the main function, and declared a string variable for the interviewer's name. They have not yet implemented any of the assignment's required features, such as introducing themselves, asking questions, collecting input, or using the required C++ input/output techniques.
+
+
+You have made a good start by setting up your main function and including the necessary headers. However, you have not yet met the requirements of the assignment. 
+
+Based on the assignment description, what are some things your program still needs to do?
+
+
+================================================================================
+Student: zyruszt@gmail.com
+Assignment: HWK1
+================================================================================
+
+
+--------------------------------------------------------------------------------
+Question: <span>In this assignment, you are asked to complete a “***week01_interview***” project to design a program that would simulate an interview between you and **someone who has inspired you**. </span>
+
+<span>The following screenshot illustrates a sample run of my program, interviewing </span>[<span style="color: blue;">Dorothy Vaughan</span>](https://en.wikipedia.org/wiki/Dorothy_Vaughan)<span> who has inspired me. Items underlined by orange lines were user input for the program.</span>
+
+<span>You are asked to choose **someone else** to interview. This interviewee must be someone (real or fiction) who has inspired you and whose information can be found on a web site.</span>
+
+<span>You get to design your own five or more interview questions.</span>
+
+<span>·      It is important to introduce yourself before asking the interviewee questions.</span>
+
+<span>·      These questions must target something about the interviewee that inspired you.</span>
+
+<span>·      The prompts you design must require the program to collect a mixture of text and numeric data into variables of appropriate data types.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the **extraction operator** (&gt;&gt;) as well as the **getline** and **ignore** functions.</span>
+
+<span>You also get to design the format of summarizing what you have learned about the interviewee.</span>
+
+<span>·      It is important to thank the interviewee and let them know how they inspired you.</span>
+
+<span>·      Use variables in output statements to reflect data collected about the interviewee.</span>
+
+<span>·      In addition, your program shall demonstrate proper use of the \\t and \\n **escape sequences**.</span>
+
+<span>To receive full credit, your program must use proper indentation and descriptive variable names. In addition, use comments to include the URL of a website that provides information about your interviewee.</span>
+
+<span>You are encouraged to start the program with one interview question, run and make sure it works, add another interview question, run and make sure it works, and so on.</span>
+
+<span>When you are ready to submit your assignment</span>
+
+<span>·      Run the program and capture the screenshot of the user interaction into a PDF file.</span>
+
+<span>·      Click the Submit button on </span>[<span>Repl.it</span>](http://Repl.it)<span>.</span>
+
+<span>·      **Upload the PDF of your screenshot to the Week 01 Programming Assignment on Canvas.**</span>
+--------------------------------------------------------------------------------
+
+[02/03/2026, 11:30:34 PM] Student:
+What is the weather today?
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+[?1034h
+
+[02/03/2026, 11:30:39 PM] AI-Tutor:
+The student has not started the programming assignment and is asking about the weather, which is unrelated to the assignment. I should gently redirect them back to the programming task and clarify what the assignment is asking them to do.
+
+
+It looks like you're asking about the weather, but this assignment is about creating a C++ program to simulate an interview with someone who has inspired you. 
+
+What do you think the first step should be for starting this program?
+
+[02/03/2026, 11:30:56 PM] Student:
+Figuring out someone who has inspired me.
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:31:01 PM] AI-Tutor:
+The student understands that the first step is to choose someone who has inspired them, which is required by the assignment. They have not yet started coding, and they are thinking about the subject of their interview. I should encourage them to pick someone and remind them that the person can be real or fictional, as long as information about them is available online.
+
+
+That's a great place to start! The assignment says:
+
+> "You are asked to choose **someone else** to interview. This interviewee must be someone (real or fiction) who has inspired you and whose information can be found on a web site."
+
+Have you thought of anyone yet, or do you want to talk through some ideas?
+
+[02/03/2026, 11:33:14 PM] Student:
+give me an idea on how to start my code for this interview.
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:33:18 PM] AI-Tutor:
+The student is asking for help getting started with their code. They have not yet written any code. According to the assignment, the program should introduce the interviewer, ask at least five questions (with a mix of text and numeric data), and use specific C++ features like the extraction operator, getline, ignore, and escape sequences. I should encourage the student to look at the assignment and identify what the first lines of code should do, rather than giving them code directly.
+
+
+The assignment says:
+
+> "It is important to introduce yourself before asking the interviewee questions."
+
+What do you think your program should display or ask the user first, based on this instruction?
+
+[02/03/2026, 11:33:39 PM] Student:
+my information
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:33:44 PM] AI-Tutor:
+The student is recognizing that the program should start by collecting or displaying their own (the interviewer's) information. They may be unsure how to do this in code. I should prompt them to think about how to ask the user for their name using C++ input/output, as the assignment expects.
+
+
+That's right! The program should start by asking for your information as the interviewer.
+
+How would you write a line of code in C++ to ask the user to enter their name?
+
+[02/03/2026, 11:34:17 PM] Student:
+cout <<"Hi, my name is Zyrus Tyson, a computer information systems student."">>;
+
+File(s):
+--- HWK1.cpp (empty - student has not yet begun editing) ---
+
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:34:22 PM] AI-Tutor:
+The student is trying to use `cout` to print an introduction, but their syntax is incorrect. They used `>>;` instead of `` at the end. They also hardcoded their name, which is fine for an introduction, but the assignment asks to prompt the user for their name. I should ask them to check the syntax for output in C++ and remind them about using `
+
+Take a look at your line of code and compare it to how C++ uses `cout` for output. The assignment also wants you to prompt the user for their name. 
+
+What do you notice about the use of `<<` with `cout` in C++? How would you fix your line to match that?
+
+[02/03/2026, 11:37:50 PM] Student:
+Whats the code to start my interview?
+
+File(s):
+--- HWK1.cpp ---
+cout << "Hi, my name is Zyrus Tyson, a computer information systems student.">>;
+
+Terminal History:
+g ++[K[K[K[Kg+= [K[K+ HWK1.cpp -0 HWK1
+clang++: [0;1;31merror: [0m[1munknown argument: '-0'[0m
+clang++: [0;1;31merror: [0m[1mno such file or directory: 'HWK1'[0m
+
+./HWK1
+bash: ./HWK1: No such file or directory
+
+[02/03/2026, 11:37:57 PM] AI-Tutor:
+The student is still struggling with the correct syntax for output in C++. Their code has a syntax error with `>>;` instead of `
+
+Let's look at what the assignment says:
+
+> "It is important to introduce yourself before asking the interviewee questions."
+
+How would you use `cout` to ask the user to enter their name, and then use `cin` or `getline` to store that name in a variable? Try writing those two lines in your code.
+
+[02/03/2026, 11:40:48 PM] Student:
+I would say cout << "What is your name?">>;
+
+File(s):
+--- HWK1.cpp ---
+cout << "Hi, my name is Zyrus Tyson, a computer information systems student.">>;
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:40:54 PM] AI-Tutor:
+The student is still using the incorrect syntax for `cout` by writing `>>;` at the end. They are on the right track with using `cout` to prompt for a name, but need to correct the syntax. I should ask them to look at the use of `
+
+Take a close look at your `cout` statement and compare it to examples from your textbook or the assignment. 
+
+What do you notice about how `cout` uses the `<<` operator for output? Can you rewrite your line to match that format?
+
+[02/03/2026, 11:42:54 PM] Student:
+What would be my cin output for the user?
+
+File(s):
+--- HWK1.cpp ---
+cout << "Hi, my name is Zyrus Tyson, a computer information systems student.">>;
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:43:00 PM] AI-Tutor:
+The student is asking how to use `cin` to get input from the user. They have not yet declared a variable to store the input, and their code is still outside of a main function. The assignment expects them to prompt for the user's name and store it in a variable. I should ask them what variable they would use to store the user's name, and how they would use `cin` or `getline` to get that input.
+
+
+If you want to get the user's name, what variable would you use to store it? How would you use `cin` or `getline` to read the user's input into that variable? Try writing those lines in your code.
+
+[02/03/2026, 11:44:05 PM] Student:
+I would write cin << "age" >>; if I want the user's age.
+
+File(s):
+--- HWK1.cpp ---
+cout << "Hi, my name is Zyrus Tyson, a computer information systems student.">>;
+
+Terminal History:
+No new commands
+
+[02/03/2026, 11:44:11 PM] AI-Tutor:
+The student is confusing the syntax for `cin` and `cout`. They are using `>` to extract input into a variable, and you cannot put a string literal inside `cin`. I should ask the student to look at how `cin` is used in examples, and what goes inside the parentheses or after the `>>`.
+
+
+Take a look at how `cin` is used in C++ examples. What do you notice about the direction of the arrows and what goes after `cin`? 
+
+How would you write a line to read the user's age into a variable called `age`?
+
+[02/04/2026, 01:20:30 AM] Student:
+What is the correct code input?
+
+File(s):
+--- HWK1.cpp ---
+for
+cout << "Hi, my name is Zyrus Tyson, a computer information systems student.">>;
+
+Terminal History:
+No new commands
+
+[02/04/2026, 01:20:37 AM] AI-Tutor:
+The student is asking for the correct code input, likely because they are confused about the syntax for `cin` and `cout`. They have not yet written a complete or correct statement for either. Instead of giving them the answer, I should encourage them to look at examples in their textbook or the assignment, and ask them to try to write the line themselves, focusing on the direction of the arrows and what goes after `cin` and `cout`.
+
+
+Look at the examples of `cin` and `cout` statements in your textbook or in the assignment description. 
+
+What do you notice about the direction of the arrows (`>`) and what comes after `cin` and `cout`? Try writing a line to ask for the user's age and store it in a variable called `age`.
+

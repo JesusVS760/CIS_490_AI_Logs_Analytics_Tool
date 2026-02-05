@@ -1,0 +1,402 @@
+Course: Senior Project - Test
+Transcripts of Student Interactions
+Generated: 02/05/2026, 08:56:41 PM
+================================================================================
+
+
+================================================================================
+Student: diepalx@gmail.com
+Assignment: HWK2
+================================================================================
+
+
+--------------------------------------------------------------------------------
+Question: <span>In this assignment, you are asked to use the “***week02_party***” project on </span>[<span>Repl.it</span>](http://Repl.it)<span> to design a program that simulates ordering food for an upcoming event. This assignment helps you review user interaction from the first week and practice arithmetic expressions.</span>
+
+<span>The screenshot on the next page illustrates two sample runs of a successful program. Items underlined by orange lines were user input for the program.</span>
+
+<span>As shown in the screenshot, the program shall prompt for and collect the following data from a party host:</span>
+
+<span>·      The total number of days before the event,</span>
+
+<span>·      The event occasion,</span>
+
+<span>·      The number of people invited to the party,</span>
+
+<span>·      The number of pizzas and number of soda cases to be ordered.</span>
+
+<span>After collecting the above data, the program shall set up appropriate arithmetic expressions to help display the following: (**Hint**: use integer division and modulus operators for all but the total cost of the food.)</span>
+
+<span>·      The number of weeks and the remaining days before the event.</span>
+
+<span>·      The number of pizza slices each guest could get and the remaining pizza slices after all guests receive their slices.</span>
+
+<span>·      The number of soda cans each guest could get and the remaining soda cans after all guests receive their soda.</span>
+
+<span>·      The total cost for the food assuming no tax and delivery fee.</span>
+
+<span>Note that the sample program is executed assuming each pizza costs $15.99 and has 8 slices and each soda case costs $7.99 and has 6 cans. You are welcome to use a different cost and quantity.</span>
+
+<span>To receive full credit, your program must use proper indentation and descriptive variable names.</span>
+--------------------------------------------------------------------------------
+
+[02/05/2026, 12:34:30 AM] Student:
+help me with coding addition
+
+File(s):
+--- HWK2.cpp ---
+#include <iostream>
+using namespace std;
+int main ()
+{
+
+}
+
+Terminal History:
+**********************
+Windows PowerShell transcript start
+Start time: 20260204163354
+Username: LAPTOP-ALEXDIEP\Alex
+RunAs User: LAPTOP-ALEXDIEP\Alex
+Configuration Name: 
+Machine: LAPTOP-ALEXDIEP (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoExit -Command Start-Transcript -Path 'C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt' -Append; Clear-Host
+Process ID: 22616
+PSVersion: 5.1.26100.7705
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7705
+BuildVersion: 10.0.26100.7705
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt
+
+[02/05/2026, 12:34:35 AM] AI-Tutor:
+The student has just started their program and only has the main function. They are asking for help with "coding addition," but it's not clear what they want to add. The assignment asks for several arithmetic calculations (weeks/days, pizza slices, soda cans, total cost). I need to clarify what they mean by "addition" and which part of the assignment they want to work on.
+
+
+Can you tell me what you want to add in your program? Are you trying to add two numbers together, or are you referring to one of the calculations described in the assignment?
+
+[02/05/2026, 12:34:55 AM] Student:
+yes
+
+File(s):
+--- HWK2.cpp ---
+#include <iostream>
+using namespace std;
+int main ()
+{
+
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 12:35:00 AM] AI-Tutor:
+The student answered "yes," but it's not clear which part of the assignment or which addition they are referring to. The assignment requires several calculations, and I need the student to specify which one they want to work on. I should refer them to the assignment description and ask them to pick one calculation to start with.
+
+
+The assignment asks you to do several calculations, such as:
+- Finding the number of weeks and days before the event,
+- Calculating pizza slices and soda cans per guest,
+- Finding the total cost of the food.
+
+Which one would you like to start with?
+
+[02/05/2026, 12:35:23 AM] Student:
+pizza slices and soda cans
+
+File(s):
+--- HWK2.cpp ---
+#include <iostream>
+using namespace std;
+int main ()
+{
+
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 12:35:28 AM] AI-Tutor:
+The student wants to work on the calculations for pizza slices and soda cans per guest. According to the assignment, they need to:
+- Calculate the total number of pizza slices and soda cans,
+- Determine how many each guest gets (using integer division),
+- Find out how many are left over (using modulus).
+
+The student hasn't written any code for this yet. I should ask them what information they need from the user to do these calculations, as described in the assignment.
+
+
+To calculate pizza slices and soda cans per guest, what information do you need to ask the user for? Look at the assignment description and list the inputs you think you'll need.
+
+[02/05/2026, 02:08:30 AM] Student:
+check my work
+
+File(s):
+--- HWK2.cpp ---
+#include <iostream>
+#include <string>
+using namespace std;
+int main ()
+{
+//constants
+const double COST_PIZZA = 15.99;
+const int PIZZA_SLICE_PRE = 8;
+const double SODA_COST_CASE = 7.99;
+const int  CASE_SODA_CAN = 6;
+
+//input variables
+int daysEventBefore;
+string Occasion;
+int GuestNumber;
+int PizzaNumber;
+int SodaCaseNumber;
+
+
+//user input
+cout << "Total Number of Days before event: Please Enter";
+cin >>  daysEventBefore;
+
+cin.ignore();
+cout << "Event Occasion: Please Enter";
+getline(cin, Occasion);
+
+cout << "People Invited: Please Enter:";
+cin >> GuestNumber;
+
+cout << "Pizza Number to be Ordered: Please Enter:";
+cin >> PizzaNumber;
+
+cout << "Soda Cases to be Entered: Please Enter:";
+cin >> SodaCaseNumber;
+
+//Calcuate Time
+int weekEventBefore = daysEventBefore / 7;
+int daysRemaining = daysEventBefore  % 7;
+
+//Calcuate Pizza 
+
+int totalSlicePizza = PizzaNumber * PIZZA_SLICE_PRE;
+int slicesGuest = totalSlicePizza / GuestNumber;
+int remainSlice = totalSlicePizza % GuestNumber;
+
+//Calcuate Soda
+
+int totalSoda = SodaCaseNumber * CASE_SODA_CAN;
+int cansGuest = totalSoda / GuestNumber;
+int remainCan = totalSoda & GuestNumber;
+
+// Total Cost
+
+double totalPizza = PizzaNumber * COST_PIZZA;
+double totalSoda = SodaCaseNumber * SODA_COST_CASE;
+double totalCost = totalPizza + totalSoda;
+
+ // Convert total to cents (rounded)
+    int totalCostCents = static_cast<int>(totalCost * 100 + 0.5);
+    int dollars = totalCostCents / 100;
+    int cents = totalCostCents % 100;
+
+    // --- Output ---
+    cout << "\n--- Party Summary ---" << endl;
+    cout << "Occasion: " << Occasion << endl;
+    cout << "event in " << weekEventBefore
+         << " weeks and " << daysRemaining << " days." << endl;
+
+    cout << "\nPizza:" << endl;
+    cout << "guest gets " << slicesGuest << " slice(s)." << endl;
+    cout << "Remaining pizza slices: " << remainSlice << endl;
+
+    cout << "\nSoda:" << endl;
+    cout << "guest gets " << cansGuest << " can(s)." << endl;
+    cout << "Remaining soda cans: " << remainCan << endl;
+
+    cout << "\nTotal food cost (no tax or delivery): $"
+         << dollars << ".";
+
+    if (cents < 10) {
+        cout << "0";
+    }
+
+    cout << cents << endl;
+
+    return 0;
+
+
+
+
+
+
+}
+
+Terminal History:
+**********************
+Windows PowerShell transcript start
+Start time: 20260204180821
+Username: LAPTOP-ALEXDIEP\Alex
+RunAs User: LAPTOP-ALEXDIEP\Alex
+Configuration Name: 
+Machine: LAPTOP-ALEXDIEP (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoExit -Command Start-Transcript -Path 'C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt' -Append; Clear-Host
+Process ID: 36272
+PSVersion: 5.1.26100.7705
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7705
+BuildVersion: 10.0.26100.7705
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\gamer\AppData\Local\Temp\ai-tutor-terminal-output.txt
+
+[02/05/2026, 02:08:45 AM] AI-Tutor:
+The student has written a full program that collects user input, performs calculations, and outputs results. I need to check if:
+- All required inputs are collected.
+- Calculations for pizza slices and soda cans per guest are correct.
+- The output matches the assignment requirements.
+- There are any syntax or logic errors.
+I notice a possible issue with the calculation for remaining soda cans (`remainCan = totalSoda & GuestNumber;`), which uses the bitwise AND operator instead of modulus. Also, variable names and prompts could be improved for clarity, and there are some minor formatting issues.
+
+
+Here are some things to check in your code:
+
+1. **Calculation for Remaining Soda Cans**  
+   - You wrote: `int remainCan = totalSoda & GuestNumber;`  
+   - The assignment asks you to use the modulus operator (`%`) to find the remainder.  
+   - What do you think the difference is between `&` and `%` in this context?
+
+2. **Variable Names and Prompts**  
+   - Your variable names are mostly descriptive, which is good!
+   - Some of your prompts could be clearer for the user. For example, `"Soda Cases to be Entered: Please Enter:"` could be `"Enter the number of soda cases to order:"`.
+
+3. **Output Formatting**  
+   - Your output covers all the required information.
+   - You are converting the total cost to dollars and cents, which is a nice touch.
+
+4. **Testing**  
+   - Have you tried running your code with different inputs to see if the outputs make sense, especially for the pizza and soda calculations?
+
+Can you try fixing the calculation for `remainCan` and then test your program to see if the results look correct?
+
+[02/05/2026, 02:10:28 AM] Student:
+check my work, thank you for looking for that mistake
+
+File(s):
+--- HWK2.cpp ---
+#include <iostream>
+#include <string>
+using namespace std;
+int main ()
+{
+//constants
+const double COST_PIZZA = 15.99;
+const int PIZZA_SLICE_PRE = 8;
+const double SODA_COST_CASE = 7.99;
+const int  CASE_SODA_CAN = 6;
+
+//input variables
+int daysEventBefore;
+string Occasion;
+int GuestNumber;
+int PizzaNumber;
+int SodaCaseNumber;
+
+
+//user input
+cout << "Total Number of Days before event: Please Enter";
+cin >>  daysEventBefore;
+
+cin.ignore();
+cout << "Event Occasion: Please Enter";
+getline(cin, Occasion);
+
+cout << "People Invited: Please Enter:";
+cin >> GuestNumber;
+
+cout << "Pizza Number to be Ordered: Please Enter:";
+cin >> PizzaNumber;
+
+cout << "Soda Cases to be Entered: Please Enter:";
+cin >> SodaCaseNumber;
+
+//Calcuate Time
+int weekEventBefore = daysEventBefore / 7;
+int daysRemaining = daysEventBefore  % 7;
+
+//Calcuate Pizza 
+
+int totalSlicePizza = PizzaNumber * PIZZA_SLICE_PRE;
+int slicesGuest = totalSlicePizza / GuestNumber;
+int remainSlice = totalSlicePizza % GuestNumber;
+
+//Calcuate Soda
+
+int totalSoda = SodaCaseNumber * CASE_SODA_CAN;
+int cansGuest = totalSoda / GuestNumber;
+int remainCan = totalSoda % GuestNumber;
+
+// Total Cost
+
+double totalPizza = PizzaNumber * COST_PIZZA;
+double totalSoda = SodaCaseNumber * SODA_COST_CASE;
+double totalCost = totalPizza + totalSoda;
+
+ // Convert total to cents (rounded)
+    int totalCostCents = static_cast<int>(totalCost * 100 + 0.5);
+    int dollars = totalCostCents / 100;
+    int cents = totalCostCents % 100;
+
+    // --- Output ---
+    cout << "\n--- Party Summary ---" << endl;
+    cout << "Occasion: " << Occasion << endl;
+    cout << "event in " << weekEventBefore
+         << " weeks and " << daysRemaining << " days." << endl;
+
+    cout << "\nPizza:" << endl;
+    cout << "guest gets " << slicesGuest << " slice(s)." << endl;
+    cout << "Remaining pizza slices: " << remainSlice << endl;
+
+    cout << "\nSoda:" << endl;
+    cout << "guest gets " << cansGuest << " can(s)." << endl;
+    cout << "Remaining soda cans: " << remainCan << endl;
+
+    cout << "\nTotal food cost (no tax or delivery): $"
+         << dollars << ".";
+
+    if (cents < 10) {
+        cout << "0";
+    }
+
+    cout << cents << endl;
+
+    return 0;
+
+
+
+
+
+
+}
+
+Terminal History:
+No new commands
+
+[02/05/2026, 02:10:38 AM] AI-Tutor:
+The student fixed the modulus operator for the soda calculation. The code now uses `%` for `remainCan`, which is correct. The rest of the code appears to follow the assignment requirements: it collects all necessary inputs, performs the required calculations, and outputs the results in a clear format. The variable names are descriptive, and the output is organized. The only minor issues are with the wording of the prompts and some formatting, but the logic is sound.
+
+
+Your code now correctly calculates the pizza slices and soda cans per guest, as well as the remainders. Here are a few things to review:
+
+- **You fixed the modulus operator for soda cans, which is great!**
+- **Your calculations and output cover all the requirements from the assignment.**
+- **Your variable names are descriptive and your code is well-organized.**
+
+A couple of small suggestions:
+- You might want to make your prompts a little clearer for the user. For example, `"Total Number of Days before event: Please Enter"` could be `"Enter the total number of days before the event: "`.
+- Try running your program with different inputs to make sure all the calculations work as expected.
+
+Otherwise, your work looks good! If you notice any unexpected results when you test, let me know what you see.
+
