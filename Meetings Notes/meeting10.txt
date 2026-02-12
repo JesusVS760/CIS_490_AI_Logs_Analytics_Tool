@@ -1,0 +1,9 @@
+MEETING #10
+Feb 9
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We had discussed some things we would like to implement for our project, such as the SQL based database for log storage and authentication, Next.js with typescript being the primary development framework, how our ideal performance would be <3 response time.
+
+Minutes Met: 35 minutes
