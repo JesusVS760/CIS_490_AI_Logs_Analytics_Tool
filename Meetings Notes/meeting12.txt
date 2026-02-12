@@ -1,0 +1,19 @@
+MEETING #12
+Feb 11
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We discussed our week 4 deliverables as well as the progress made thus far.
+We reviewed the Report 1, what has been done, what hasn't, and when members will begin working on their respective sections. Since none of the sections have dependencies as long as they are completed before Sunday, Feb 15, we’re on schedule.
+We discussed the UI design planning and how we’ll set up the structure
+As discussed last meeting we have our roles for what should be completed for the wireframe by who:
+Sign-Up Page – Zyrus
+Verification Page – Zyrus
+Login Page – Amany
+Password Reset Page – Amany
+Dashboard Page – Jesus
+Settings Page – Alex
+
+
+Minutes Met: 40 minutes
