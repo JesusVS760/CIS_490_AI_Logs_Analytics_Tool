@@ -1,0 +1,11 @@
+MEETING #5
+Feb 4
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We continued to work on the 9-week plan in small increments, utilizing our time well
+We also made sure to revise the github repo to make it more structured.
+We had also discussed our testing of the AI Tutor and what has and hasn't been effective such as how the AI Tutor had suddenly stalled in a prolonged loading state causing one of us users to close the software entirely in order for the AI Tutor to function again as desired.
+
+Minutes Met: 40 minutes
