@@ -1,0 +1,10 @@
+MEETING #8
+Feb 7
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We had to go back and revise the earlier implemented Use cases because we had misinterpreted them and needed to re-write them.
+We shared progress updates with the AI Tutor and how everyone's been interacting with it, Jesus had mentioned he was able to get some code samples from the tutor after asking numerous times.
+
+Minutes Met: 50 minutes
