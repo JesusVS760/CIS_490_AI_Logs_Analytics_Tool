@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import "@/styles/globals.css";
+// import "@/styles/globals.css";
+import "./globals.css";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/ui/app-sidebar";
 
 export const metadata: Metadata = {
   title: "AI Tutor Analytics",
@@ -13,7 +16,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="flex h-screen">
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="flex-1 flex flex-col overflow-auto">
+            <SidebarTrigger />
+            {children}
+          </main>
+        </SidebarProvider>
+      </body>
     </html>
   );
 }
