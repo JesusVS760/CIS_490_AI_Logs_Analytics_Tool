@@ -1,7 +1,15 @@
+import { Button } from "@/components/ui/button";
+
 export default function DashboardPage() {
   return (
     <main>
-      <h1 className="font-bold text-2xl text-violet-600 ">Dashboard</h1>
+      <h1>Dashboard</h1>
+      <Button>Button</Button>
+      <div className="flex items-start gap-2">
+        <Button size="sm" variant="outline">
+          Extra Small
+        </Button>
+      </div>
     </main>
   );
 }
