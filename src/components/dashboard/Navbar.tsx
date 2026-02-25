@@ -3,6 +3,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Settings } from "lucide-react";
 import SearchBar from "./SearchBar";
+import Notifications from "./Notifications";
 
 export default function Navbar() {
   return (
@@ -18,6 +19,7 @@ export default function Navbar() {
             className="cursor-pointer flex items-center gap-3"
           >
             <SearchBar />
+            <Notifications />
             <Settings />
           </button>
         </div>
