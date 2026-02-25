@@ -10,7 +10,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Upload, Settings, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Upload,
+  Settings,
+  LogOut,
+  CircleUserIcon,
+} from "lucide-react";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -21,9 +27,11 @@ const navItems = [
 
 export function AppSidebar() {
   return (
-    <Sidebar>
-      <SidebarHeader className="px-4 py-3 text-lg font-semibold">
-        AI Tutor Analytics
+    <Sidebar collapsible="offcanvas" className="relative z-10 h-full">
+      <SidebarHeader className="px-4 py-3 text-lg font-semibold flex flex-row items-center justify-start">
+        {/*Future Update: dynamically render a user*/}
+        <CircleUserIcon size={20} />
+        <p>User</p>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

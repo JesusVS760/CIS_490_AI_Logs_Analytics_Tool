@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-// import "@/styles/globals.css";
 import "./globals.css";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/app-sidebar";
+import Navbar from "@/components/dashboard/Navbar";
 
 export const metadata: Metadata = {
   title: "AI Tutor Analytics",
@@ -15,14 +15,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="flex h-screen">
-        <SidebarProvider>
+    <html lang="en" className="h-full">
+      <body className="h-full">
+        <SidebarProvider style={{ display: "flex", minHeight: "100vh" }}>
           <AppSidebar />
-          <main className="flex-1 flex flex-col overflow-auto">
-            <SidebarTrigger />
-            {children}
-          </main>
+          <SidebarInset
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Navbar />
+            <main className="flex-1 p-6">{children}</main>
+          </SidebarInset>
         </SidebarProvider>
       </body>
     </html>
