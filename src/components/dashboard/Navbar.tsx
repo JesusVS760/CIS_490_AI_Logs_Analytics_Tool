@@ -1,6 +1,8 @@
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Settings } from "lucide-react";
+import SearchBar from "./SearchBar";
 
 export default function Navbar() {
   return (
@@ -8,7 +10,18 @@ export default function Navbar() {
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
-      <h1 className="text-lg font-semibold">AI Tutor Analytics</h1>
+      <div className="flex justify-between w-full">
+        <h1 className="text-lg font-semibold">AI Tutor Analytics</h1>
+        <div>
+          <button
+            type="button"
+            className="cursor-pointer flex items-center gap-3"
+          >
+            <SearchBar />
+            <Settings />
+          </button>
+        </div>
+      </div>
     </header>
   );
 }

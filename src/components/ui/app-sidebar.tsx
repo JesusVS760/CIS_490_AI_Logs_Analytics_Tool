@@ -40,7 +40,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild className="cursor-pointer">
                     <a href={item.href}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
