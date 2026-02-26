@@ -17,7 +17,9 @@ export default function Navbar() {
           <section className="cursor-pointer flex items-center gap-3">
             <SearchBar />
             <Notifications />
-            <Settings />
+            <a href="/settings">
+              <Settings />
+            </a>
           </section>
         </div>
       </div>
