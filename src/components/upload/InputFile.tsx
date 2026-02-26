@@ -5,7 +5,7 @@ export function InputFile() {
   return (
     <Field className="w-full max-w-sm">
       <FieldLabel htmlFor="picture">Upload Documents</FieldLabel>
-      <Input id="picture" type="file" />
+      <Input id="picture" type="file" className="cursor-pointer" />
       <FieldDescription>Select a transcript to upload.</FieldDescription>
     </Field>
   );

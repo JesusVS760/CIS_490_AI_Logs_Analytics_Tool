@@ -14,14 +14,11 @@ export default function Navbar() {
       <div className="flex justify-between w-full">
         <h1 className="text-lg font-semibold">AI Tutor Analytics</h1>
         <div>
-          <button
-            type="button"
-            className="cursor-pointer flex items-center gap-3"
-          >
+          <section className="cursor-pointer flex items-center gap-3">
             <SearchBar />
             <Notifications />
             <Settings />
-          </button>
+          </section>
         </div>
       </div>
     </header>
