@@ -21,8 +21,6 @@ import {
 import { AlertCard } from "./AlertCard";
 
 const Notifications = () => {
-  const handleClick = () => {};
-
   return (
     <Sheet>
       <SheetTrigger asChild>

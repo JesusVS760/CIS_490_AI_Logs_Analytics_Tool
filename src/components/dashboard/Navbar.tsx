@@ -1,7 +1,7 @@
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Settings } from "lucide-react";
+import { ChartBar, LineChart, Settings } from "lucide-react";
 import SearchBar from "./SearchBar";
 import Notifications from "./Notifications";
 
@@ -12,7 +12,10 @@ export default function Navbar() {
         <SidebarTrigger />
       </div>
       <div className="flex justify-between w-full">
-        <h1 className="text-lg font-semibold">AI Tutor Analytics</h1>
+        <div className="flex items-center justify-center gap-2">
+          <h1 className="text-lg font-semibold">AI Tutor Analytics</h1>
+          <LineChart className="hidden md:block" />
+        </div>
         <div>
           <section className="cursor-pointer flex items-center gap-3">
             <SearchBar />
