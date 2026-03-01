@@ -4,9 +4,12 @@ import { useRouter } from "next/navigation";
 
 
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
+declare global 
+{
+  namespace JSX 
+  {
+    interface IntrinsicElements 
+    {
       [elemName: string]: any;
     }
   }
@@ -129,7 +132,7 @@ export default function SettingClient(): any
         type="text"
         placeholder="New Username"
         value={newNameUser}
-        onChange={(e) => setNewNameUser(e.target.value)}
+        onChange={(e: { target: { value: any; }; }) => setNewNameUser(e.target.value)}
         className="p-2 border rounded mb-2 text-black"
       />
       <br />
@@ -146,7 +149,7 @@ export default function SettingClient(): any
           type="password"
           placeholder="New Password"
           value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
+          onChange={(e: { target: { value: any; }; }) => setNewPassword(e.target.value)}
           className="p-2 border rounded mb-2 text-black"
         />
         <br />
@@ -178,7 +181,7 @@ export default function SettingClient(): any
           type="text"
           placeholder="Enter API Endpoint URL"
           value={pointend}
-          onChange={(e) => setPointEnd(e.target.value)}
+          onChange={(e: { target: { value: any; }; }) => setPointEnd(e.target.value)}
           className="p-2 border rounded mb-2 text-black"
         />
         <br />
@@ -199,8 +202,8 @@ export default function SettingClient(): any
       </button>
     </div>
   );
-
 }
+
 
 
 //Original Code Provided by the user, commented out for reference
