@@ -1,0 +1,11 @@
+MEETING #27
+Feb 27
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We reviewed general JSX and typescript structure. Event handling concepts were discussed such as onChange and onSubmit and the importance of placing handler functions above the return statement within the components.
+State management was reviewed, emphasized state and setter functions allowing updates across renders.
+The team also discussed the need for nav and page access through API endpoint functions
+
+Minutes Met: 45 minutes
