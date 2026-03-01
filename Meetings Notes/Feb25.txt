@@ -1,0 +1,12 @@
+MEETING #25
+Feb 25
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We met up and discussed technical standards.
+The pages were agreed upon to be built using JSX with typescript, as opposed to just HTML
+Attributes should use className and not class, the correct config file being tailwind.config.ts 
+We also reviewed Tailwind CSS and the installation process for dependencies 
+
+Minutes Met: 35 minutes
