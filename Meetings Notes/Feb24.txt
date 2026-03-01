@@ -1,0 +1,16 @@
+MEETING #24
+Feb 24
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We assigned each member individual tasks.
+Each member assigned a specific page to implement and push into the github repository, ensuring functionalities and consistency:
+Alex: Settings page (polished version) and Assignment Aggregator
+Amany: Login and Reset Account pages (polished version), Frequency Tracker, and Metric Module
+Zyrus: Sign Up and Verification pages, Engagement Detector
+Jesus: Dashboard polishing and Category Filter
+
+
+
+Minutes Met: 35 minutes
