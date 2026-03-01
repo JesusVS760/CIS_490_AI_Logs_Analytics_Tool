@@ -1,0 +1,19 @@
+MEETING #28
+Feb 28
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+This was the day that the team would ideally have fully implemented their pages so we could discuss and review each of them.
+Alex confirmed completion of the Settings page, a minor issue where dark mode was only applied locally rather than globally. 
+Jesus and Zyrus acknowledged that their Dashboard and Sign Up/Verification pages were still pending implementation into the GitHub repository
+Amany confirmed completion of the Login and Reset Account pages, with feedback provided that the implementation should be refactored to reduce unnecessary complexity and include additional login options such as Google and GitHub auth.
+Lastly, we clarified the project priority levels:
+1) Refactor/fix existing pages(due tues)
+2) Doing the HW3/HW4 assignments for more Ai Tutor data from the logs(due tues)
+3) Start the metric module, frequency tracker, assignment aggregator, engagement detector, category filter(due date expected 2-3 weeks, actual TBA)
+
+
+We made an agreed extension to Tuesday, March 3rd since we have some more fixes/refactoring to get done.
+
+Minutes Met: 70 minutes
