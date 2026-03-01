@@ -1,7 +1,7 @@
 "use client";
 
-// register/page.tsx
-// Register page that matches the structure/style patterns used in login/page.tsx
+// The register page/page.tsx
+
 
 import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
