@@ -11,20 +11,17 @@ import { Label } from "@/components/ui/label"; // Imports shared label component
 
 // Defines the TypeScript shape for reset form fields
 type ResetFormState = {
-  
   email: string; // This is the user email input value
 };
 
 // Defines the expected reset API response structure
 type ResetApiResponse = {
-  
   success: boolean; // Indicates if reset request succeeded
   message: string; // Response message
 };
 
 // This provides the initial values so the form starts in a known state
 const initialState: ResetFormState = {
-
   email: "", // Starts with an empty email field
 };
 
@@ -33,23 +30,19 @@ function parseResetPayload(payload: unknown): ResetApiResponse {
   // If segment that handles the case where the backend returns string based JSON
   if (typeof payload === "string") {
     try {
-      
       return JSON.parse(payload) as ResetApiResponse; // Parse string payload into the expected reset response type
     } catch {
-      
       return { success: false, message: "Invalid API response format." }; // This returns a safe fallback if parsing fails
     }
   }
 
   // If segment that handles the case where backend returns an object payload
   if (payload && typeof payload === "object") {
-    
     const data = payload as Partial<ResetApiResponse>; // Narrow unknown payload to partial response fields
     // Return normalized values with fallbacks for missing fields
     return {
-      
       success: Boolean(data.success), // Coerce success to a strict boolean
-      
+
       message: data.message ?? "Request completed.", // Uses a backend message if present, otherwise a default msg "Request Completed"
     };
   }
@@ -59,26 +52,22 @@ function parseResetPayload(payload: unknown): ResetApiResponse {
 
 // Exports the reset page component for the /reset-account route
 export default function ResetAccountPage() {
-  
   const [formState, setFormState] = useState<ResetFormState>(initialState); // Holds current form values in component state
   const [loading, setLoading] = useState(false); // Tracks submit loading state to disable button and show progress text
   const [statusMessage, setStatusMessage] = useState<string | null>(null); // Stores status/error message to display below the form
 
   // Handles email input change with typed event
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-
     setFormState({ email: e.target.value }); // Replaces the form state with the current email field value
   };
 
   // Handles the form submission with API call
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    
     e.preventDefault(); // Prevents default full-page form submit behavior
     setLoading(true); // Mark request as in progress
     setStatusMessage(null); // Clear any previous status message before new attempt
 
     try {
-      
       const response = await axios.post("/api/auth/reset", formState); // Sends the reset request to auth endpoint with current form state
       const data = parseResetPayload(response.data); // Normalizes the API response payload shape for safe usage
       setStatusMessage(data.message); // This shows the backend response message to user
@@ -88,10 +77,10 @@ export default function ResetAccountPage() {
         setStatusMessage(
           // Uses the server message when present, otherwise its the hard coded message provided below
           (error.response?.data as { message?: string } | undefined)?.message ??
-            "Failed to send reset link."
+            "Failed to send reset link.",
         );
       } else {
-        // Else segment that handles non axios unexpected runtime errors 
+        // Else segment that handles non axios unexpected runtime errors
         setStatusMessage("Unexpected error. Please try again.");
       }
     } finally {
@@ -105,7 +94,9 @@ export default function ResetAccountPage() {
     // Outer card container styled with Tailwind utility classes
     <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
       {/* Page heading for reset screen */}
-      <h1 className="text-center text-3xl font-semibold text-slate-900">Reset account</h1>
+      <h1 className="text-center text-3xl font-semibold text-slate-900">
+        Reset account
+      </h1>
       {/* Instructional text under heading */}
       <p className="mt-2 text-center text-sm text-slate-600">
         Enter your email to receive a reset link for your account.
@@ -142,14 +133,18 @@ export default function ResetAccountPage() {
       {/* Conditionally render status message when one exists */}
       {statusMessage ? (
         // Error/status feedback text
-        <p className="mt-4 text-center text-sm text-slate-700">{statusMessage}</p>
+        <p className="mt-4 text-center text-sm text-slate-700">
+          {statusMessage}
+        </p>
       ) : null}
 
       {/* Navigation text and link back to login page */}
       <p className="mt-4 text-center text-sm text-slate-600">
-        Remembered your password?{" "}
-        {/* Link back to login route */}
-        <Link href="/login" className="underline underline-offset-4 hover:no-underline">
+        Remembered your password? {/* Link back to login route */}
+        <Link
+          href="/login"
+          className="underline underline-offset-4 hover:no-underline"
+        >
           Back to login
         </Link>
       </p>
