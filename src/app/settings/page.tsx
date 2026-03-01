@@ -61,7 +61,7 @@ export default function SettingClient()
   //Change the username
   const changeUsername = () =>
   {
-    if (!newNameUser.trim()) return alert ("Username cannot be empty");
+    if (newNameUser.trim()) return alert ("Username cannot be empty");
 
     localStorage.setItem("username", newNameUser);
     setNameUser(newNameUser);
@@ -71,138 +71,11 @@ export default function SettingClient()
   //Change the password
   const changePassword = () =>
   {
-    if (!newPassword.trim()) return alert ("Password cannot be empty");
+    if (newPassword.trim()) return alert ("Password cannot be empty");
 
     localStorage.setItem("Password", newPassword);
     router.push("/login");
   };
-
-  //delete account
-  const deleteAccount = () =>
-  {
-    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) 
-    {
-      localStorage.clear();
-      router.push("/login");
-    }
-  };
-
-  //Get API endpoint + Route
-  const getEndpoint = async () =>
-  {
-    try
-    {
-      const response = await fetch("endpoint");
-
-      if(response.ok)
-      {
-        router.push("/Upload point")//Valid API Route
-        {
-          else
-            {
-              router.push("/Invalid Page")//Invalid Custom Page
-            }
-            catch (error)
-            {
-              router.push("/Error Page")//Error Custom Page
-            }
-        }
-      }
-    }
-  };
-
-  return (
-    <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
-
-      {/* Dark Mode */}
-      <button
-        onClick={darkModeToggle}
-        className="mb-6 px-4 py-2 bg-blue-600 text-white rounded"
-      >
-        Switch to {darkMode ? "Light" : "Dark"} Mode
-      </button>
-
-      {/* Username */}
-      <p className="mb-4">
-        <strong>Current Username:</strong> {username || "Not Set"}
-      </p>
-
-      <input
-        type="text"
-        placeholder="New Username"
-        value={newNameUser}
-        onChange={(e) => setNewNameUser(e.target.value)}
-        className="p-2 border rounded mb-2 text-black"
-      />
-      <br />
-      <button
-        onClick={changeUsername}
-        className="mb-6 px-4 py-2 bg-green-600 text-white rounded"
-      >
-        Update Username
-      </button>
-
-      {/* Reset Password */}
-      <div className="mb-6">
-        <input
-          type="password"
-          placeholder="New Password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className="p-2 border rounded mb-2 text-black"
-        />
-        <br />
-        <button
-          onClick={changePassword}
-          className="px-4 py-2 bg-yellow-600 text-white rounded"
-        >
-          Reset Password
-        </button>
-      </div>
-
-      {/* Uploaded Logs */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Uploaded Logs</h2>
-        {logs.length === 0 ? (
-          <p>No logs found.</p>
-        ) : (
-          <ul className="list-disc pl-6">
-            {logs.map((log, index) => (
-              <li key={index}>{log}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Fetch API Endpoint */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Enter API Endpoint URL"
-          value={endpoint}
-          onChange={(e) => setEndpoint(e.target.value)}
-          className="p-2 border rounded mb-2 text-black"
-        />
-        <br />
-        <button
-          onClick={handleFetchEndpoint}
-          className="px-4 py-2 bg-purple-600 text-white rounded"
-        >
-          Fetch Endpoint
-        </button>
-      </div>
-
-      {/* Delete Account */}
-      <button
-        onClick={handleDeleteAccount}
-        className="px-4 py-2 bg-red-700 text-white rounded"
-      >
-        Delete Account
-      </button>
-    </div>
-  );
-
 }
 
 
