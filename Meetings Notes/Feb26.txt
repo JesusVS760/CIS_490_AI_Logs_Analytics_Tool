@@ -1,0 +1,10 @@
+MEETING #26
+Feb 26
+
+Attendance: Jesus Vazquez, Zyrus Tyson, Amany Fogg, Alexander Diep
+
+Meeting Discussion:
+We had discussed the UI consistency and overall standards we’d hold ourselves to.
+The team all were shown the global CSS file for consistent styling usage.
+
+Minutes Met: 20 minutes
