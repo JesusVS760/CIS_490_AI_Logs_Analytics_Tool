@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function SettingClient(): any {
   const router = useRouter();
@@ -9,28 +11,22 @@ export default function SettingClient(): any {
   const [nameUser, setNameUser] = useState("");
   const [newNameUser, setNewNameUser] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [log, setLog] = useState<string[]>([]);
-  const [pointEnd, setPointEnd] = useState("");
 
   useEffect(() => {
     const themeSaved = localStorage.getItem("theme");
     const usernameSaved = localStorage.getItem("username");
-    const logSaved = JSON.parse(localStorage.getItem("log") || "[]");
 
     if (themeSaved === "dark") {
       document.documentElement.classList.add("dark");
       setModeDark(true);
     }
-
-    if (usernameSaved) setNameUser(usernameSaved);
-    setLog(logSaved);
   }, []);
 
   // Function to toggle between light and dark mode
   const darkModeToggle = () => {
     const themeNew = !modeDark;
+    toast("changed mode ✅");
     setModeDark(themeNew);
-
     if (themeNew) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
@@ -69,23 +65,9 @@ export default function SettingClient(): any {
     }
   };
 
-  //Get API endpoint + Route
-  const getEndpoint = async () => {
-    try {
-      const response = await fetch("endpoint");
-
-      if (response.ok) {
-        router.push("/Upload point"); //Valid API Route
-      } else {
-        router.push("/Invalid Page"); //Invalid Custom Page
-      }
-    } catch (error) {
-      router.push("/Error Page"); //Error Custom Page
-    }
-  };
-
   return (
     <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
+      <Toaster />
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
       {/* Dark Mode */}
@@ -135,40 +117,6 @@ export default function SettingClient(): any {
           className="px-4 py-2 bg-yellow-600 text-white rounded cursor-pointer"
         >
           Reset Password
-        </button>
-      </div>
-
-      {/* Uploaded Logs */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Uploaded Logs</h2>
-        {log.length === 0 ? (
-          <p>No logs found.</p>
-        ) : (
-          <ul className="list-disc pl-6">
-            {log.map((logItem: any, index: any) => (
-              <li key={index}>{logItem}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Fetch API Endpoint */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Enter API Endpoint URL"
-          value={pointEnd}
-          onChange={(e: { target: { value: any } }) =>
-            setPointEnd(e.target.value)
-          }
-          className="p-2 border rounded mb-2 text-black"
-        />
-        <br />
-        <button
-          onClick={getEndpoint}
-          className="px-4 py-2 bg-purple-600 text-white rounded"
-        >
-          Fetch Endpoint
         </button>
       </div>
 
