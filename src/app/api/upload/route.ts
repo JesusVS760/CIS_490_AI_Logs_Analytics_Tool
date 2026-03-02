@@ -10,20 +10,53 @@ import {
 import { parseTranscript } from "@/lib/parseTranscript";
 import { NextRequest, NextResponse } from "next/server";
 
+import { PDFParse } from "pdf-parse";
+
+async function extractText(file: File): Promise<string> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+    // Create the parser instance with the buffer
+    const parser = new PDFParse({ data: buffer });
+
+    // Use `getText()` to extract text
+    const result = await parser.getText();
+
+    return result.text;
+  }
+
+  return buffer.toString("utf-8");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: "No File Provided" }, { status: 400 });
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const raw = await file.text();
-    const parsed = parseTranscript(raw);
+    // Extract readable text regardless of file type
+    const raw = await extractText(file);
 
-    //store in db
-    const courseId = upsertCourse(parsed.courseName);
+    const parsed = parseTranscript(raw);
+    console.log("Parsed transcript:", {
+      courseName: parsed.courseName,
+      generatedAt: parsed.generatedAt,
+      sessions: parsed.sessions.length,
+    });
+
+    if (!parsed.courseName && parsed.sessions.length === 0) {
+      return NextResponse.json(
+        { error: "Could not parse transcript — check the file format" },
+        { status: 422 },
+      );
+    }
+
+    // Store in DB
+    const courseId = upsertCourse(parsed.courseName, parsed.generatedAt);
+
     for (const session of parsed.sessions) {
       const studentId = upsertStudent(session.studentEmail);
       const assignmentId = upsertAssignment(courseId, session.assignmentName);
@@ -36,7 +69,7 @@ export async function POST(req: NextRequest) {
         studentId,
         assignmentId,
         startedAt,
-        endedAt
+        endedAt,
       );
 
       for (const msg of session.messages) {
@@ -44,35 +77,34 @@ export async function POST(req: NextRequest) {
           sessionId,
           msg.role,
           msg.content,
-          msg.timestamp
+          msg.timestamp,
         );
 
-        // store code snapshots
-        for (const file of msg.codeFiles) {
+        for (const codeFile of msg.codeFiles) {
           createCodeSnapshot(
             messageId,
-            file.filename,
-            file.content,
-            file.isEmpty
+            codeFile.filename,
+            codeFile.content,
+            codeFile.isEmpty,
           );
         }
 
-        // store terminal snapshot
         if (msg.terminalContent) {
           createTerminalSnapshot(messageId, msg.terminalContent);
         }
       }
     }
+
     return NextResponse.json({
       success: true,
       course: parsed.courseName,
       sessions: parsed.sessions.length,
     });
   } catch (error) {
-    console.error("Upload error", error);
+    console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Failed to parse transcript" },
-      { status: 500 }
+      { error: "Failed to process transcript" },
+      { status: 500 },
     );
   }
 }

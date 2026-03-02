@@ -3,6 +3,7 @@ import "./globals.css";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/app-sidebar";
 import Navbar from "@/components/dashboard/Navbar";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "AI Tutor Analytics",
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="h-full">
+        <Toaster richColors position="top-right" />
         <SidebarProvider style={{ display: "flex", minHeight: "100vh" }}>
           <AppSidebar />
           <SidebarInset

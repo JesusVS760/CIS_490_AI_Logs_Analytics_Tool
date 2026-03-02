@@ -1,43 +1,84 @@
 "use client";
+
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "../ui/button";
 import { useState } from "react";
+import axios from "axios";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+
+const ACCEPTED_TYPES = ["text/plain", "application/pdf"];
+const inputFileSchema = z.object({
+  inputFile: z
+    .any()
+    .refine((files) => files?.length === 1, "File is required")
+    .refine(
+      (files) => ACCEPTED_TYPES.includes(files?.[0]?.type),
+      "Only PDF, DOC, and DOCX files are allowed",
+    ),
+});
+
+type InputFormData = z.infer<typeof inputFileSchema>;
 
 export function InputFile() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [formData, setFormData] = useState({});
-  const [isError, setIsError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: any) => {
-    setFormData(e.target.value);
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<InputFormData>({
+    resolver: zodResolver(inputFileSchema),
+    mode: "onChange",
+  });
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-
-    // call to route
+  const onSubmit = async (data: InputFormData) => {
     try {
-      const response = await fetch("https://api.example.com/data");
-      if (!response) {
-        setIsError(true);
-      }
-      const result = await response.json();
+      setLoading(true);
 
-      console.log(result);
-    } catch (error) {}
+      const formData = new FormData();
+      formData.append("file", data.inputFile[0]);
+
+      await axios.post("/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      toast("Successful Upload ✅");
+      console.log("Upload successful");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit(onSubmit)}>
       <Field className="w-full max-w-sm">
-        <FieldLabel htmlFor="picture">Upload Documents</FieldLabel>
+        <FieldLabel htmlFor="inputFile">Upload Documents</FieldLabel>
+
         <Input
-          id="picture"
+          id="inputFile"
           type="file"
+          accept=".txt,.pdf"
           className="cursor-pointer"
-          onChange={handleChange}
+          {...register("inputFile")}
         />
-        <Button type="submit">Upload</Button>
+
+        {errors.inputFile && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.inputFile.message as string}
+          </p>
+        )}
+
+        <Button type="submit" disabled={!isValid || loading}>
+          {loading ? "Uploading..." : "Upload"}
+        </Button>
+
         <FieldDescription>Select a transcript to upload.</FieldDescription>
       </Field>
     </form>
