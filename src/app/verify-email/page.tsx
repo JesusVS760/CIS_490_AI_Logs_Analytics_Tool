@@ -1,5 +1,7 @@
 "use client";
 
+// The verify-email page
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";

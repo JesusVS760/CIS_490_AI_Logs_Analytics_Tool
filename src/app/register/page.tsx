@@ -125,11 +125,12 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await axios.post("/api/auth/register", {
-        name: trimmedName,
-        email: trimmedEmail,
-        password,
-      });
+      const formData = new FormData();
+      formData.append("name",trimmedName);
+      formData.append("email",trimmedEmail);
+      formData.append("password", password);
+      const response = await axios.post("/api/auth/register", formData);
+      
 
       const data = parseRegisterPayload(response.data);
 
