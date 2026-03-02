@@ -9,23 +9,20 @@ import {
 } from "@/lib/db";
 import { parseTranscript } from "@/lib/parseTranscript";
 import { NextRequest, NextResponse } from "next/server";
-
-import { PDFParse } from "pdf-parse";
+import { extractText as extractPdfText } from "unpdf";
 
 async function extractText(file: File): Promise<string> {
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = await file.arrayBuffer();
 
   if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-    // Create the parser instance with the buffer
-    const parser = new PDFParse({ data: buffer });
-
-    // Use `getText()` to extract text
-    const result = await parser.getText();
-
-    return result.text;
+    const { text } = await extractPdfText(new Uint8Array(buffer), {
+      mergePages: true,
+    });
+    return text;
   }
 
-  return buffer.toString("utf-8");
+  // Plain text (.txt) — decode directly
+  return Buffer.from(buffer).toString("utf-8");
 }
 
 export async function POST(req: NextRequest) {
@@ -37,8 +34,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Extract readable text regardless of file type
     const raw = await extractText(file);
+
+    console.log("RAW TEXT (first 1000 chars):\n", raw.slice(0, 1000));
 
     const parsed = parseTranscript(raw);
     console.log("Parsed transcript:", {
@@ -46,6 +44,7 @@ export async function POST(req: NextRequest) {
       generatedAt: parsed.generatedAt,
       sessions: parsed.sessions.length,
     });
+    console.log("Parsed transcript:", JSON.stringify(parsed, null, 2));
 
     if (!parsed.courseName && parsed.sessions.length === 0) {
       return NextResponse.json(

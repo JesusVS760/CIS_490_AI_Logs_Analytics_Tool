@@ -2,7 +2,7 @@
 
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button"; 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import axios from "axios";
 import { z } from "zod";
@@ -75,7 +75,11 @@ export function InputFile() {
           </p>
         )}
 
-        <Button type="submit" disabled={!isValid || loading}>
+        <Button
+          type="submit"
+          disabled={!isValid || loading}
+          className="cursor-pointer"
+        >
           {loading ? "Uploading..." : "Upload"}
         </Button>
 

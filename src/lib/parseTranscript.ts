@@ -18,11 +18,65 @@ export interface ParsedTranscript {
   sessions: ParsedSession[];
 }
 
+/**
+ * Normalizes PDF-extracted text (which strips all newlines) back into the
+ * line-based format the parser expects. Uses precise anchors based on the
+ * known transcript format so we don't accidentally split inside code blocks.
+ */
+function normalizePdfText(raw: string): string {
+  let t = raw;
+
+  // 1. Course: and Generated: are always on their own lines at the top
+  t = t.replace(/(Course:)/g, "\nCourse:");
+  t = t.replace(/(Generated:)/g, "\nGenerated:");
+
+  // 2. Separator lines (==== and ----) — always structural, never inside code
+  t = t.replace(/\s*(={8,})\s*/g, "\n$1\n");
+  t = t.replace(/\s*(-{8,})\s*/g, "\n$1\n");
+
+  // 3. Student: email — email contains @ so safe to anchor on
+  t = t.replace(/\s*(Student:\s+[\w.+%-]+@[\w.-]+)/g, "\n$1\n");
+
+  // 4. Assignment: label
+  t = t.replace(/\s*(Assignment:\s+\S+)/g, "\n$1\n");
+
+  // 5. Question: block label
+  t = t.replace(/\s*(Question:)\s*/g, "\nQuestion:\n");
+
+  // 6. Timestamp + role lines — very specific pattern, safe anchor
+  //    [MM/DD/YYYY, HH:MM:SS AM/PM] Student: or AI-Tutor:
+  t = t.replace(
+    /\s*(\[\d{2}\/\d{2}\/\d{4},\s*\d{2}:\d{2}:\d{2}\s*[AP]M\]\s*(?:Student|AI-Tutor):)/g,
+    "\n$1 ",
+  );
+
+  // 7. File(s): label — appears right before code block headers
+  t = t.replace(/\s*(File\(s\):)\s*/g, "\nFile(s):\n");
+
+  // 8. File headers: --- filename.ext ---
+  //    Anchor on the pattern: space---space word(s) with dot space---space
+  //    Use a precise pattern to avoid matching --- inside code strings
+  t = t.replace(
+    /\s*(---\s+[\w.\s]+(\.cpp|\.py|\.java|\.c|\.h|\.js|\.ts)\s*(?:\(.*?\))?\s*---)\s*/gi,
+    "\n$1\n",
+  );
+
+  // 9. Terminal History: label
+  //    Must come AFTER file header replacement so it doesn't get consumed
+  t = t.replace(/\s*(Terminal History:)\s*/g, "\nTerminal History:\n");
+
+  // 10. Collapse excess blank lines
+  t = t.replace(/\n{3,}/g, "\n\n");
+
+  return t.trim();
+}
+
 export function parseTranscript(raw: string): ParsedTranscript {
-  const lines = raw.split("\n");
+  const normalized = normalizePdfText(raw);
+  const lines = normalized.split("\n");
   let i = 0;
 
-  //Parse Header
+  // Parse Header
   let courseName = "";
   let generatedAt = "";
 
@@ -32,39 +86,38 @@ export function parseTranscript(raw: string): ParsedTranscript {
       courseName = line.replace("Course:", "").trim();
     } else if (line.startsWith("Generated:")) {
       generatedAt = line.replace("Generated:", "").trim();
-    } else if (line.includes("Student:") && line.includes("@")) {
-      break; // reached first student block
+    } else if (line.startsWith("Student:") && line.includes("@")) {
+      break;
     }
     i++;
   }
 
-  // Parse Student/Session Blocks
   const sessions: ParsedSession[] = [];
 
   while (i < lines.length) {
     const line = lines[i].trim();
 
-    // Detect start of a new student block
     if (line.startsWith("Student:") && line.includes("@")) {
       const studentEmail = line.replace("Student:", "").trim();
       i++;
 
-      const assignmentLine = lines[i]?.trim() ?? "";
-      const assignmentName = assignmentLine.replace("Assignment:", "").trim();
+      // Skip blank/separator lines to find Assignment:
+      while (i < lines.length && !lines[i].trim().startsWith("Assignment:")) {
+        i++;
+      }
+      const assignmentName =
+        lines[i]?.trim().replace("Assignment:", "").trim() ?? "";
       i++;
 
-      // Parse Messages
       const messages: ParsedMessage[] = [];
 
       while (i < lines.length) {
         const msgLine = lines[i].trim();
 
-        // Stop if we hit a new student block
         if (msgLine.startsWith("Student:") && msgLine.includes("@")) break;
 
-        // Detect a message timestamp line: [MM/DD/YYYY, HH:MM:SS AM/PM]
         const timestampMatch = msgLine.match(
-          /^\[(\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2} [AP]M)\]\s+(Student|AI-Tutor):/
+          /^\[(\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2} [AP]M)\]\s+(Student|AI-Tutor):/,
         );
 
         if (timestampMatch) {
@@ -72,10 +125,17 @@ export function parseTranscript(raw: string): ParsedTranscript {
           const rawRole = timestampMatch[2];
           const role: "student" | "ai_tutor" =
             rawRole === "Student" ? "student" : "ai_tutor";
+
+          // Content starts after the role prefix on the same line
+          const afterRole = msgLine
+            .replace(
+              /^\[\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2} [AP]M\]\s*(Student|AI-Tutor):\s*/,
+              "",
+            )
+            .trim();
           i++;
 
-          // Collect message content
-          let content = "";
+          let content = afterRole ? afterRole + "\n" : "";
           const codeFiles: ParsedMessage["codeFiles"] = [];
           let terminalContent: string | null = null;
           let inFiles = false;
@@ -97,7 +157,6 @@ export function parseTranscript(raw: string): ParsedTranscript {
             // Stop at next student block
             if (trimmed.startsWith("Student:") && trimmed.includes("@")) break;
 
-            // Detect File(s) section
             if (trimmed === "File(s):") {
               inFiles = true;
               inTerminal = false;
@@ -105,9 +164,8 @@ export function parseTranscript(raw: string): ParsedTranscript {
               continue;
             }
 
-            // Detect Terminal History section
             if (trimmed === "Terminal History:") {
-              // Save any open file first
+              // Save any open file
               if (currentFilename) {
                 codeFiles.push({
                   filename: currentFilename,
@@ -126,10 +184,9 @@ export function parseTranscript(raw: string): ParsedTranscript {
             }
 
             if (inFiles) {
-              // Detect file header: --- filename.cpp --- or --- filename.cpp (empty...) ---
               const fileHeaderMatch = trimmed.match(/^---\s+(.+?)\s+---$/);
               if (fileHeaderMatch) {
-                // Save previous file if any
+                // Save previous file
                 if (currentFilename) {
                   codeFiles.push({
                     filename: currentFilename,
@@ -140,7 +197,7 @@ export function parseTranscript(raw: string): ParsedTranscript {
                   });
                 }
                 const fileHeader = fileHeaderMatch[1];
-                currentFileEmpty = fileHeader.includes("empty");
+                currentFileEmpty = fileHeader.toLowerCase().includes("empty");
                 currentFilename = fileHeader.split("(")[0].trim();
                 currentFileContent = "";
               } else {
@@ -155,7 +212,7 @@ export function parseTranscript(raw: string): ParsedTranscript {
             i++;
           }
 
-          // Save any remaining open file
+          // Save last open file
           if (currentFilename) {
             codeFiles.push({
               filename: currentFilename,
