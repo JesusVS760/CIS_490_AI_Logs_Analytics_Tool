@@ -40,54 +40,57 @@ export default function VerifyEmailPage() {
       return next;
     });
 
-  const handleChange = (i: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setStatus(null);
-    const only = (e.target.value || "").replace(/\D/g, "");
+  const handleChange =
+    (i: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setStatus(null);
+      const only = (e.target.value || "").replace(/\D/g, "");
 
-    if (!only) return setAt(i, "");
+      if (!only) return setAt(i, "");
 
-    // If paste/multi-type, spread across boxes
-    if (only.length > 1) {
+      // If paste/multi-type, spread across boxes
+      if (only.length > 1) {
+        const next = [...digits];
+        let idx = i;
+        for (const ch of only) {
+          if (idx >= CODE_LEN) break;
+          next[idx++] = ch;
+        }
+        setDigits(next);
+        if (idx < CODE_LEN) focus(idx);
+        return;
+      }
+
+      setAt(i, only);
+      if (i < CODE_LEN - 1) focus(i + 1);
+    };
+
+  const handleKeyDown =
+    (i: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Backspace") return;
+
+      if (digits[i]) return setAt(i, "");
+      if (i > 0) {
+        e.preventDefault();
+        setAt(i - 1, "");
+        focus(i - 1);
+      }
+    };
+
+  const handlePaste =
+    (i: number) => (e: React.ClipboardEvent<HTMLInputElement>) => {
+      const text = e.clipboardData.getData("text").replace(/\D/g, "");
+      if (!text) return;
+      e.preventDefault();
+
       const next = [...digits];
       let idx = i;
-      for (const ch of only) {
+      for (const ch of text) {
         if (idx >= CODE_LEN) break;
         next[idx++] = ch;
       }
       setDigits(next);
       if (idx < CODE_LEN) focus(idx);
-      return;
-    }
-
-    setAt(i, only);
-    if (i < CODE_LEN - 1) focus(i + 1);
-  };
-
-  const handleKeyDown = (i: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== "Backspace") return;
-
-    if (digits[i]) return setAt(i, "");
-    if (i > 0) {
-      e.preventDefault();
-      setAt(i - 1, "");
-      focus(i - 1);
-    }
-  };
-
-  const handlePaste = (i: number) => (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const text = e.clipboardData.getData("text").replace(/\D/g, "");
-    if (!text) return;
-    e.preventDefault();
-
-    const next = [...digits];
-    let idx = i;
-    for (const ch of text) {
-      if (idx >= CODE_LEN) break;
-      next[idx++] = ch;
-    }
-    setDigits(next);
-    if (idx < CODE_LEN) focus(idx);
-  };
+    };
 
   const parse = (payload: unknown): ApiResponse => {
     if (typeof payload === "string") {
@@ -99,7 +102,11 @@ export default function VerifyEmailPage() {
     }
     if (payload && typeof payload === "object") {
       const d = payload as Partial<ApiResponse>;
-      return { success: !!d.success, message: d.message ?? "Done.", redirectTo: d.redirectTo };
+      return {
+        success: !!d.success,
+        message: d.message ?? "Done.",
+        redirectTo: d.redirectTo,
+      };
     }
     return { success: false, message: "Unexpected API response." };
   };
@@ -107,7 +114,8 @@ export default function VerifyEmailPage() {
   const verify = async () => {
     setStatus(null);
     if (!email) return setStatus("Missing email. Please register again.");
-    if (code.length !== 6 || digits.some((d) => !d)) return setStatus("Enter the 6-digit code.");
+    if (code.length !== 6 || digits.some((d) => !d))
+      return setStatus("Enter the 6-digit code.");
 
     setLoading(true);
     try {
@@ -120,7 +128,11 @@ export default function VerifyEmailPage() {
       } catch {}
       router.push(data.redirectTo ?? "/login");
     } catch (err) {
-      setStatus(axios.isAxiosError(err) ? (err.response?.data as any)?.message ?? "Verification failed." : "Unexpected error.");
+      setStatus(
+        axios.isAxiosError(err)
+          ? ((err.response?.data as any)?.message ?? "Verification failed.")
+          : "Unexpected error.",
+      );
     } finally {
       setLoading(false);
     }
@@ -140,7 +152,11 @@ export default function VerifyEmailPage() {
       focus(0);
       setStatus(data.message || "New code sent.");
     } catch (err) {
-      setStatus(axios.isAxiosError(err) ? (err.response?.data as any)?.message ?? "Could not resend." : "Unexpected error.");
+      setStatus(
+        axios.isAxiosError(err)
+          ? ((err.response?.data as any)?.message ?? "Could not resend.")
+          : "Unexpected error.",
+      );
     } finally {
       setResending(false);
     }
@@ -149,19 +165,37 @@ export default function VerifyEmailPage() {
   return (
     <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200/70">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" className="text-slate-900">
-          <path d="M17 11V8a5 5 0 0 0-10 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          className="text-slate-900"
+        >
+          <path
+            d="M17 11V8a5 5 0 0 0-10 0v3"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
           <path
             d="M7 11h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"
             stroke="currentColor"
             strokeWidth="2"
             strokeLinejoin="round"
           />
-          <path d="M12 15v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path
+            d="M12 15v3"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
         </svg>
       </div>
 
-      <h1 className="text-center text-3xl font-semibold text-slate-900">Verify Your Email</h1>
+      <h1 className="text-center text-3xl font-semibold text-slate-900">
+        Verify Your Email
+      </h1>
       <p className="mt-3 text-center text-sm text-slate-700">
         A 6-digit code was sent to the email you provided.
         <br />
@@ -201,18 +235,30 @@ export default function VerifyEmailPage() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full bg-slate-700 hover:bg-slate-800" disabled={loading}>
+        <Button
+          type="submit"
+          className="w-full bg-slate-700 hover:bg-slate-800"
+          disabled={loading}
+        >
           {loading ? "Verifying..." : "Verify email"}
         </Button>
 
         <div className="flex justify-center">
-          <Button type="button" variant="secondary" className="rounded-full px-6" onClick={resend} disabled={resending}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="rounded-full px-6"
+            onClick={resend}
+            disabled={resending}
+          >
             {resending ? "Resending..." : "Resend code"}
           </Button>
         </div>
       </form>
 
-      {status ? <p className="mt-4 text-center text-sm text-red-700">{status}</p> : null}
+      {status ? (
+        <p className="mt-4 text-center text-sm text-red-700">{status}</p>
+      ) : null}
     </section>
   );
 }
