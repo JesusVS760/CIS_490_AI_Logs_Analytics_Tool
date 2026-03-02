@@ -121,7 +121,11 @@ export default function VerifyEmailPage() {
 
     setLoading(true);
     try {
-      const res = await axios.post("/api/auth/verify-email", { email, code });
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("code", code);
+
+      const res = await axios.post("/api/auth/verify-email", formData);
       const data = parse(res.data);
       if (!data.success) return setStatus(data.message);
 
@@ -146,7 +150,9 @@ export default function VerifyEmailPage() {
 
     setResending(true);
     try {
-      const res = await axios.post("/api/auth/resend-verification", { email });
+      const formData = new FormData();
+      formData.append("email", email);
+      const res = await axios.post("/api/auth/resend-verification", formData);
       const data = parse(res.data);
       if (!data.success) return setStatus(data.message);
 
