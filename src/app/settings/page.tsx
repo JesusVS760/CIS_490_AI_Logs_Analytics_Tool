@@ -38,6 +38,7 @@ export default function SettingClient(): any {
 
   //Change the username
   const changeUsername = () => {
+    toast("Username updated ✅");
     if (!newNameUser.trim()) return alert("Username cannot be empty");
 
     localStorage.setItem("username", newNameUser);
@@ -47,6 +48,7 @@ export default function SettingClient(): any {
 
   //Change the password
   const changePassword = () => {
+    toast("Password updated ✅");
     if (!newPassword.trim()) return alert("Password cannot be empty");
 
     localStorage.setItem("Password", newPassword);
@@ -55,6 +57,7 @@ export default function SettingClient(): any {
 
   //delete account
   const deleteAccount = () => {
+      toast("Account deleted ✅");
     if (
       !confirm(
         "Are you sure you want to delete your account? This action cannot be undone.",
