@@ -1,5 +1,16 @@
 import type { Config } from "tailwindcss";
 
+
+//Allow the use of Darkmode through out the app  
+module.exports = {
+  darkMode: "class",
+  content: ["./app/**/*.{ts,tsx}"],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
