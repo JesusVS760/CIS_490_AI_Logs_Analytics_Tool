@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en">
       <body className="h-full">
         <Toaster position="top-right" />
         <SidebarProvider style={{ display: "flex", minHeight: "100vh" }}>

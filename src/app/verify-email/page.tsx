@@ -136,8 +136,8 @@ export default function VerifyEmailPage() {
     } catch (err) {
       setStatus(
         axios.isAxiosError(err)
-          ? ((err.response?.data as any)?.message ?? "Verification failed.")
-          : "Unexpected error.",
+          ? (err.response?.data as any)?.message ?? "Verification failed."
+          : "Unexpected error."
       );
     } finally {
       setLoading(false);
@@ -162,8 +162,8 @@ export default function VerifyEmailPage() {
     } catch (err) {
       setStatus(
         axios.isAxiosError(err)
-          ? ((err.response?.data as any)?.message ?? "Could not resend.")
-          : "Unexpected error.",
+          ? (err.response?.data as any)?.message ?? "Could not resend."
+          : "Unexpected error."
       );
     } finally {
       setResending(false);

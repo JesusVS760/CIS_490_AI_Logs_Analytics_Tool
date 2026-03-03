@@ -57,10 +57,10 @@ export default function SettingClient(): any {
 
   //delete account
   const deleteAccount = () => {
-      toast("Account deleted ✅");
+    toast("Account deleted ✅");
     if (
       !confirm(
-        "Are you sure you want to delete your account? This action cannot be undone.",
+        "Are you sure you want to delete your account? This action cannot be undone."
       )
     ) {
       localStorage.clear();
