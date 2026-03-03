@@ -116,7 +116,7 @@ export function upsertStudent(rawEmail: string): number {
 export function upsertAssignment(
   courseId: number,
   name: string,
-  description?: string
+  description?: string,
 ): number {
   const existing = db
     .prepare("SELECT id FROM assignments WHERE course_id = ? AND name = ?")
@@ -126,7 +126,7 @@ export function upsertAssignment(
 
   const result = db
     .prepare(
-      "INSERT INTO assignments (course_id, name, description) VALUES (?, ?, ?)"
+      "INSERT INTO assignments (course_id, name, description) VALUES (?, ?, ?)",
     )
     .run(courseId, name, description ?? null);
 
@@ -139,11 +139,11 @@ export function createSession(
   studentId: number,
   assignmentId: number,
   startedAt?: string,
-  endedAt?: string
+  endedAt?: string,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO sessions (student_id, assignment_id, started_at, ended_at) VALUES (?, ?, ?, ?)"
+      "INSERT INTO sessions (student_id, assignment_id, started_at, ended_at) VALUES (?, ?, ?, ?)",
     )
     .run(studentId, assignmentId, startedAt ?? null, endedAt ?? null);
 
@@ -156,11 +156,11 @@ export function createMessage(
   sessionId: number,
   role: "student" | "ai_tutor",
   content: string,
-  timestamp?: string
+  timestamp?: string,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)"
+      "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
     )
     .run(sessionId, role, content, timestamp ?? null);
 
@@ -173,11 +173,11 @@ export function createCodeSnapshot(
   messageId: number,
   filename: string,
   content: string | null,
-  isEmpty: boolean
+  isEmpty: boolean,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO code_snapshots (message_id, filename, content, is_empty) VALUES (?, ?, ?, ?)"
+      "INSERT INTO code_snapshots (message_id, filename, content, is_empty) VALUES (?, ?, ?, ?)",
     )
     .run(messageId, filename, content ?? null, isEmpty ? 1 : 0);
 
@@ -188,15 +188,28 @@ export function createCodeSnapshot(
 
 export function createTerminalSnapshot(
   messageId: number,
-  content: string
+  content: string,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO terminal_snapshots (message_id, content) VALUES (?, ?)"
+      "INSERT INTO terminal_snapshots (message_id, content) VALUES (?, ?)",
     )
     .run(messageId, content);
 
   return result.lastInsertRowid as number;
 }
 
+export function getAllSessions() {
+  return db
+    .prepare(
+      `
+      SELECT 
+        id,
+        started_at as startedAt,
+        ended_at as endedAt
+      FROM sessions
+    `,
+    )
+    .all();
+}
 export default db;

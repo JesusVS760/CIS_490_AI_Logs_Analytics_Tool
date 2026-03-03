@@ -1,4 +1,5 @@
 "use client";
+import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
 import { useState } from "react";
 
@@ -7,7 +8,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div>{showUpload ? <TranscriptUpload /> : <h1>dashboard</h1>}</div>
+      <div>{showUpload ? <TranscriptUpload /> : <AnalyticsDashboard />}</div>
     </>
   );
 }
