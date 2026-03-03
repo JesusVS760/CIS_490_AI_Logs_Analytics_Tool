@@ -9,6 +9,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const ACCEPTED_TYPES = ["text/plain", "application/pdf"];
 const inputFileSchema = z.object({
@@ -17,7 +18,7 @@ const inputFileSchema = z.object({
     .refine((files) => files?.length === 1, "File is required")
     .refine(
       (files) => ACCEPTED_TYPES.includes(files?.[0]?.type),
-      "Only PDF, DOC, and DOCX files are allowed",
+      "Only PDF, DOC, and DOCX files are allowed"
     ),
 });
 
@@ -25,6 +26,8 @@ type InputFormData = z.infer<typeof inputFileSchema>;
 
 export function InputFile() {
   const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
 
   const {
     register,
@@ -48,7 +51,7 @@ export function InputFile() {
         },
       });
       toast("Successful Upload ✅");
-      console.log("Upload successful");
+      router.push("./dashboard");
     } catch (err) {
       console.error(err);
     } finally {
