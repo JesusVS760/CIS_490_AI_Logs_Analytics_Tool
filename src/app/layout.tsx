@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="h-full">
-        <Toaster richColors position="top-right" />
+        <Toaster position="top-right" />
         <SidebarProvider style={{ display: "flex", minHeight: "100vh" }}>
           <AppSidebar />
           <SidebarInset
