@@ -25,7 +25,7 @@ export default function SettingClient(): any {
   // Function to toggle between light and dark mode
   const darkModeToggle = () => {
     const themeNew = !modeDark;
-    toast("changed mode ✅");
+    toast("Mode Changed ✅");
     setModeDark(themeNew);
     if (themeNew) {
       document.documentElement.classList.add("dark");
@@ -70,7 +70,6 @@ export default function SettingClient(): any {
 
   return (
     <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
-      <Toaster />
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
       {/* Dark Mode */}
