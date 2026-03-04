@@ -110,23 +110,53 @@ const changePassword = () => {
   };
 
   // Handle Profile Picture Upload
-  const handleProfileUpload = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleProfileUpload = (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    const reader = new FileReader();
+  if (!file.type.startsWith("image/")) {
+    toast.error("Please upload a valid image file ❌");
+    return;
+  }
 
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setProfilePic(base64String);
-      localStorage.setItem("profilePic", base64String);
-      toast("Profile picture updated ✅");
-    };
+  const reader = new FileReader();
 
-    reader.readAsDataURL(file);
+  reader.onloadend = () => {
+    const base64String = reader.result as string;
+
+    setProfilePic(base64String);
+    localStorage.setItem("profilePic", base64String);
+
+    // Notify whole app
+    window.dispatchEvent(
+      new CustomEvent("profilePicChanged", {
+        detail: base64String,
+      })
+    );
+
+    toast.success("Profile picture updated ✅");
   };
+
+  reader.readAsDataURL(file);
+};
+
+
+  // Remove Profile Picture
+
+  const removeProfilePicture = () => {
+  localStorage.removeItem("profilePic");
+  setProfilePic(null);
+
+  window.dispatchEvent(
+    new CustomEvent("profilePicChanged", {
+      detail: null,
+    })
+  );
+
+  toast.success("Profile picture removed ✅");
+};
 
   return (
     <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
@@ -134,30 +164,53 @@ const changePassword = () => {
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
       {/* Profile Picture Section */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-3">Profile Picture</h2>
+<div className="mb-8">
+  <h2 className="text-xl font-semibold mb-3">Profile Picture</h2>
 
-        <div className="mb-4">
-          {profilePic ? (
-            <img
-              src={profilePic}
-              alt="Profile"
-              className="w-32 h-32 rounded-full object-cover border"
-            />
-          ) : (
-            <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center">
-              No Image
-            </div>
-          )}
-        </div>
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleProfileUpload}
-          className="mb-4"
-        />
+  <div className="mb-4">
+    {profilePic ? (
+      <img
+        src={profilePic}
+        alt="Profile"
+        className="w-32 h-32 rounded-full object-cover border"
+      />
+    ) : (
+      <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center text-sm">
+        No Image
       </div>
+    )}
+  </div>
+
+  {/* Hidden File Input */}
+  <input
+    type="file"
+    accept="image/*"
+    id="profileUpload"
+    onChange={handleProfileUpload}
+    className="hidden"
+  />
+
+  {/* Buttons */}
+  <div className="flex gap-3">
+    <button
+      onClick={() =>
+        document.getElementById("profileUpload")?.click()
+      }
+      className="px-4 py-2 bg-blue-600 text-white rounded cursor-pointer"
+    >
+      {profilePic ? "Change Picture" : "Upload Picture"}
+    </button>
+
+    {profilePic && (
+      <button
+        onClick={removeProfilePicture}
+        className="px-4 py-2 bg-gray-600 text-white rounded cursor-pointer"
+      >
+        Remove
+      </button>
+    )}
+  </div>
+</div>
 
       {/* Dark Mode */}
       <button
