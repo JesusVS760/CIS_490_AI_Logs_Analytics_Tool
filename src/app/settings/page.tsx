@@ -11,22 +11,32 @@ export default function SettingClient(): any {
   const [nameUser, setNameUser] = useState("");
   const [newNameUser, setNewNameUser] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
     const themeSaved = localStorage.getItem("theme");
     const usernameSaved = localStorage.getItem("username");
+    const savedProfilePic = localStorage.getItem("profilePic");
 
     if (themeSaved === "dark") {
       document.documentElement.classList.add("dark");
       setModeDark(true);
     }
+
+    if (usernameSaved) {
+      setNameUser(usernameSaved);
+    }
+
+    if (savedProfilePic) {
+      setProfilePic(savedProfilePic);
+    }
   }, []);
 
-  // Function to toggle between light and dark mode
+  // Toggle Dark Mode
   const darkModeToggle = () => {
     const themeNew = !modeDark;
-    toast("Mode Changed ✅");
     setModeDark(themeNew);
+
     if (themeNew) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
@@ -34,43 +44,120 @@ export default function SettingClient(): any {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
     }
+
+    toast("Mode Changed ✅");
   };
 
-  //Change the username
-  const changeUsername = () => {
-    toast("Username updated ✅");
-    if (!newNameUser.trim()) return alert("Username cannot be empty");
+  // Change Username
+const changeUsername = () => {
+  if (!newNameUser.trim()) {
+    toast.error("Username cannot be empty ❌");
+    return;
+  }
 
-    localStorage.setItem("username", newNameUser);
-    setNameUser(newNameUser);
-    setNewNameUser("");
-  };
+  const oldUsername = localStorage.getItem("username");
 
-  //Change the password
-  const changePassword = () => {
-    toast("Password updated ✅");
-    if (!newPassword.trim()) return alert("Password cannot be empty");
+  // Save new username
+  localStorage.setItem("username", newNameUser);
 
-    localStorage.setItem("Password", newPassword);
-    router.push("/login");
-  };
+  // Dispatch custom event so whole app updates
+  window.dispatchEvent(
+    new CustomEvent("usernameChanged", {
+      detail: {
+        oldUsername,
+        newUsername: newNameUser,
+      },
+    })
+  );
 
-  //delete account
+  setNameUser(newNameUser);
+  setNewNameUser("");
+  toast.success("Username updated everywhere ✅");
+};
+  // Change Password
+const changePassword = () => {
+  const currentPassword = localStorage.getItem("Password");
+
+  // If empty
+  if (!newPassword.trim()) {
+    toast.error("Password not updated ❌");
+    return;
+  }
+
+  // If same as current password
+  if (newPassword === currentPassword) {
+    toast.warning("New password must be different ⚠️");
+    return;
+  }
+
+  // If valid
+  localStorage.setItem("Password", newPassword);
+  toast.success("Password updated ✅");
+  router.push("/login");
+};
+
+  // Delete Account
   const deleteAccount = () => {
-    toast("Account deleted ✅");
     if (
-      !confirm(
+      confirm(
         "Are you sure you want to delete your account? This action cannot be undone."
       )
     ) {
       localStorage.clear();
+      toast("Account deleted ✅");
       router.push("/login");
     }
   };
 
+  // Handle Profile Picture Upload
+  const handleProfileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setProfilePic(base64String);
+      localStorage.setItem("profilePic", base64String);
+      toast("Profile picture updated ✅");
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
+      <Toaster />
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
+
+      {/* Profile Picture Section */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-3">Profile Picture</h2>
+
+        <div className="mb-4">
+          {profilePic ? (
+            <img
+              src={profilePic}
+              alt="Profile"
+              className="w-32 h-32 rounded-full object-cover border"
+            />
+          ) : (
+            <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center">
+              No Image
+            </div>
+          )}
+        </div>
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleProfileUpload}
+          className="mb-4"
+        />
+      </div>
 
       {/* Dark Mode */}
       <button
@@ -89,9 +176,7 @@ export default function SettingClient(): any {
         type="text"
         placeholder="New Username"
         value={newNameUser}
-        onChange={(e: { target: { value: any } }) =>
-          setNewNameUser(e.target.value)
-        }
+        onChange={(e) => setNewNameUser(e.target.value)}
         className="p-2 border rounded mb-2 text-black"
       />
       <br />
@@ -108,9 +193,7 @@ export default function SettingClient(): any {
           type="password"
           placeholder="New Password"
           value={newPassword}
-          onChange={(e: { target: { value: any } }) =>
-            setNewPassword(e.target.value)
-          }
+          onChange={(e) => setNewPassword(e.target.value)}
           className="p-2 border rounded mb-2 text-black"
         />
         <br />
@@ -132,14 +215,3 @@ export default function SettingClient(): any {
     </div>
   );
 }
-
-//Original Code Provided by the user, commented out for reference
-//const SettingsPage = () => {
-//return (
-// <div className="flex items-center justify-center h-full flex-1 grow">
-//<h1>SettingsPage</h1>
-//</div>
-//);
-//};
-
-//export default SettingsPage;
