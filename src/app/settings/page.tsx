@@ -11,7 +11,7 @@ export default function SettingClient(): any {
   const [nameUser, setNameUser] = useState("");
   const [newNameUser, setNewNameUser] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [picProfile, setPicProfile] = useState<string | null>(null);
 
   useEffect(() => {
     const themeSaved = localStorage.getItem("theme");
@@ -28,7 +28,7 @@ export default function SettingClient(): any {
     }
 
     if (savedProfilePic) {
-      setProfilePic(savedProfilePic);
+      setPicProfile(savedProfilePic);
     }
   }, []);
 
@@ -48,32 +48,21 @@ export default function SettingClient(): any {
     toast("Mode Changed ✅");
   };
 
-  // Change Username
+// Change Username
 const changeUsername = () => {
   if (!newNameUser.trim()) {
     toast.error("Username cannot be empty ❌");
     return;
   }
 
-  const oldUsername = localStorage.getItem("username");
-
-  // Save new username
   localStorage.setItem("username", newNameUser);
 
-  // Dispatch custom event so whole app updates
-  window.dispatchEvent(
-    new CustomEvent("usernameChanged", {
-      detail: {
-        oldUsername,
-        newUsername: newNameUser,
-      },
-    })
-  );
+  // Force UI refresh
+  window.location.reload();
 
-  setNameUser(newNameUser);
-  setNewNameUser("");
-  toast.success("Username updated everywhere ✅");
+  toast.success("Username updated ✅");
 };
+
   // Change Password
 const changePassword = () => {
   const currentPassword = localStorage.getItem("Password");
@@ -126,12 +115,12 @@ const handleProfileUpload = (
   reader.onloadend = () => {
     const base64String = reader.result as string;
 
-    setProfilePic(base64String);
-    localStorage.setItem("profilePic", base64String);
+    setPicProfile(base64String);
+    localStorage.setItem("picProfile", base64String);
 
     // Notify whole app
     window.dispatchEvent(
-      new CustomEvent("profilePicChanged", {
+      new CustomEvent("picProfileChanged", {
         detail: base64String,
       })
     );
@@ -146,11 +135,11 @@ const handleProfileUpload = (
   // Remove Profile Picture
 
   const removeProfilePicture = () => {
-  localStorage.removeItem("profilePic");
-  setProfilePic(null);
+  localStorage.removeItem("picProfile");
+  setPicProfile(null);
 
   window.dispatchEvent(
-    new CustomEvent("profilePicChanged", {
+    new CustomEvent("picProfileChanged", {
       detail: null,
     })
   );
@@ -168,9 +157,9 @@ const handleProfileUpload = (
   <h2 className="text-xl font-semibold mb-3">Profile Picture</h2>
 
   <div className="mb-4">
-    {profilePic ? (
+    {picProfile ? (
       <img
-        src={profilePic}
+        src={picProfile}
         alt="Profile"
         className="w-32 h-32 rounded-full object-cover border"
       />
@@ -198,10 +187,10 @@ const handleProfileUpload = (
       }
       className="px-4 py-2 bg-blue-600 text-white rounded cursor-pointer"
     >
-      {profilePic ? "Change Picture" : "Upload Picture"}
+      {picProfile ? "Change Picture" : "Upload Picture"}
     </button>
 
-    {profilePic && (
+    {picProfile && (
       <button
         onClick={removeProfilePicture}
         className="px-4 py-2 bg-gray-600 text-white rounded cursor-pointer"
