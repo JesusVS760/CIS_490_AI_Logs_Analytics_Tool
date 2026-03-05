@@ -6,8 +6,10 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function ResetAccountPage() {
   const [loading, setLoading] = useState(false);
@@ -20,20 +22,34 @@ export default function ResetAccountPage() {
 
     try {
       const formData = new FormData(e.currentTarget);
-      const payload = {
-        email: String(formData.get("email") ?? ""),
-      };
+      const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+      if (!email) {
+        const message = "Email is required.";
+        setStatusMessage(message);
+        toast.error(message);
+        return;
+      }
+
+      const payload = new FormData();
+      payload.append("email", email);
 
       const { data } = await axios.post("/api/auth/reset", payload);
-      setStatusMessage(data?.message ?? "Request completed.");
+      const message = data?.message ?? "Reset request submitted.";
+      setStatusMessage(message);
+      toast.success(message);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setStatusMessage(
-          (error.response?.data as { message?: string } | undefined)?.message ??
-            "Failed to send reset link."
-        );
+        const message =
+          (error.response?.data as { message?: string; error?: string } | undefined)?.error ??
+          (error.response?.data as { message?: string; error?: string } | undefined)?.message ??
+          "Failed to send reset link.";
+        setStatusMessage(message);
+        toast.error(message);
       } else {
-        setStatusMessage("Unexpected error. Please try again.");
+        const message = "Unexpected error. Please try again.";
+        setStatusMessage(message);
+        toast.error(message);
       }
     } finally {
       setLoading(false);
@@ -42,6 +58,7 @@ export default function ResetAccountPage() {
 
   return (
     <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
+      <Toaster />
       <h1 className="text-center text-3xl font-semibold text-slate-900">Reset account</h1>
       <p className="mt-2 text-center text-sm text-slate-600">
         Enter your email to receive a reset link for your account.
