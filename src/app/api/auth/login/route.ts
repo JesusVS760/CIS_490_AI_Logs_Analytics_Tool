@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -35,19 +35,19 @@ export async function POST(req: NextRequest) {
     if (!instructor) {
       return NextResponse.json(
         { error: "Invalid email or password" },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
     const passwordValid = await bcrypt.compare(
       password,
-      instructor.password_hash,
+      instructor.password_hash
     );
 
     if (!passwordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
