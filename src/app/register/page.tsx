@@ -18,14 +18,18 @@ type RegisterFormState = {
   confirmPassword: string;
 };
 
-// Defined the register API response structure
-type RegisterApiResponse = {
-  success: boolean;
-  message: string;
-  redirectTo?: string;
+// Match your backend responses:
+// - success: true => { success: true, user: {...} }
+// - error cases => { error: "..." }
+type RegisterSuccessResponse = {
+  success: true;
+  user: { id: number; email: string; name: string };
 };
 
-// Provide initial values so the form starts in a known state
+type RegisterErrorResponse = {
+  error: string;
+};
+
 const initialState: RegisterFormState = {
   name: "",
   email: "",
@@ -33,29 +37,6 @@ const initialState: RegisterFormState = {
   confirmPassword: "",
 };
 
-// Normalize API payload (string or object) into a safe, typed response.
-function parseRegisterPayload(payload: unknown): RegisterApiResponse {
-  if (typeof payload === "string") {
-    try {
-      return JSON.parse(payload) as RegisterApiResponse;
-    } catch {
-      return { success: false, message: "Invalid API response format." };
-    }
-  }
-
-  if (payload && typeof payload === "object") {
-    const data = payload as Partial<RegisterApiResponse>;
-    return {
-      success: Boolean(data.success),
-      message: data.message ?? "Request completed.",
-      redirectTo: data.redirectTo,
-    };
-  }
-
-  return { success: false, message: "Unexpected API response." };
-}
-
-// Small helper to validate email format
 function isEmailValid(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -64,25 +45,16 @@ export default function RegisterPage() {
   const router = useRouter();
   const [formState, setFormState] = useState<RegisterFormState>(initialState);
 
-  // Your existing loading (form submit)
   const [loading, setLoading] = useState(false);
-
-  // OAuth loading (GitHub)
   const [oauthLoading, setOauthLoading] = useState(false);
-
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Handles all input changes (kept same style as login page)
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, type, checked, value } = e.target;
-
-    setFormState((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setFormState((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ GitHub OAuth: redirect to your custom API route
+  // GitHub OAuth (custom route)
   const handleGitHubOAuth = () => {
     setStatusMessage(null);
     setOauthLoading(true);
@@ -94,12 +66,12 @@ export default function RegisterPage() {
     setLoading(true);
     setStatusMessage(null);
 
-    // Frontend validation (consistent, early returns)
     const trimmedName = formState.name.trim();
     const trimmedEmail = formState.email.trim().toLowerCase();
     const password = formState.password;
     const confirmPassword = formState.confirmPassword;
 
+    // Frontend validation
     if (!trimmedName) {
       setStatusMessage("Name is required.");
       setLoading(false);
@@ -142,27 +114,31 @@ export default function RegisterPage() {
       formData.append("email", trimmedEmail);
       formData.append("password", password);
 
-      const response = await axios.post("/api/auth/register", formData);
-      const data = parseRegisterPayload(response.data);
+      // ✅ Axios to backend route
+      const response = await axios.post<
+        RegisterSuccessResponse | RegisterErrorResponse
+      >("/api/auth/register", formData);
 
-      if (!data.success) {
-        setStatusMessage(data.message);
+      // If backend returns { error: ... } even with 200 (unlikely), handle it
+      if ("error" in response.data) {
+        setStatusMessage(response.data.error);
         return;
       }
 
+      // success === true
       try {
         localStorage.setItem("pendingVerifyEmail", trimmedEmail);
       } catch {
         // ignore storage errors
       }
 
-      router.push(data.redirectTo ?? "/verify-email");
+      // Backend, so choose one:
+      router.push("/login");
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setStatusMessage(
-          (error.response?.data as { message?: string } | undefined)?.message ??
-            "Registration failed. Please try again.",
-        );
+        // Backend sends { error: "..." } on failures
+        const data = error.response?.data as Partial<RegisterErrorResponse> | undefined;
+        setStatusMessage(data?.error ?? "Registration failed. Please try again.");
       } else {
         setStatusMessage("Unexpected error. Please try again.");
       }
@@ -171,7 +147,6 @@ export default function RegisterPage() {
     }
   };
 
-  // Disable everything if either flow is running
   const disableAll = loading || oauthLoading;
 
   return (
@@ -180,7 +155,7 @@ export default function RegisterPage() {
         Sign up
       </h1>
 
-      {/* ✅ GitHub OAuth button */}
+      {/* GitHub OAuth */}
       <div className="mt-6 space-y-3">
         <button
           type="button"
@@ -191,7 +166,6 @@ export default function RegisterPage() {
           {oauthLoading ? "Connecting to GitHub..." : "Continue with GitHub"}
         </button>
 
-        {/* Divider */}
         <div className="flex items-center gap-3 py-2">
           <div className="h-px flex-1 bg-slate-300" />
           <span className="text-xs font-medium text-slate-600">OR</span>
@@ -200,7 +174,6 @@ export default function RegisterPage() {
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-        {/* Name */}
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
           <Input
@@ -214,7 +187,6 @@ export default function RegisterPage() {
           />
         </div>
 
-        {/* Email */}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -228,7 +200,6 @@ export default function RegisterPage() {
           />
         </div>
 
-        {/* Password */}
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
           <Input
@@ -242,7 +213,6 @@ export default function RegisterPage() {
           />
         </div>
 
-        {/* Confirm Password */}
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Re-type password</Label>
           <Input
