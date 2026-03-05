@@ -2,7 +2,6 @@
 
 // The register page/page.tsx
 
-
 import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,7 +63,13 @@ function isEmailValid(value: string) {
 export default function RegisterPage() {
   const router = useRouter();
   const [formState, setFormState] = useState<RegisterFormState>(initialState);
+
+  // Your existing loading (form submit)
   const [loading, setLoading] = useState(false);
+
+  // OAuth loading (GitHub)
+  const [oauthLoading, setOauthLoading] = useState(false);
+
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   // Handles all input changes (kept same style as login page)
@@ -75,6 +80,13 @@ export default function RegisterPage() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  // ✅ GitHub OAuth: redirect to your custom API route
+  const handleGitHubOAuth = () => {
+    setStatusMessage(null);
+    setOauthLoading(true);
+    window.location.href = "/api/auth/github";
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -126,12 +138,11 @@ export default function RegisterPage() {
 
     try {
       const formData = new FormData();
-      formData.append("name",trimmedName);
-      formData.append("email",trimmedEmail);
+      formData.append("name", trimmedName);
+      formData.append("email", trimmedEmail);
       formData.append("password", password);
-      const response = await axios.post("/api/auth/register", formData);
-      
 
+      const response = await axios.post("/api/auth/register", formData);
       const data = parseRegisterPayload(response.data);
 
       if (!data.success) {
@@ -139,11 +150,10 @@ export default function RegisterPage() {
         return;
       }
 
-      // Optional: store email for verify-email flow (only if you actually use it)
       try {
         localStorage.setItem("pendingVerifyEmail", trimmedEmail);
       } catch {
-        // ignore storage errors (private browsing, etc.)
+        // ignore storage errors
       }
 
       router.push(data.redirectTo ?? "/verify-email");
@@ -161,13 +171,35 @@ export default function RegisterPage() {
     }
   };
 
+  // Disable everything if either flow is running
+  const disableAll = loading || oauthLoading;
+
   return (
     <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
       <h1 className="text-center text-3xl font-semibold text-slate-900">
         Sign up
       </h1>
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+      {/* ✅ GitHub OAuth button */}
+      <div className="mt-6 space-y-3">
+        <button
+          type="button"
+          onClick={handleGitHubOAuth}
+          disabled={disableAll}
+          className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {oauthLoading ? "Connecting to GitHub..." : "Continue with GitHub"}
+        </button>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 py-2">
+          <div className="h-px flex-1 bg-slate-300" />
+          <span className="text-xs font-medium text-slate-600">OR</span>
+          <div className="h-px flex-1 bg-slate-300" />
+        </div>
+      </div>
+
+      <form className="space-y-4" onSubmit={handleSubmit}>
         {/* Name */}
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
@@ -178,6 +210,7 @@ export default function RegisterPage() {
             value={formState.name}
             onChange={handleChange}
             required
+            disabled={disableAll}
           />
         </div>
 
@@ -191,6 +224,7 @@ export default function RegisterPage() {
             value={formState.email}
             onChange={handleChange}
             required
+            disabled={disableAll}
           />
         </div>
 
@@ -204,6 +238,7 @@ export default function RegisterPage() {
             value={formState.password}
             onChange={handleChange}
             required
+            disabled={disableAll}
           />
         </div>
 
@@ -217,19 +252,19 @@ export default function RegisterPage() {
             value={formState.confirmPassword}
             onChange={handleChange}
             required
+            disabled={disableAll}
           />
         </div>
 
         <button
           type="submit"
           className="w-full rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={loading}
+          disabled={disableAll}
         >
           {loading ? "Signing up..." : "Sign up"}
         </button>
       </form>
 
-      {/* Optional: link to login (mirrors login page having an extra link section) */}
       <Link
         href="/login"
         className="mt-4 block text-center text-sm text-slate-600 underline-offset-4 hover:underline"
