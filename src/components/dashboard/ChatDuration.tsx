@@ -75,7 +75,7 @@ const ChatDuration = () => {
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-md">
-      <h1 className="flex gap-2 font-bold text-lg mb-4">
+      <h1 className="flex items-center gap-2 font-bold text-lg mb-4">
         Chat Duration <TimerIcon size={18} />
       </h1>
 
