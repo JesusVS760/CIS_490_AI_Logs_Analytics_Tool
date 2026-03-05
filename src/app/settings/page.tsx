@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -121,6 +122,9 @@ export default function SettingClient() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // preview immediately
+    setProfilePic(URL.createObjectURL(file));
+
     const formData = new FormData();
     formData.append("profilePic", file);
 
@@ -144,17 +148,44 @@ export default function SettingClient() {
   return (
     <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
       <Toaster />
+
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
-      {profilePic && (
-        <img
-          src={profilePic}
-          className="w-32 h-32 rounded-full object-cover mb-4"
+      {/* 🔹 Profile Picture Section */}
+      <div className="mb-6 flex flex-col items-center">
+
+        {profilePic ? (
+          <img
+            src={profilePic}
+            className="w-32 h-32 rounded-full object-cover mb-4 border"
+          />
+        ) : (
+          <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center mb-4">
+            No Photo
+          </div>
+        )}
+
+        {/* Hidden File Input */}
+        <input
+          id="profileUpload"
+          type="file"
+          accept="image/*"
+          onChange={handleProfileUpload}
+          className="hidden"
         />
-      )}
 
-      <input type="file" onChange={handleProfileUpload} />
+        {/* Upload Button */}
+        <button
+          onClick={() =>
+            document.getElementById("profileUpload")?.click()
+          }
+          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+        >
+          Upload Profile Picture
+        </button>
+      </div>
 
+      {/* 🔹 Dark Mode */}
       <button
         onClick={darkModeToggle}
         className="block mt-6 px-4 py-2 bg-blue-600 text-white rounded"
@@ -162,6 +193,7 @@ export default function SettingClient() {
         Switch to {modeDark ? "Light" : "Dark"} Mode
       </button>
 
+      {/* 🔹 Username */}
       <p className="mt-6">
         <strong>Current Username:</strong> {nameUser}
       </p>
@@ -181,6 +213,7 @@ export default function SettingClient() {
         Update Username
       </button>
 
+      {/* 🔹 Password */}
       <input
         type="password"
         placeholder="New Password"
@@ -196,6 +229,7 @@ export default function SettingClient() {
         Reset Password
       </button>
 
+      {/* 🔹 Delete Account */}
       <button
         onClick={deleteAccount}
         className="block mt-6 px-4 py-2 bg-red-700 text-white rounded"
