@@ -133,7 +133,7 @@ export default function RegisterPage() {
       }
 
       // Backend, so choose one:
-      router.push("/login");
+      router.push("/verify-email");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         // Backend sends { error: "..." } on failures
