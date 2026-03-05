@@ -22,6 +22,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setStatusMessage(null);
+    console.log("jfkhdf");
 
     try {
       const formData = new FormData(e.currentTarget);
