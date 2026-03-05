@@ -5,6 +5,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { Input } from "@/components/ui/input";
 
 export default function SettingClient() {
   const router = useRouter();
@@ -19,9 +20,7 @@ export default function SettingClient() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("/api/user/me", {
-          withCredentials: true,
-        });
+        const res = await axios.get("/api/login", { withCredentials: true });
 
         setNameUser(res.data.username);
         setProfilePic(res.data.profilePic);
