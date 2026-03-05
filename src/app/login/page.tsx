@@ -74,7 +74,7 @@ export default function LoginPage() {
           </label>
 
           <Link
-            href="/reset-account"
+            href="/reset-password"
             className="block text-center text-sm text-slate-600 underline-offset-4 hover:underline"
           >
             Forgot password?
