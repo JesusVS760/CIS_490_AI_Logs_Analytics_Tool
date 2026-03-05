@@ -7,12 +7,15 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -22,35 +25,60 @@ export default function LoginPage() {
 
     try {
       const formData = new FormData(e.currentTarget);
-      const payload = {
-        email: String(formData.get("email") ?? ""),
-        password: String(formData.get("password") ?? ""),
-        remember: formData.get("remember") === "on",
-      };
+      const email = String(formData.get("email") ?? "").trim().toLowerCase();
+      const password = String(formData.get("password") ?? "");
+      const remember = formData.get("remember") === "on";
 
-      const { data } = await axios.post("/api/auth/login", payload);
-      if (!data?.success) {
-        setStatusMessage(data?.message ?? "Login failed. Please try again.");
+      if (!email || !password) {
+        const message = "Email and password are required.";
+        setStatusMessage(message);
+        toast.error(message);
         return;
       }
 
+      const payload = new FormData();
+      payload.append("email", email);
+      payload.append("password", password);
+      payload.append("remember", remember ? "true" : "false");
+
+      const { data } = await axios.post("/api/auth/login", payload);
+
+      if (!data?.success) {
+        const message = data?.error ?? data?.message ?? "Login failed. Please try again.";
+        setStatusMessage(message);
+        toast.error(message);
+        return;
+      }
+
+      toast.success("Logged in successfully.");
       router.push("/dashboard");
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setStatusMessage(
-          (error.response?.data as { message?: string } | undefined)?.message ??
-            "Login failed. Please try again."
-        );
+        const message =
+          (error.response?.data as { message?: string; error?: string } | undefined)?.error ??
+          (error.response?.data as { message?: string; error?: string } | undefined)?.message ??
+          "Login failed. Please try again.";
+        setStatusMessage(message);
+        toast.error(message);
       } else {
-        setStatusMessage("Unexpected error. Please try again.");
+        const message = "Unexpected error. Please try again.";
+        setStatusMessage(message);
+        toast.error(message);
       }
     } finally {
       setLoading(false);
     }
   };
 
+    const handleGitHubLogin = () => {
+  setOauthLoading(true);
+  setStatusMessage(null);
+  window.location.href = "/api/auth/github";
+};
+
   return (
     <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
+      <Toaster />
       <h1 className="text-center text-3xl font-semibold text-slate-900">Log in</h1>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
@@ -84,9 +112,18 @@ export default function LoginPage() {
         <button
           type="submit"
           className="w-full rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={loading}
+          disabled={loading || oauthLoading}
         >
           {loading ? "Logging in..." : "Log in"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleGitHubLogin}
+          className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={loading || oauthLoading}
+        >
+          {oauthLoading ? "Connecting..." : "Continue with GitHub"}
         </button>
       </form>
 
@@ -96,3 +133,4 @@ export default function LoginPage() {
     </section>
   );
 }
+
