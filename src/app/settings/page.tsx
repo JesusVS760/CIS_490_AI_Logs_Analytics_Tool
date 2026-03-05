@@ -1,217 +1,169 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
-export default function SettingClient(): any {
+export default function SettingClient() {
   const router = useRouter();
 
   const [modeDark, setModeDark] = useState(false);
   const [nameUser, setNameUser] = useState("");
   const [newNameUser, setNewNameUser] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [picProfile, setPicProfile] = useState<string | null>(null);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
 
+  // 🔹 Fetch logged-in user
   useEffect(() => {
-    const themeSaved = localStorage.getItem("theme");
-    const usernameSaved = localStorage.getItem("username");
-    const savedProfilePic = localStorage.getItem("profilePic");
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("/api/user/me", {
+          withCredentials: true,
+        });
 
-    if (themeSaved === "dark") {
-      document.documentElement.classList.add("dark");
-      setModeDark(true);
+        setNameUser(res.data.username);
+        setProfilePic(res.data.profilePic);
+        setModeDark(res.data.darkMode);
+
+        if (res.data.darkMode) {
+          document.documentElement.classList.add("dark");
+        }
+      } catch {
+        router.push("/login");
+      }
+    };
+
+    fetchUser();
+  }, [router]);
+
+  // 🔹 Toggle dark mode
+  const darkModeToggle = async () => {
+    try {
+      const res = await axios.put(
+        "/api/user/theme",
+        { darkMode: !modeDark },
+        { withCredentials: true }
+      );
+
+      setModeDark(res.data.darkMode);
+      document.documentElement.classList.toggle("dark");
+
+      toast.success("Mode updated ✅");
+    } catch {
+      toast.error("Failed to update mode ❌");
     }
-
-    if (usernameSaved) {
-      setNameUser(usernameSaved);
-    }
-
-    if (savedProfilePic) {
-      setPicProfile(savedProfilePic);
-    }
-  }, []);
-
-  // Toggle Dark Mode
-  const darkModeToggle = () => {
-    const themeNew = !modeDark;
-    setModeDark(themeNew);
-
-    if (themeNew) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-
-    toast("Mode Changed ✅");
   };
 
-// Change Username
-const changeUsername = () => {
-  if (!newNameUser.trim()) {
-    toast.error("Username cannot be empty ❌");
-    return;
-  }
+  // 🔹 Change username
+  const changeUsername = async () => {
+    if (!newNameUser.trim()) {
+      toast.error("Username cannot be empty ❌");
+      return;
+    }
 
-  localStorage.setItem("username", newNameUser);
+    try {
+      await axios.put(
+        "/api/user/username",
+        { username: newNameUser },
+        { withCredentials: true }
+      );
 
-  // Force UI refresh
-  window.location.reload();
+      setNameUser(newNameUser);
+      setNewNameUser("");
+      toast.success("Username updated ✅");
+    } catch {
+      toast.error("Update failed ❌");
+    }
+  };
 
-  toast.success("Username updated ✅");
-};
+  // 🔹 Change password
+  const changePassword = async () => {
+    if (!newPassword.trim()) {
+      toast.error("Password cannot be empty ❌");
+      return;
+    }
 
-  // Change Password
-const changePassword = () => {
-  const currentPassword = localStorage.getItem("Password");
+    try {
+      await axios.put(
+        "/api/user/password",
+        { password: newPassword },
+        { withCredentials: true }
+      );
 
-  // If empty
-  if (!newPassword.trim()) {
-    toast.error("Password not updated ❌");
-    return;
-  }
-
-  // If same as current password
-  if (newPassword === currentPassword) {
-    toast.warning("New password must be different ⚠️");
-    return;
-  }
-
-  // If valid
-  localStorage.setItem("Password", newPassword);
-  toast.success("Password updated ✅");
-  router.push("/login");
-};
-
-  // Delete Account
-  const deleteAccount = () => {
-    if (
-      confirm(
-        "Are you sure you want to delete your account? This action cannot be undone."
-      )
-    ) {
-      localStorage.clear();
-      toast("Account deleted ✅");
+      toast.success("Password updated ✅");
       router.push("/login");
+    } catch {
+      toast.error("Password update failed ❌");
     }
   };
 
-  // Handle Profile Picture Upload
-const handleProfileUpload = (
-  e: React.ChangeEvent<HTMLInputElement>
-) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  // 🔹 Delete account
+  const deleteAccount = async () => {
+    if (!confirm("Are you sure you want to delete your account?")) return;
 
-  if (!file.type.startsWith("image/")) {
-    toast.error("Please upload a valid image file ❌");
-    return;
-  }
+    try {
+      await axios.delete("/api/user", {
+        withCredentials: true,
+      });
 
-  const reader = new FileReader();
-
-  reader.onloadend = () => {
-    const base64String = reader.result as string;
-
-    setPicProfile(base64String);
-    localStorage.setItem("picProfile", base64String);
-
-    // Notify whole app
-    window.dispatchEvent(
-      new CustomEvent("picProfileChanged", {
-        detail: base64String,
-      })
-    );
-
-    toast.success("Profile picture updated ✅");
+      toast.success("Account deleted ✅");
+      router.push("/login");
+    } catch {
+      toast.error("Deletion failed ❌");
+    }
   };
 
-  reader.readAsDataURL(file);
-};
+  // 🔹 Upload profile picture
+  const handleProfileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    const formData = new FormData();
+    formData.append("profilePic", file);
 
-  // Remove Profile Picture
+    try {
+      const res = await axios.put(
+        "/api/user/profile-pic",
+        formData,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
-  const removeProfilePicture = () => {
-  localStorage.removeItem("picProfile");
-  setPicProfile(null);
-
-  window.dispatchEvent(
-    new CustomEvent("picProfileChanged", {
-      detail: null,
-    })
-  );
-
-  toast.success("Profile picture removed ✅");
-};
+      setProfilePic(res.data.profilePic);
+      toast.success("Profile picture updated ✅");
+    } catch {
+      toast.error("Upload failed ❌");
+    }
+  };
 
   return (
     <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
       <Toaster />
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
-      {/* Profile Picture Section */}
-<div className="mb-8">
-  <h2 className="text-xl font-semibold mb-3">Profile Picture</h2>
+      {profilePic && (
+        <img
+          src={profilePic}
+          className="w-32 h-32 rounded-full object-cover mb-4"
+        />
+      )}
 
-  <div className="mb-4">
-    {picProfile ? (
-      <img
-        src={picProfile}
-        alt="Profile"
-        className="w-32 h-32 rounded-full object-cover border"
-      />
-    ) : (
-      <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center text-sm">
-        No Image
-      </div>
-    )}
-  </div>
+      <input type="file" onChange={handleProfileUpload} />
 
-  {/* Hidden File Input */}
-  <input
-    type="file"
-    accept="image/*"
-    id="profileUpload"
-    onChange={handleProfileUpload}
-    className="hidden"
-  />
-
-  {/* Buttons */}
-  <div className="flex gap-3">
-    <button
-      onClick={() =>
-        document.getElementById("profileUpload")?.click()
-      }
-      className="px-4 py-2 bg-blue-600 text-white rounded cursor-pointer"
-    >
-      {picProfile ? "Change Picture" : "Upload Picture"}
-    </button>
-
-    {picProfile && (
-      <button
-        onClick={removeProfilePicture}
-        className="px-4 py-2 bg-gray-600 text-white rounded cursor-pointer"
-      >
-        Remove
-      </button>
-    )}
-  </div>
-</div>
-
-      {/* Dark Mode */}
       <button
         onClick={darkModeToggle}
-        className="mb-6 px-4 py-2 bg-blue-600 text-white rounded cursor-pointer"
+        className="block mt-6 px-4 py-2 bg-blue-600 text-white rounded"
       >
         Switch to {modeDark ? "Light" : "Dark"} Mode
       </button>
 
-      {/* Username */}
-      <p className="mb-4">
-        <strong>Current Username:</strong> {nameUser || "Not Set"}
+      <p className="mt-6">
+        <strong>Current Username:</strong> {nameUser}
       </p>
 
       <input
@@ -219,38 +171,34 @@ const handleProfileUpload = (
         placeholder="New Username"
         value={newNameUser}
         onChange={(e) => setNewNameUser(e.target.value)}
-        className="p-2 border rounded mb-2 text-black"
+        className="p-2 border rounded mt-2 text-black"
       />
-      <br />
+
       <button
         onClick={changeUsername}
-        className="mb-6 px-4 py-2 bg-green-600 text-white rounded cursor-pointer"
+        className="block mt-2 px-4 py-2 bg-green-600 text-white rounded"
       >
         Update Username
       </button>
 
-      {/* Reset Password */}
-      <div className="mb-6">
-        <input
-          type="password"
-          placeholder="New Password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className="p-2 border rounded mb-2 text-black"
-        />
-        <br />
-        <button
-          onClick={changePassword}
-          className="px-4 py-2 bg-yellow-600 text-white rounded cursor-pointer"
-        >
-          Reset Password
-        </button>
-      </div>
+      <input
+        type="password"
+        placeholder="New Password"
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        className="p-2 border rounded mt-6 text-black"
+      />
 
-      {/* Delete Account */}
+      <button
+        onClick={changePassword}
+        className="block mt-2 px-4 py-2 bg-yellow-600 text-white rounded"
+      >
+        Reset Password
+      </button>
+
       <button
         onClick={deleteAccount}
-        className="px-4 py-2 bg-red-700 text-white rounded cursor-pointer"
+        className="block mt-6 px-4 py-2 bg-red-700 text-white rounded"
       >
         Delete Account
       </button>
