@@ -5,7 +5,6 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Input } from "@/components/ui/input";
 
 export default function SettingClient() {
   const router = useRouter();
@@ -16,20 +15,18 @@ export default function SettingClient() {
   const [newPassword, setNewPassword] = useState("");
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
-  // 🔹 Fetch logged-in user
+  // Fetch logged-in user
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await axios.get("/api/auth/me", { withCredentials: true });
 
-        setNameUser(res.data.username);
-        setProfilePic(res.data.profilePic);
-        setModeDark(res.data.darkMode);
+        setNameUser(res.data.user.name);
+        setProfilePic(null);
+        setModeDark(false);
 
-        if (res.data.darkMode) {
-          document.documentElement.classList.add("dark");
-        }
-      } catch {
+        document.documentElement.classList.remove("dark");
+      } catch (error) {
         router.push("/login");
       }
     };
@@ -37,7 +34,7 @@ export default function SettingClient() {
     fetchUser();
   }, [router]);
 
-  // 🔹 Toggle dark mode
+  // Toggle dark mode
   const darkModeToggle = async () => {
     try {
       const res = await axios.put(
@@ -46,16 +43,22 @@ export default function SettingClient() {
         { withCredentials: true }
       );
 
-      setModeDark(res.data.darkMode);
-      document.documentElement.classList.toggle("dark");
+      const updatedDarkMode = res.data.darkMode;
+      setModeDark(updatedDarkMode);
+
+      if (updatedDarkMode) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
 
       toast.success("Mode updated ✅");
-    } catch {
+    } catch (error) {
       toast.error("Failed to update mode ❌");
     }
   };
 
-  // 🔹 Change username
+  // Change username
   const changeUsername = async () => {
     if (!newNameUser.trim()) {
       toast.error("Username cannot be empty ❌");
@@ -72,12 +75,12 @@ export default function SettingClient() {
       setNameUser(newNameUser);
       setNewNameUser("");
       toast.success("Username updated ✅");
-    } catch {
+    } catch (error) {
       toast.error("Update failed ❌");
     }
   };
 
-  // 🔹 Change password
+  // Change password
   const changePassword = async () => {
     if (!newPassword.trim()) {
       toast.error("Password cannot be empty ❌");
@@ -93,12 +96,12 @@ export default function SettingClient() {
 
       toast.success("Password updated ✅");
       router.push("/login");
-    } catch {
+    } catch (error) {
       toast.error("Password update failed ❌");
     }
   };
 
-  // 🔹 Delete account
+  // Delete account
   const deleteAccount = async () => {
     if (!confirm("Are you sure you want to delete your account?")) return;
 
@@ -109,37 +112,33 @@ export default function SettingClient() {
 
       toast.success("Account deleted ✅");
       router.push("/login");
-    } catch {
+    } catch (error) {
       toast.error("Deletion failed ❌");
     }
   };
 
-  // 🔹 Upload profile picture
+  // Upload profile picture
   const handleProfileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // preview immediately
-    setProfilePic(URL.createObjectURL(file));
+    const previewUrl = URL.createObjectURL(file);
+    setProfilePic(previewUrl);
 
     const formData = new FormData();
     formData.append("profilePic", file);
 
     try {
-      const res = await axios.put(
-        "/api/user/profile-pic",
-        formData,
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      const res = await axios.put("/api/user/profile-pic", formData, {
+        withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       setProfilePic(res.data.profilePic);
       toast.success("Profile picture updated ✅");
-    } catch {
+    } catch (error) {
       toast.error("Upload failed ❌");
     }
   };
@@ -150,12 +149,11 @@ export default function SettingClient() {
 
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
-      {/* 🔹 Profile Picture Section */}
       <div className="mb-6 flex flex-col items-center">
-
         {profilePic ? (
           <img
             src={profilePic}
+            alt="Profile"
             className="w-32 h-32 rounded-full object-cover mb-4 border"
           />
         ) : (
@@ -164,7 +162,6 @@ export default function SettingClient() {
           </div>
         )}
 
-        {/* Hidden File Input */}
         <input
           id="profileUpload"
           type="file"
@@ -173,18 +170,14 @@ export default function SettingClient() {
           className="hidden"
         />
 
-        {/* Upload Button */}
         <button
-          onClick={() =>
-            document.getElementById("profileUpload")?.click()
-          }
+          onClick={() => document.getElementById("profileUpload")?.click()}
           className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
         >
           Upload Profile Picture
         </button>
       </div>
 
-      {/* 🔹 Dark Mode */}
       <button
         onClick={darkModeToggle}
         className="block mt-6 px-4 py-2 bg-blue-600 text-white rounded"
@@ -192,7 +185,6 @@ export default function SettingClient() {
         Switch to {modeDark ? "Light" : "Dark"} Mode
       </button>
 
-      {/* 🔹 Username */}
       <p className="mt-6">
         <strong>Current Username:</strong> {nameUser}
       </p>
@@ -212,7 +204,6 @@ export default function SettingClient() {
         Update Username
       </button>
 
-      {/* 🔹 Password */}
       <input
         type="password"
         placeholder="New Password"
@@ -228,7 +219,6 @@ export default function SettingClient() {
         Reset Password
       </button>
 
-      {/* 🔹 Delete Account */}
       <button
         onClick={deleteAccount}
         className="block mt-6 px-4 py-2 bg-red-700 text-white rounded"
@@ -238,6 +228,5 @@ export default function SettingClient() {
     </div>
   );
 }
-
 
 //check to push to github aaaffff
