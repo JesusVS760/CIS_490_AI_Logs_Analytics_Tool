@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: Request) {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirectUri = process.env.GITHUB_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return NextResponse.json(
-      { error: "GitHub OAuth env vars are missing." },
-      { status: 500 }
-    );
+    return NextResponse.redirect(new URL("/login?oauth=misconfigured", req.url));
   }
 
   const url = new URL("https://github.com/login/oauth/authorize");

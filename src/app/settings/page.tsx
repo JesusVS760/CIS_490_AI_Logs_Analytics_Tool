@@ -20,7 +20,7 @@ export default function SettingClient() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("/api/login", { withCredentials: true });
+        const res = await axios.get("/api/auth/me", { withCredentials: true });
 
         setNameUser(res.data.username);
         setProfilePic(res.data.profilePic);

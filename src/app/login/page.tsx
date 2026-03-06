@@ -3,9 +3,9 @@
 // Amany Fogg - login/page.tsx
 // This is the file that shows the login page and handles all login form logics (form state, API calls, error handling, redirects). This uses the same structure as the reset-account/page.tsx file, but more complex form states.
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -14,15 +14,23 @@ import { Toaster } from "@/components/ui/sonner";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const oauth = searchParams.get("oauth");
+
+    if (oauth === "failed") {
+      setStatusMessage("GitHub login failed. Please try again.");
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setStatusMessage(null);
-    console.log("jfkhdf");
 
     try {
       const formData = new FormData(e.currentTarget);
@@ -71,11 +79,11 @@ export default function LoginPage() {
     }
   };
 
-    const handleGitHubLogin = () => {
-  setOauthLoading(true);
-  setStatusMessage(null);
-  window.location.href = "/api/auth/github";
-};
+  const handleGitHubLogin = () => {
+    setOauthLoading(true);
+    setStatusMessage(null);
+    window.location.href = "/api/auth/github";
+  };
 
   return (
     <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
@@ -134,4 +142,3 @@ export default function LoginPage() {
     </section>
   );
 }
-

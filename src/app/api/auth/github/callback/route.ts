@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 
     const tokenData = (await tokenRes.json()) as { access_token?: string };
     const accessToken = tokenData.access_token;
-    if (!accessToken) {
+    if (!tokenRes.ok || !accessToken) {
       return NextResponse.redirect(new URL("/login?oauth=failed", req.url));
     }
 
@@ -61,6 +61,11 @@ export async function GET(req: NextRequest) {
         Accept: "application/vnd.github+json",
       },
     });
+
+    if (!userRes.ok) {
+      return NextResponse.redirect(new URL("/login?oauth=failed", req.url));
+    }
+
     const ghUser = (await userRes.json()) as GitHubUser;
 
     const emailsRes = await fetch("https://api.github.com/user/emails", {
@@ -69,6 +74,11 @@ export async function GET(req: NextRequest) {
         Accept: "application/vnd.github+json",
       },
     });
+
+    if (!emailsRes.ok) {
+      return NextResponse.redirect(new URL("/login?oauth=failed", req.url));
+    }
+
     const ghEmails = (await emailsRes.json()) as GitHubEmail[];
 
     const primaryEmail =
