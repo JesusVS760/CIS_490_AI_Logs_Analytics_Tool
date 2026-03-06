@@ -10,6 +10,9 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
+    username: auth.name,
+    profilePic: null,
+    darkMode: false,
     user: {
       id: auth.instructorId,
       email: auth.email,
