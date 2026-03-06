@@ -14,20 +14,34 @@ export default function SettingClient() {
   const [newNameUser, setNewNameUser] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [updatingTheme, setUpdatingTheme] = useState(false);
 
   // Fetch logged-in user
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("/api/auth/me", { withCredentials: true });
+        const res = await axios.get("/api/auth/me", {
+          withCredentials: true,
+        });
 
-        setNameUser(res.data.user.name);
-        setProfilePic(null);
-        setModeDark(false);
+        const user = res.data.user;
 
-        document.documentElement.classList.remove("dark");
+        setNameUser(user?.name || "");
+        setProfilePic(user?.profilePic || null);
+
+        const savedDarkMode = Boolean(user?.darkMode);
+        setModeDark(savedDarkMode);
+
+        if (savedDarkMode) {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
       } catch (error) {
         router.push("/login");
+      } finally {
+        setLoadingUser(false);
       }
     };
 
@@ -36,14 +50,24 @@ export default function SettingClient() {
 
   // Toggle dark mode
   const darkModeToggle = async () => {
+    if (updatingTheme) return;
+
     try {
+      setUpdatingTheme(true);
+
+      const nextMode = !modeDark;
+
       const res = await axios.put(
         "/api/user/theme",
-        { darkMode: !modeDark },
+        { darkMode: nextMode },
         { withCredentials: true }
       );
 
-      const updatedDarkMode = res.data.darkMode;
+      const updatedDarkMode =
+        typeof res.data?.darkMode === "boolean"
+          ? res.data.darkMode
+          : nextMode;
+
       setModeDark(updatedDarkMode);
 
       if (updatedDarkMode) {
@@ -55,6 +79,8 @@ export default function SettingClient() {
       toast.success("Mode updated ✅");
     } catch (error) {
       toast.error("Failed to update mode ❌");
+    } finally {
+      setUpdatingTheme(false);
     }
   };
 
@@ -136,12 +162,21 @@ export default function SettingClient() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setProfilePic(res.data.profilePic);
+      setProfilePic(res.data.profilePic || previewUrl);
       toast.success("Profile picture updated ✅");
     } catch (error) {
       toast.error("Upload failed ❌");
     }
   };
+
+  if (loadingUser) {
+    return (
+      <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
+        <Toaster />
+        <p>Loading settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-8 bg-white text-black dark:bg-gray-900 dark:text-white transition-all">
@@ -171,6 +206,7 @@ export default function SettingClient() {
         />
 
         <button
+          type="button"
           onClick={() => document.getElementById("profileUpload")?.click()}
           className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
         >
@@ -179,10 +215,14 @@ export default function SettingClient() {
       </div>
 
       <button
+        type="button"
         onClick={darkModeToggle}
-        className="block mt-6 px-4 py-2 bg-blue-600 text-white rounded"
+        disabled={updatingTheme}
+        className="block mt-6 px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
       >
-        Switch to {modeDark ? "Light" : "Dark"} Mode
+        {updatingTheme
+          ? "Updating..."
+          : `Switch to ${modeDark ? "Light" : "Dark"} Mode`}
       </button>
 
       <p className="mt-6">
@@ -198,6 +238,7 @@ export default function SettingClient() {
       />
 
       <button
+        type="button"
         onClick={changeUsername}
         className="block mt-2 px-4 py-2 bg-green-600 text-white rounded"
       >
@@ -213,6 +254,7 @@ export default function SettingClient() {
       />
 
       <button
+        type="button"
         onClick={changePassword}
         className="block mt-2 px-4 py-2 bg-yellow-600 text-white rounded"
       >
@@ -220,6 +262,7 @@ export default function SettingClient() {
       </button>
 
       <button
+        type="button"
         onClick={deleteAccount}
         className="block mt-6 px-4 py-2 bg-red-700 text-white rounded"
       >
@@ -228,5 +271,4 @@ export default function SettingClient() {
     </div>
   );
 }
-
 //check to push to github aaaffff
