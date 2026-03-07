@@ -1,4 +1,4 @@
-import { countTracker } from "@/lib/countTracker";
+import { countTracker } from "@/lib/CountTracker";
 import { randomColor } from "@/lib/utils";
 import { Message } from "@/types";
 import { Bold, Text } from "lucide-react";
