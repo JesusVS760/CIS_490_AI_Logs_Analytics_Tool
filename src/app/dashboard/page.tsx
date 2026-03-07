@@ -1,8 +1,6 @@
 "use client";
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
-import CountTracker from "@/lib/CountTracker";
-import phraseCountTracker from "@/lib/CountTracker";
 import axios from "axios";
 import { useEffect, useState } from "react";
 

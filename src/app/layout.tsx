@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/app-sidebar";
-import Navbar from "@/components/dashboard/Navbar";
-import ThemeProvider from "@/components/dashboard/ThemeProvider"; 
+import ThemeProvider from "@/components/dashboard/ThemeProvider";
+import Navbar from "@/components/navbar/Navbar";
 
 export const metadata: Metadata = {
   title: "AI Tutor Analytics",

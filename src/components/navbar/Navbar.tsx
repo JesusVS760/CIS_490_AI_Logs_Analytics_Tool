@@ -2,8 +2,8 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ChartBar, LineChart, Settings } from "lucide-react";
-import SearchBar from "./SearchBar";
 import Notifications from "./Notifications";
+import SearchBar from "./SearchBar";
 
 export default function Navbar() {
   return (

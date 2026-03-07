@@ -1,4 +1,4 @@
-import CountTracker from "@/lib/CountTracker";
+import { countTracker } from "@/lib/countTracker";
 import { Message } from "@/types";
 import { useEffect, useState } from "react";
 
@@ -10,7 +10,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
   const [words, setWords] = useState<{ text: string; value: number }[]>([]);
 
   useEffect(() => {
-    const frequencies = CountTracker(messages);
+    const frequencies = countTracker(messages);
     const wordArray = Object.entries(frequencies).map(([text, value]) => ({
       text,
       value,
