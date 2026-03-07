@@ -1,40 +1,34 @@
-import React, { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
+import axios from "axios";
 import ChatDuration from "./ChatDuration";
 import UniqueUsersCard from "./UniqueUsersCard";
-import axios from "axios";
 import { Message } from "@/types";
-import CountTracker from "@/lib/CountTracker";
-import WordCloud from "./WordCloud";
-import WordCloudCard from "./WordCloud";
+import { WordCloudCard } from "./WordCloud";
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [wordCloudData, setWordCloudData] = useState<
-    { text: string; value: number }[]
-  >([]);
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const response = await axios.get("/api/messages");
-        setMessages(response.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchMessages();
-  }, []);
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      const frequencies = CountTracker(messages);
-      const data = Object.entries(frequencies).map(([text, value]) => ({
-        text,
-        value,
-      }));
-      setWordCloudData(data);
+  const fetchMessages = async () => {
+    try {
+      const res = await axios.get("/api/messages");
+      console.log(res.data);
+      setMessages(res.data);
+    } catch (err) {
+      console.error("Failed to fetch messages:", err);
     }
-  }, [messages]);
+  };
+
+  useEffect(() => {
+    fetchMessages();
+
+    const interval = setInterval(() => {
+      fetchMessages(); // fetch every 5 seconds
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="w-85">

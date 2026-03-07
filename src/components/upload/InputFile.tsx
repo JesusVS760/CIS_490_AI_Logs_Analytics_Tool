@@ -18,7 +18,7 @@ const inputFileSchema = z.object({
     .refine((files) => files?.length === 1, "File is required")
     .refine(
       (files) => ACCEPTED_TYPES.includes(files?.[0]?.type),
-      "Only PDF, DOC, and DOCX files are allowed"
+      "Only PDF, DOC, and DOCX files are allowed",
     ),
 });
 

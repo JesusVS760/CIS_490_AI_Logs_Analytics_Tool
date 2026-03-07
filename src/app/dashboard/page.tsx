@@ -13,7 +13,6 @@ export default function DashboardPage() {
     const checkUploadData = async () => {
       try {
         const response = await axios.get("./api/sessions");
-        console.log("Response", response);
         const sessions = response.data;
 
         if (sessions && sessions.length > 0) {
@@ -28,20 +27,6 @@ export default function DashboardPage() {
     };
     checkUploadData();
   }, []);
-
-  // useEffect(() => {
-  //   const fetchMessages = async () => {
-  //     try {
-  //       const response = await axios.get("./api/messages");
-  //       const messages = response.data;
-  //       // console.log("messages", messages);
-  //       CountTracker(messages);
-  //     } catch (error) {
-  //       console.error("failed to fetch", error);
-  //     }
-  //   };
-  //   fetchMessages();
-  // }, []);
 
   return (
     <>

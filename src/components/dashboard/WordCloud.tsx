@@ -1,20 +1,13 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
-import { Message } from "@/types";
 import CountTracker from "@/lib/CountTracker";
-
-type WordData = {
-  text: string;
-  value: number;
-};
+import { Message } from "@/types";
+import { useEffect, useState } from "react";
 
 type WordCloudCardProps = {
   messages: Message[];
 };
 
-const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
-  const [words, setWords] = useState<WordData[]>([]);
+export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
+  const [words, setWords] = useState<{ text: string; value: number }[]>([]);
 
   useEffect(() => {
     const frequencies = CountTracker(messages);
@@ -25,7 +18,6 @@ const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
     setWords(wordArray);
   }, [messages]);
 
-  // Determine font size scaling
   const maxCount = Math.max(...words.map((w) => w.value), 1);
 
   return (
@@ -33,7 +25,7 @@ const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
       <h1 className="font-bold text-lg mb-4">Top Student Phrases</h1>
       <div className="flex flex-wrap gap-2">
         {words.map((w, idx) => {
-          const fontSize = 12 + (w.value / maxCount) * 24; // min 12px, max 36px
+          const fontSize = 10 + (w.value / maxCount) * 16;
           return (
             <span
               key={idx}
@@ -48,5 +40,3 @@ const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
     </div>
   );
 };
-
-export default WordCloudCard;
