@@ -10,7 +10,7 @@ export default function ThemeProvider({
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
 
-    if (savedTheme === "dark") {
+    if (savedTheme === "darks") {
       document.documentElement.classList.add("dark");
     }
   }, []);

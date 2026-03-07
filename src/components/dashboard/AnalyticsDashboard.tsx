@@ -9,6 +9,7 @@ import { WordCloudCard } from "./WordCloud";
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [lastMessageId, setLastMessageId] = useState<number | null>(null);
 
   const fetchMessages = async () => {
     try {
@@ -22,12 +23,11 @@ const AnalyticsDashboard = () => {
 
   useEffect(() => {
     fetchMessages();
+    // const interval = setInterval(() => {
+    //   fetchMessages(); // fetch every 5 seconds
+    // }, 5000);
 
-    const interval = setInterval(() => {
-      fetchMessages(); // fetch every 5 seconds
-    }, 5000);
-
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, []);
 
   return (
