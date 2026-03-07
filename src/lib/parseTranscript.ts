@@ -1,22 +1,4 @@
-export interface ParsedMessage {
-  role: "student" | "ai_tutor";
-  content: string;
-  timestamp: string;
-  codeFiles: { filename: string; content: string | null; isEmpty: boolean }[];
-  terminalContent: string | null;
-}
-
-export interface ParsedSession {
-  studentEmail: string;
-  assignmentName: string;
-  messages: ParsedMessage[];
-}
-
-export interface ParsedTranscript {
-  courseName: string;
-  generatedAt: string;
-  sessions: ParsedSession[];
-}
+import { ParsedMessage, ParsedSession, ParsedTranscript } from "@/types";
 
 /**
  * Normalizes PDF-extracted text (which strips all newlines) back into the

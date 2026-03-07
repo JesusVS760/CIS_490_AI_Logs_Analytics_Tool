@@ -27,7 +27,6 @@ const ChatDuration = () => {
     async function fetchSessions() {
       const res = await fetch("/api/sessions");
       const sessions: Session[] = await res.json();
-      console.log(sessions);
 
       const buckets = {
         "0–5": 0,

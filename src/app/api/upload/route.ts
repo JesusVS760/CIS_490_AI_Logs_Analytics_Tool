@@ -36,15 +36,12 @@ export async function POST(req: NextRequest) {
 
     const raw = await extractText(file);
 
-    console.log("RAW TEXT (first 1000 chars):\n", raw.slice(0, 1000));
-
     const parsed = parseTranscript(raw);
     console.log("Parsed transcript:", {
       courseName: parsed.courseName,
       generatedAt: parsed.generatedAt,
       sessions: parsed.sessions.length,
     });
-    console.log("Parsed transcript:", JSON.stringify(parsed, null, 2));
 
     if (!parsed.courseName && parsed.sessions.length === 0) {
       return NextResponse.json(
@@ -100,7 +97,6 @@ export async function POST(req: NextRequest) {
       sessions: parsed.sessions.length,
     });
   } catch (error) {
-    console.error("Upload error:", error);
     return NextResponse.json(
       { error: "Failed to process transcript" },
       { status: 500 },

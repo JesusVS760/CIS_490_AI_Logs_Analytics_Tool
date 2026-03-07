@@ -137,8 +137,12 @@ export default function RegisterPage() {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         // Backend sends { error: "..." } on failures
-        const data = error.response?.data as Partial<RegisterErrorResponse> | undefined;
-        setStatusMessage(data?.error ?? "Registration failed. Please try again.");
+        const data = error.response?.data as
+          | Partial<RegisterErrorResponse>
+          | undefined;
+        setStatusMessage(
+          data?.error ?? "Registration failed. Please try again.",
+        );
       } else {
         setStatusMessage("Unexpected error. Please try again.");
       }

@@ -60,13 +60,11 @@ export default function SettingClient() {
       const res = await axios.put(
         "/api/user/theme",
         { darkMode: nextMode },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       const updatedDarkMode =
-        typeof res.data?.darkMode === "boolean"
-          ? res.data.darkMode
-          : nextMode;
+        typeof res.data?.darkMode === "boolean" ? res.data.darkMode : nextMode;
 
       setModeDark(updatedDarkMode);
 
@@ -95,7 +93,7 @@ export default function SettingClient() {
       await axios.put(
         "/api/user/username",
         { username: newNameUser },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       setNameUser(newNameUser);
@@ -117,7 +115,7 @@ export default function SettingClient() {
       await axios.put(
         "/api/user/password",
         { password: newPassword },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       toast.success("Password updated ✅");
@@ -145,7 +143,7 @@ export default function SettingClient() {
 
   // Upload profile picture
   const handleProfileUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;

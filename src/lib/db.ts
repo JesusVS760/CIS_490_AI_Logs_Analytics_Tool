@@ -212,4 +212,16 @@ export function getAllSessions() {
     )
     .all();
 }
+
+export function getAllMessages() {
+  return db
+    .prepare(
+      `
+  SELECT content
+FROM messages
+WHERE role = 'student';
+  `,
+    )
+    .all();
+}
 export default db;

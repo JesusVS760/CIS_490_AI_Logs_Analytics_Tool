@@ -1,6 +1,8 @@
 "use client";
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
+import CountTracker from "@/lib/CountTracker";
+import phraseCountTracker from "@/lib/CountTracker";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
@@ -11,6 +13,7 @@ export default function DashboardPage() {
     const checkUploadData = async () => {
       try {
         const response = await axios.get("./api/sessions");
+        console.log("Response", response);
         const sessions = response.data;
 
         if (sessions && sessions.length > 0) {
@@ -25,6 +28,20 @@ export default function DashboardPage() {
     };
     checkUploadData();
   }, []);
+
+  // useEffect(() => {
+  //   const fetchMessages = async () => {
+  //     try {
+  //       const response = await axios.get("./api/messages");
+  //       const messages = response.data;
+  //       // console.log("messages", messages);
+  //       CountTracker(messages);
+  //     } catch (error) {
+  //       console.error("failed to fetch", error);
+  //     }
+  //   };
+  //   fetchMessages();
+  // }, []);
 
   return (
     <>
