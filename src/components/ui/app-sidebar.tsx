@@ -1,3 +1,7 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   Sidebar,
   SidebarContent,
@@ -25,14 +29,72 @@ const navItems = [
   { title: "Logout", icon: LogOut, href: "/logout" },
 ];
 
+type ProfileUpdatedDetail = {
+  nameUser?: string;
+  profilePic?: string | null;
+};
+
 export function AppSidebar() {
+  const [nameUser, setNameUser] = useState("User");
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+  try {
+    const res = await axios.get("/api/auth/me", {
+      withCredentials: true,
+    });
+
+    const user = res.data.user;
+
+    setNameUser(user?.name || "User");
+    setProfilePic(user?.profilePic || null);
+  } catch (error) {
+    console.error("Failed to load sidebar user:", error);
+  }
+};
+
+    fetchUser();
+
+    const handleProfileUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<ProfileUpdatedDetail>;
+
+      if (typeof customEvent.detail?.nameUser === "string") {
+        setNameUser(customEvent.detail.nameUser);
+      }
+
+      if (customEvent.detail?.profilePic !== undefined) {
+        setProfilePic(customEvent.detail.profilePic);
+      }
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdated);
+    };
+  }, []);
+
   return (
     <Sidebar collapsible="offcanvas" className="relative z-10 h-full">
-      <SidebarHeader className="px-4 py-3 text-lg font-semibold flex flex-row items-center justify-start">
-        {/*Future Update: dynamically render a user*/}
-        <CircleUserIcon size={20} />
-        <p>User</p>
+      <SidebarHeader className="px-4 py-3 text-lg font-semibold">
+        <div className="flex flex-row items-center justify-start gap-3">
+          {profilePic ? (
+            <img
+              src={profilePic}
+              alt="Profile"
+              className="h-10 w-10 rounded-full object-cover border border-gray-300 dark:border-gray-700"
+            />
+          ) : (
+            <CircleUserIcon size={20} />
+          )}
+
+          <div className="min-w-0">
+            <p className="truncate">{nameUser}</p>
+          </div>
+        </div>
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -52,8 +114,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="px-4 py-3 text-sm text-muted-foreground">
-        v1.0.0
+        Signed in as {nameUser}
       </SidebarFooter>
     </Sidebar>
   );
