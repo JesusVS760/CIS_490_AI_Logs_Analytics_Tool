@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import {
   Sidebar,
   SidebarContent,
@@ -34,27 +33,27 @@ type ProfileUpdatedDetail = {
   profilePic?: string | null;
 };
 
+type StoredUser = {
+  nameUser: string;
+  profilePic: string | null;
+};
+
 export function AppSidebar() {
   const [nameUser, setNameUser] = useState("User");
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-  try {
-    const res = await axios.get("/api/auth/me", {
-      withCredentials: true,
-    });
+    const storedUserRaw = localStorage.getItem("dashboardUser");
 
-    const user = res.data.user;
-
-    setNameUser(user?.name || "User");
-    setProfilePic(user?.profilePic || null);
-  } catch (error) {
-    console.error("Failed to load sidebar user:", error);
-  }
-};
-
-    fetchUser();
+    if (storedUserRaw) {
+      try {
+        const storedUser: StoredUser = JSON.parse(storedUserRaw);
+        setNameUser(storedUser.nameUser || "User");
+        setProfilePic(storedUser.profilePic || null);
+      } catch (error) {
+        console.error("Failed to parse stored sidebar user:", error);
+      }
+    }
 
     const handleProfileUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<ProfileUpdatedDetail>;

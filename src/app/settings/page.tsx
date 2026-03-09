@@ -16,6 +16,11 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
+type StoredUser = {
+  nameUser: string;
+  profilePic: string | null;
+};
+
 export default function SettingClient() {
   const router = useRouter();
 
@@ -31,6 +36,25 @@ export default function SettingClient() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  const saveUserToStorage = (userName: string, userProfilePic: string | null) => {
+    const storedUser: StoredUser = {
+      nameUser: userName,
+      profilePic: userProfilePic,
+    };
+    localStorage.setItem("dashboardUser", JSON.stringify(storedUser));
+  };
+
+  const dispatchProfileUpdated = (userName: string, userProfilePic: string | null) => {
+    window.dispatchEvent(
+      new CustomEvent("profile-updated", {
+        detail: {
+          nameUser: userName,
+          profilePic: userProfilePic,
+        },
+      })
+    );
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -39,12 +63,16 @@ export default function SettingClient() {
         });
 
         const user = res.data.user;
-
-        setNameUser(user?.name || "");
-        setProfilePic(user?.profilePic || null);
-
+        const fetchedName = user?.name || "";
+        const fetchedProfilePic = user?.profilePic || null;
         const savedDarkMode = Boolean(user?.darkMode);
+
+        setNameUser(fetchedName);
+        setProfilePic(fetchedProfilePic);
         setModeDark(savedDarkMode);
+
+        saveUserToStorage(fetchedName, fetchedProfilePic);
+        dispatchProfileUpdated(fetchedName, fetchedProfilePic);
 
         if (savedDarkMode) {
           document.documentElement.classList.add("dark");
@@ -110,15 +138,8 @@ export default function SettingClient() {
       );
 
       setNameUser(newNameUser);
-
-      window.dispatchEvent(
-        new CustomEvent("profile-updated", {
-          detail: {
-            nameUser: newNameUser,
-            profilePic,
-          },
-        })
-      );
+      saveUserToStorage(newNameUser, profilePic);
+      dispatchProfileUpdated(newNameUser, profilePic);
 
       setNewNameUser("");
       toast.success("Username updated ✅");
@@ -163,6 +184,8 @@ export default function SettingClient() {
         withCredentials: true,
       });
 
+      localStorage.removeItem("dashboardUser");
+
       toast.success("Account deleted ✅");
       router.push("/login");
     } catch (error) {
@@ -180,6 +203,8 @@ export default function SettingClient() {
 
     const previewUrl = URL.createObjectURL(file);
     setProfilePic(previewUrl);
+    saveUserToStorage(nameUser, previewUrl);
+    dispatchProfileUpdated(nameUser, previewUrl);
 
     const formData = new FormData();
     formData.append("profilePic", file);
@@ -197,15 +222,8 @@ export default function SettingClient() {
         : previewUrl;
 
       setProfilePic(updatedProfilePic);
-
-      window.dispatchEvent(
-        new CustomEvent("profile-updated", {
-          detail: {
-            nameUser,
-            profilePic: updatedProfilePic,
-          },
-        })
-      );
+      saveUserToStorage(nameUser, updatedProfilePic);
+      dispatchProfileUpdated(nameUser, updatedProfilePic);
 
       toast.success("Profile picture updated ✅");
     } catch (error) {
@@ -316,11 +334,7 @@ export default function SettingClient() {
           <div className="space-y-6 lg:col-span-2">
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div className="flex items-center gap-2">
-                {modeDark ? (
-                  <Moon className="h-5 w-5" />
-                ) : (
-                  <Sun className="h-5 w-5" />
-                )}
+                {modeDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                 <h2 className="text-xl font-semibold">Appearance</h2>
               </div>
 
@@ -360,10 +374,7 @@ export default function SettingClient() {
               </p>
 
               <div className="mt-4">
-                <label
-                  htmlFor="new-username"
-                  className="mb-2 block text-sm font-medium"
-                >
+                <label htmlFor="new-username" className="mb-2 block text-sm font-medium">
                   New Username
                 </label>
                 <input
@@ -399,10 +410,7 @@ export default function SettingClient() {
               </p>
 
               <div className="mt-4">
-                <label
-                  htmlFor="new-password"
-                  className="mb-2 block text-sm font-medium"
-                >
+                <label htmlFor="new-password" className="mb-2 block text-sm font-medium">
                   New Password
                 </label>
                 <input

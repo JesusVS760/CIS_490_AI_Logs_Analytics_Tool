@@ -1,13 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import {
-  LineChart,
-  Settings,
-  CircleUserIcon,
-} from "lucide-react";
+import { LineChart, Settings, CircleUserIcon } from "lucide-react";
 import Notifications from "./Notifications";
 import SearchBar from "./SearchBar";
 
@@ -16,27 +11,27 @@ type ProfileUpdatedDetail = {
   profilePic?: string | null;
 };
 
+type StoredUser = {
+  nameUser: string;
+  profilePic: string | null;
+};
+
 export default function Navbar() {
   const [nameUser, setNameUser] = useState("User");
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-  try {
-    const res = await axios.get("/api/auth/me", {
-      withCredentials: true,
-    });
+    const storedUserRaw = localStorage.getItem("dashboardUser");
 
-    const user = res.data.user;
-
-    setNameUser(user?.name || "User");
-    setProfilePic(user?.profilePic || null);
-  } catch (error) {
-    console.error("Failed to load navbar user:", error);
-  }
-};
-
-    fetchUser();
+    if (storedUserRaw) {
+      try {
+        const storedUser: StoredUser = JSON.parse(storedUserRaw);
+        setNameUser(storedUser.nameUser || "User");
+        setProfilePic(storedUser.profilePic || null);
+      } catch (error) {
+        console.error("Failed to parse stored navbar user:", error);
+      }
+    }
 
     const handleProfileUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<ProfileUpdatedDetail>;
@@ -91,9 +86,7 @@ export default function Navbar() {
               <span className="max-w-[120px] truncate text-sm font-medium">
                 {nameUser}
               </span>
-              <span className="text-xs text-muted-foreground">
-                Settings
-              </span>
+              <span className="text-xs text-muted-foreground">Settings</span>
             </div>
 
             <Settings className="h-4 w-4" />
