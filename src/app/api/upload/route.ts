@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.courseName && parsed.sessions.length === 0) {
       return NextResponse.json(
         { error: "Could not parse transcript — check the file format" },
-        { status: 422 },
+        { status: 422 }
       );
     }
 
@@ -55,8 +55,12 @@ export async function POST(req: NextRequest) {
 
     for (const session of parsed.sessions) {
       const studentId = upsertStudent(session.studentEmail);
-      const assignmentId = upsertAssignment(courseId, session.assignmentName);
-
+      const assignmentId = upsertAssignment(
+        courseId,
+        session.assignmentName,
+        undefined, // description (optional)
+        session.dueDate // dueDate
+      );
       const startedAt = session.messages[0]?.timestamp ?? null;
       const endedAt =
         session.messages[session.messages.length - 1]?.timestamp ?? null;
@@ -65,7 +69,7 @@ export async function POST(req: NextRequest) {
         studentId,
         assignmentId,
         startedAt,
-        endedAt,
+        endedAt
       );
 
       for (const msg of session.messages) {
@@ -73,7 +77,7 @@ export async function POST(req: NextRequest) {
           sessionId,
           msg.role,
           msg.content,
-          msg.timestamp,
+          msg.timestamp
         );
 
         for (const codeFile of msg.codeFiles) {
@@ -81,7 +85,7 @@ export async function POST(req: NextRequest) {
             messageId,
             codeFile.filename,
             codeFile.content,
-            codeFile.isEmpty,
+            codeFile.isEmpty
           );
         }
 
@@ -99,7 +103,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to process transcript" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

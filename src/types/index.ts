@@ -9,6 +9,7 @@ export interface ParsedMessage {
 export interface ParsedSession {
   studentEmail: string;
   assignmentName: string;
+  dueDate: string | undefined;
   messages: ParsedMessage[];
 }
 

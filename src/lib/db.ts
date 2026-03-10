@@ -27,7 +27,7 @@ db.exec(`
     course_id INTEGER REFERENCES courses(id),
     name TEXT NOT NULL,
     description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     due_date DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -113,11 +113,11 @@ export function upsertStudent(rawEmail: string): number {
 }
 
 // ─── Assignments ─────────────────────────────────────────────────────────────
-
 export function upsertAssignment(
   courseId: number,
   name: string,
-  description?: string
+  description?: string,
+  dueDate?: string
 ): number {
   const existing = db
     .prepare("SELECT id FROM assignments WHERE course_id = ? AND name = ?")
@@ -127,13 +127,12 @@ export function upsertAssignment(
 
   const result = db
     .prepare(
-      "INSERT INTO assignments (course_id, name, description) VALUES (?, ?, ?)"
+      "INSERT INTO assignments (course_id, name, description, due_date) VALUES (?, ?, ?, ?)"
     )
-    .run(courseId, name, description ?? null);
+    .run(courseId, name, description ?? null, dueDate ?? null);
 
   return result.lastInsertRowid as number;
 }
-
 // ─── Sessions ────────────────────────────────────────────────────────────────
 
 export function createSession(
