@@ -201,27 +201,24 @@ export function createTerminalSnapshot(
 
 export function getAllSessions() {
   return db
-    .prepare(
-      `
+    .prepare(`
       SELECT 
         id,
         started_at as startedAt,
         ended_at as endedAt
       FROM sessions
-    `
-    )
+    `)
     .all();
 }
 
 export function getAllMessages() {
   return db
-    .prepare(
-      `
-  SELECT content
-FROM messages
-WHERE role = 'student';
-  `
-    )
+    .prepare(`
+      SELECT content
+      FROM messages
+      WHERE role = 'student'
+    `)
     .all();
 }
+
 export default db;

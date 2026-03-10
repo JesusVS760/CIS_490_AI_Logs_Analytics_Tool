@@ -10,7 +10,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkUploadData = async () => {
       try {
-        const response = await axios.get("./api/sessions");
+        const response = await axios.get("/api/sessions");
         const sessions = response.data;
 
         if (sessions && sessions.length > 0) {
