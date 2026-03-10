@@ -27,7 +27,7 @@ db.exec(`
     course_id INTEGER REFERENCES courses(id),
     name TEXT NOT NULL,
     description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     due_date DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -202,27 +202,24 @@ export function createTerminalSnapshot(
 
 export function getAllSessions() {
   return db
-    .prepare(
-      `
+    .prepare(`
       SELECT 
         id,
         started_at as startedAt,
         ended_at as endedAt
       FROM sessions
-    `
-    )
+    `)
     .all();
 }
 
 export function getAllMessages() {
   return db
-    .prepare(
-      `
-  SELECT content
-FROM messages
-WHERE role = 'student';
-  `
-    )
+    .prepare(`
+      SELECT content
+      FROM messages
+      WHERE role = 'student'
+    `)
     .all();
 }
+
 export default db;
