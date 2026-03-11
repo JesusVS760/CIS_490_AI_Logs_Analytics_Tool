@@ -14,6 +14,8 @@ import {
   Trash2,
   Loader2,
   ShieldAlert,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 type StoredUser = {
@@ -28,6 +30,7 @@ export default function SettingClient() {
   const [nameUser, setNameUser] = useState("");
   const [newNameUser, setNewNameUser] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [updatingTheme, setUpdatingTheme] = useState(false);
@@ -233,9 +236,17 @@ export default function SettingClient() {
     }
   };
 
+  const inputClassName =
+    "settings-input w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400";
+
+  const inputStyle: React.CSSProperties = {
+    color: modeDark ? "#ffffff" : "#111827",
+    caretColor: modeDark ? "#ffffff" : "#111827",
+  };
+
   if (loadingUser) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors">
+      <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100">
         <Toaster />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 text-muted-foreground">
@@ -248,234 +259,277 @@ export default function SettingClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors">
-      <Toaster />
+    <>
+      <style jsx global>{`
+        .settings-input:-webkit-autofill,
+        .settings-input:-webkit-autofill:hover,
+        .settings-input:-webkit-autofill:focus,
+        .settings-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+          -webkit-text-fill-color: #111827 !important;
+          caret-color: #111827 !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
 
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Manage your account, profile, appearance, and security preferences.
-          </p>
-        </div>
+        html.dark .settings-input:-webkit-autofill,
+        html.dark .settings-input:-webkit-autofill:hover,
+        html.dark .settings-input:-webkit-autofill:focus,
+        html.dark .settings-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #1f2937 inset !important;
+          -webkit-text-fill-color: #ffffff !important;
+          caret-color: #ffffff !important;
+        }
+      `}</style>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="text-xl font-semibold">Profile Overview</h2>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Your public account details and profile photo.
+      <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100">
+        <Toaster />
+
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Manage your account, profile, appearance, and security preferences.
             </p>
-
-            <div className="mt-6 flex flex-col items-center gap-4 text-center">
-              {profilePic ? (
-                <img
-                  src={profilePic}
-                  alt="Profile"
-                  className="h-28 w-28 rounded-full border border-gray-300 object-cover dark:border-gray-700"
-                />
-              ) : (
-                <div className="flex h-28 w-28 items-center justify-center rounded-full border border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
-                  <User className="h-10 w-10 text-gray-500 dark:text-gray-400" />
-                </div>
-              )}
-
-              <div>
-                <p className="text-lg font-semibold">{nameUser || "User"}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Update your photo and account details below.
-                </p>
-              </div>
-
-              <input
-                id="profileUpload"
-                type="file"
-                accept="image/*"
-                onChange={handleProfileUpload}
-                className="hidden"
-              />
-
-              <button
-                type="button"
-                onClick={() => document.getElementById("profileUpload")?.click()}
-                disabled={uploadingPhoto}
-                className="flex w-full items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-white transition hover:bg-purple-700 disabled:opacity-50"
-              >
-                {uploadingPhoto ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Profile Picture
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-sm font-medium">Current username</p>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  {nameUser || "No username set"}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-sm font-medium">Theme</p>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  {modeDark ? "Dark mode enabled" : "Light mode enabled"}
-                </p>
-              </div>
-            </div>
           </div>
 
-          <div className="space-y-6 lg:col-span-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center gap-2">
-                {modeDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                <h2 className="text-xl font-semibold">Appearance</h2>
-              </div>
-
+              <h2 className="text-xl font-semibold">Profile Overview</h2>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Customize how the application looks for your account.
+                Your public account details and profile photo.
               </p>
 
-              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-6 flex flex-col items-center gap-4 text-center">
+                {profilePic ? (
+                  <img
+                    src={profilePic}
+                    alt="Profile"
+                    className="h-28 w-28 rounded-full border border-gray-300 object-cover dark:border-gray-700"
+                  />
+                ) : (
+                  <div className="flex h-28 w-28 items-center justify-center rounded-full border border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+                    <User className="h-10 w-10 text-gray-500 dark:text-gray-400" />
+                  </div>
+                )}
+
                 <div>
-                  <p className="font-medium">Theme mode</p>
+                  <p className="text-lg font-semibold">{nameUser || "User"}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Switch between light and dark mode.
+                    Update your photo and account details below.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={darkModeToggle}
-                  disabled={updatingTheme}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {updatingTheme
-                    ? "Updating..."
-                    : `Switch to ${modeDark ? "Light" : "Dark"} Mode`}
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Username</h2>
-              </div>
-
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Update the name shown for your account.
-              </p>
-
-              <div className="mt-4">
-                <label htmlFor="new-username" className="mb-2 block text-sm font-medium">
-                  New Username
-                </label>
                 <input
-                  id="new-username"
-                  type="text"
-                  placeholder="Enter a new username"
-                  value={newNameUser}
-                  onChange={(e) => setNewNameUser(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-400"
+                  id="profileUpload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfileUpload}
+                  className="hidden"
                 />
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={changeUsername}
-                  disabled={updatingUsername}
-                  className="rounded-lg bg-green-600 px-4 py-2 text-white transition hover:bg-green-700 disabled:opacity-50"
-                >
-                  {updatingUsername ? "Updating..." : "Update Username"}
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Password</h2>
-              </div>
-
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Change your password to keep your account secure.
-              </p>
-
-              <div className="mt-4">
-                <label htmlFor="new-password" className="mb-2 block text-sm font-medium">
-                  New Password
-                </label>
-                <input
-                  id="new-password"
-                  type="password"
-                  placeholder="Enter a new password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-400"
-                />
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={changePassword}
-                  disabled={updatingPassword}
-                  className="rounded-lg bg-yellow-600 px-4 py-2 text-white transition hover:bg-yellow-700 disabled:opacity-50"
-                >
-                  {updatingPassword ? "Updating..." : "Reset Password"}
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-red-300 bg-white p-6 shadow-sm dark:border-red-800 dark:bg-gray-900">
-              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                <ShieldAlert className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Danger Zone</h2>
-              </div>
-
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Permanent and destructive account actions.
-              </p>
-
-              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-medium">Delete account</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    This action is permanent and cannot be undone.
-                  </p>
-                </div>
 
                 <button
                   type="button"
-                  onClick={deleteAccount}
-                  disabled={deletingAccount}
-                  className="flex items-center justify-center rounded-lg bg-red-700 px-4 py-2 text-white transition hover:bg-red-800 disabled:opacity-50"
+                  onClick={() => document.getElementById("profileUpload")?.click()}
+                  disabled={uploadingPhoto}
+                  className="flex w-full items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-white transition hover:bg-purple-700 disabled:opacity-50"
                 >
-                  {deletingAccount ? (
+                  {uploadingPhoto ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting...
+                      Uploading...
                     </>
                   ) : (
                     <>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Account
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Profile Picture
                     </>
                   )}
                 </button>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                  <p className="text-sm font-medium">Current username</p>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {nameUser || "No username set"}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                  <p className="text-sm font-medium">Theme</p>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {modeDark ? "Dark mode enabled" : "Light mode enabled"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6 lg:col-span-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div className="flex items-center gap-2">
+                  {modeDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  <h2 className="text-xl font-semibold">Appearance</h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Customize how the application looks for your account.
+                </p>
+
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium">Theme mode</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Switch between light and dark mode.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={darkModeToggle}
+                    disabled={updatingTheme}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {updatingTheme
+                      ? "Updating..."
+                      : `Switch to ${modeDark ? "Light" : "Dark"} Mode`}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  <h2 className="text-xl font-semibold">Username</h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Update the name shown for your account.
+                </p>
+
+                <div className="mt-4">
+                  <label htmlFor="new-username" className="mb-2 block text-sm font-medium">
+                    New Username
+                  </label>
+                  <input
+                    id="new-username"
+                    type="text"
+                    placeholder="Enter a new username"
+                    value={newNameUser}
+                    onChange={(e) => setNewNameUser(e.target.value)}
+                    autoComplete="username"
+                    className={inputClassName}
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={changeUsername}
+                    disabled={updatingUsername}
+                    className="rounded-lg bg-green-600 px-4 py-2 text-white transition hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {updatingUsername ? "Updating..." : "Update Username"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5" />
+                  <h2 className="text-xl font-semibold">Password</h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Change your password to keep your account secure.
+                </p>
+
+                <div className="mt-4">
+                  <label htmlFor="new-password" className="mb-2 block text-sm font-medium">
+                    New Password
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      id="new-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter a new password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
+                      className={`${inputClassName} pr-11`}
+                      style={inputStyle}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={changePassword}
+                    disabled={updatingPassword}
+                    className="rounded-lg bg-yellow-600 px-4 py-2 text-white transition hover:bg-yellow-700 disabled:opacity-50"
+                  >
+                    {updatingPassword ? "Updating..." : "Reset Password"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-red-300 bg-white p-6 shadow-sm dark:border-red-800 dark:bg-gray-900">
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <ShieldAlert className="h-5 w-5" />
+                  <h2 className="text-xl font-semibold">Danger Zone</h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Permanent and destructive account actions.
+                </p>
+
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium">Delete account</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      This action is permanent and cannot be undone.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={deleteAccount}
+                    disabled={deletingAccount}
+                    className="flex items-center justify-center rounded-lg bg-red-700 px-4 py-2 text-white transition hover:bg-red-800 disabled:opacity-50"
+                  >
+                    {deletingAccount ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Account
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

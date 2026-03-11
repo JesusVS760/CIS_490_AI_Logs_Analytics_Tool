@@ -1,7 +1,6 @@
 "use client";
 
 // Amany Fogg - login/page.tsx
-// This is the file that shows the login page and handles all login form logics (form state, API calls, error handling, redirects). This uses the same structure as the reset-account/page.tsx file, but more complex form states.
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
@@ -53,7 +52,8 @@ export default function LoginPage() {
       const { data } = await axios.post("/api/auth/login", payload);
 
       if (!data?.success) {
-        const message = data?.error ?? data?.message ?? "Login failed. Please try again.";
+        const message =
+          data?.error ?? data?.message ?? "Login failed. Please try again.";
         setStatusMessage(message);
         toast.error(message);
         return;
@@ -64,8 +64,10 @@ export default function LoginPage() {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message =
-          (error.response?.data as { message?: string; error?: string } | undefined)?.error ??
-          (error.response?.data as { message?: string; error?: string } | undefined)?.message ??
+          (error.response?.data as { message?: string; error?: string } | undefined)
+            ?.error ??
+          (error.response?.data as { message?: string; error?: string } | undefined)
+            ?.message ??
           "Login failed. Please try again.";
         setStatusMessage(message);
         toast.error(message);
@@ -85,60 +87,108 @@ export default function LoginPage() {
     window.location.href = "/api/auth/github";
   };
 
+  const inputClassName =
+    "login-input bg-white text-slate-900 placeholder:text-slate-500 border-slate-300 dark:bg-white dark:text-slate-900 dark:placeholder:text-slate-500 dark:border-slate-300";
+
   return (
-    <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
-      <Toaster />
-      <h1 className="text-center text-3xl font-semibold text-slate-900">Log in</h1>
+    <>
+      <style jsx global>{`
+        .login-input:-webkit-autofill,
+        .login-input:-webkit-autofill:hover,
+        .login-input:-webkit-autofill:focus,
+        .login-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+          -webkit-text-fill-color: #0f172a !important;
+          caret-color: #0f172a !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" required />
-        </div>
+      <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
+        <Toaster />
+        <h1 className="text-center text-3xl font-semibold text-slate-900">
+          Log in
+        </h1>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" name="password" type="password" required />
-        </div>
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label
+              htmlFor="email"
+              className="text-slate-900 dark:text-slate-900"
+            >
+              Email
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              className={inputClassName}
+            />
+          </div>
 
-        <div className="space-y-3 pt-1">
-          <label
-            htmlFor="remember"
-            className="flex items-center justify-center gap-2 text-sm text-slate-600"
+          <div className="space-y-2">
+            <Label
+              htmlFor="password"
+              className="text-slate-900 dark:text-slate-900"
+            >
+              Password
+            </Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              className={inputClassName}
+            />
+          </div>
+
+          <div className="space-y-3 pt-1">
+            <label
+              htmlFor="remember"
+              className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-600"
+            >
+              <input
+                id="remember"
+                name="remember"
+                type="checkbox"
+                className="h-4 w-4 accent-slate-700"
+              />
+              Remember me
+            </label>
+
+            <Link
+              href="/reset-password"
+              className="block text-center text-sm text-slate-600 underline-offset-4 hover:underline dark:text-slate-600"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || oauthLoading}
           >
-            <Input id="remember" name="remember" type="checkbox" className="h-4 w-4" />
-            Remember me
-          </label>
+            {loading ? "Logging in..." : "Log in"}
+          </button>
 
-          <Link
-            href="/reset-password"
-            className="block text-center text-sm text-slate-600 underline-offset-4 hover:underline"
+          <button
+            type="button"
+            onClick={handleGitHubLogin}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || oauthLoading}
           >
-            Forgot password?
-          </Link>
-        </div>
+            {oauthLoading ? "Connecting..." : "Continue with GitHub"}
+          </button>
+        </form>
 
-        <button
-          type="submit"
-          className="w-full rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={loading || oauthLoading}
-        >
-          {loading ? "Logging in..." : "Log in"}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleGitHubLogin}
-          className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={loading || oauthLoading}
-        >
-          {oauthLoading ? "Connecting..." : "Continue with GitHub"}
-        </button>
-      </form>
-
-      {statusMessage ? (
-        <p className="mt-4 text-center text-sm text-red-700">{statusMessage}</p>
-      ) : null}
-    </section>
+        {statusMessage ? (
+          <p className="mt-4 text-center text-sm text-red-700">
+            {statusMessage}
+          </p>
+        ) : null}
+      </section>
+    </>
   );
 }
