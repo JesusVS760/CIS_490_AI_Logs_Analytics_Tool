@@ -35,9 +35,8 @@ const AnalyticsDashboard = () => {
   return (
     <div className="w-full space-y-8">
       <section className="grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-3">
-      <TopQuestionCard />
+      <TopQuestionCard messages={messages} />
       <TodaysTrafficCard />
-      <TimeOfDayCard />
       </section>
 
       <ChatDuration />

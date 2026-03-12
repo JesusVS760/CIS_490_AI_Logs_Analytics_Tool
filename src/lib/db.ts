@@ -5,8 +5,17 @@
 import Database from "better-sqlite3";
 import path from "path";
 import crypto from "crypto";
+import fs from "fs";
 
-const db = new Database(path.join(process.cwd(), "database.db"));
+const databasePath = path.resolve(
+  process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db"),
+);
+
+fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+
+console.info(`[db] using sqlite file: ${databasePath}`);
+
+const db = new Database(databasePath);
 db.pragma("journal_mode = WAL");
 
 db.exec(`
