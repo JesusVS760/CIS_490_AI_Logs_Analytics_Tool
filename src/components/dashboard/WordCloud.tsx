@@ -13,6 +13,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
 
   useEffect(() => {
     const frequencies = countTracker(messages);
+    console.log(frequencies);
     const wordArray = Object.entries(frequencies).map(([text, value]) => ({
       text,
       value,
@@ -29,13 +30,33 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
       </h1>
       <div className="flex flex-wrap gap-2">
         {words.map((w, idx) => {
-          const fontSize = 10 + (w.value / maxCount) * 16;
+          const size = 40 + (w.value / maxCount) * 60;
+
+          const fontSize = Math.min(size / 2.8, size / (w.text.length * 0.6));
+
+          // small random shift between -6px and +6px
+          const offsetX = (Math.random() - 1) * 12;
+          const offsetY = (Math.random() - 1) * 12;
 
           return (
             <span
               key={idx}
-              style={{ fontSize, fontWeight: "bold", color: randomColor() }}
-              className="inline-block"
+              style={{
+                width: `${size}px`,
+                height: `${size}px`,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: `${fontSize}px`,
+                fontWeight: "bold",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                color: randomColor(),
+                backgroundColor: "#F8F8FF",
+                borderRadius: "50%",
+                margin: "6px",
+                whiteSpace: "nowrap",
+                transform: `translate(${offsetX}px, ${offsetY}px)`,
+              }}
             >
               {w.text}
             </span>
