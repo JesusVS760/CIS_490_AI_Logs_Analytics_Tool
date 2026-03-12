@@ -14,10 +14,6 @@ import TopQuestionCard from "./TopQuestionCard";
 import TodaysTrafficCard from "./TodaysTrafficCard";
 import TimeOfDayCard from "./TimeOfDayCard";
 import WorkedDatesDueDateCard from "./WorkedDatesDueDateCard";
-<<<<<<< HEAD
-=======
-import MessagesPerConversation from "./MessagesPerConversation";
->>>>>>> 5e44c29113f10a996e0dc31c94d77b7468ca5c66
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -47,11 +43,6 @@ const AnalyticsDashboard = () => {
       <WordCloudCard messages={messages} />
       <WorkedDatesDueDateCard />
       <UniqueUsersCard messages={messages} />
-<<<<<<< HEAD
-=======
-      <WordCloudCard messages={messages} /> 
-      <MessagesPerConversation messages={messages} />
->>>>>>> 5e44c29113f10a996e0dc31c94d77b7468ca5c66
     </div>
   );
 };
