@@ -1,7 +1,7 @@
 import { countTracker } from "@/lib/countTracker";
 import { randomColor } from "@/lib/utils";
 import { Message } from "@/types";
-import { Bold, Text } from "lucide-react";
+import { Bold, Bubbles, Text } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type WordCloudCardProps = {
@@ -26,9 +26,9 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
   return (
     <div className="bg-white p-6 rounded-2xl shadow-md w-[400px]">
       <h1 className="font-bold text-lg mb-4 flex gap-2 items-center ">
-        Top Student Phrases <Text size={18} />
+        Top Student Phrases <Bubbles size={18} />
       </h1>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         {words.map((w, idx) => {
           const size = 40 + (w.value / maxCount) * 60;
 

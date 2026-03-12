@@ -29,7 +29,7 @@ function normalizePdfText(raw: string): string {
   //    [MM/DD/YYYY, HH:MM:SS AM/PM] Student: or AI-Tutor:
   t = t.replace(
     /\s*(\[\d{2}\/\d{2}\/\d{4},\s*\d{2}:\d{2}:\d{2}\s*[AP]M\]\s*(?:Student|AI-Tutor):)/g,
-    "\n$1 ",
+    "\n$1 "
   );
 
   // 7. File(s): label — appears right before code block headers
@@ -40,7 +40,7 @@ function normalizePdfText(raw: string): string {
   //    Use a precise pattern to avoid matching --- inside code strings
   t = t.replace(
     /\s*(---\s+[\w.\s]+(\.cpp|\.py|\.java|\.c|\.h|\.js|\.ts)\s*(?:\(.*?\))?\s*---)\s*/gi,
-    "\n$1\n",
+    "\n$1\n"
   );
 
   // 9. Terminal History: label
@@ -99,7 +99,7 @@ export function parseTranscript(raw: string): ParsedTranscript {
         if (msgLine.startsWith("Student:") && msgLine.includes("@")) break;
 
         const timestampMatch = msgLine.match(
-          /^\[(\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2} [AP]M)\]\s+(Student|AI-Tutor):/,
+          /^\[(\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2} [AP]M)\]\s+(Student|AI-Tutor):/
         );
 
         if (timestampMatch) {
@@ -112,7 +112,7 @@ export function parseTranscript(raw: string): ParsedTranscript {
           const afterRole = msgLine
             .replace(
               /^\[\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2} [AP]M\]\s*(Student|AI-Tutor):\s*/,
-              "",
+              ""
             )
             .trim();
           i++;
@@ -215,7 +215,11 @@ export function parseTranscript(raw: string): ParsedTranscript {
         }
       }
 
-      sessions.push({ studentEmail, assignmentName, messages });
+      sessions.push({
+        studentEmail,
+        assignmentName,
+        messages,
+      });
     } else {
       i++;
     }

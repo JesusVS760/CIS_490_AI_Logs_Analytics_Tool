@@ -1,7 +1,6 @@
-//this updated code includes the assignment start date and end date
-// As well it uses a predetermined course 
+// this updated code includes the assignment start date and end date
+// As well it uses a predetermined course
 // and automatic migration for older databases that don't have a start_date
-
 
 import Database from "better-sqlite3";
 import path from "path";
@@ -145,22 +144,26 @@ export function upsertAssignment(
     .get(courseId, name) as { id: number } | undefined;
 
   if (existing) {
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE assignments
       SET description = ?,
           start_date = ?,
           due_date = ?
       WHERE id = ?
-    `).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
+    `
+    ).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
 
     return existing.id;
   }
 
   const result = db
-    .prepare(`
+    .prepare(
+      `
       INSERT INTO assignments (course_id, name, description, start_date, due_date)
       VALUES (?, ?, ?, ?, ?)
-    `)
+    `
+    )
     .run(
       courseId,
       name,
@@ -240,29 +243,34 @@ export function createTerminalSnapshot(
 
 export function getAllSessions() {
   return db
-    .prepare(`
+    .prepare(
+      `
       SELECT 
         id,
         started_at as startedAt,
         ended_at as endedAt
       FROM sessions
-    `)
+    `
+    )
     .all();
 }
 
 export function getAllMessages() {
   return db
-    .prepare(`
+    .prepare(
+      `
       SELECT content
       FROM messages
       WHERE role = 'student'
-    `)
+    `
+    )
     .all();
 }
 
 export function getAllAssignments() {
   return db
-    .prepare(`
+    .prepare(
+      `
       SELECT
         id,
         course_id as courseId,
@@ -273,7 +281,8 @@ export function getAllAssignments() {
         created_at as createdAt
       FROM assignments
       ORDER BY created_at DESC
-    `)
+    `
+    )
     .all();
 }
 
