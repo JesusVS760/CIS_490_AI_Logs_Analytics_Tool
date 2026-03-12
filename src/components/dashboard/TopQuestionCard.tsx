@@ -11,9 +11,6 @@ type TopQuestionResult = {
   count: number;
 };
 
-const QUESTION_STARTERS =
-  /^(what|why|how|when|where|which|who|can|could|would|should|is|are|do|does|did|explain|help|show|give)\b/i;
-
 const normalizeKey = (text: string) =>
   text
     .toLowerCase()
@@ -22,33 +19,23 @@ const normalizeKey = (text: string) =>
     .trim();
 
 const extractQuestionCandidates = (content: string): string[] => {
-  const lines = content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const parts = lines.flatMap((line) =>
-    line
-      .split(/(?<=[?.!])\s+/)
-      .map((part) => part.trim())
-      .filter(Boolean),
-  );
-
-  return parts.filter(
-    (part) => part.includes("?") || QUESTION_STARTERS.test(part),
-  );
+  const matches = content.match(/[^?\n]*\?/g) ?? [];
+  return matches
+    .map((q) => q.trim())
+    .filter((q) => q.length >= 6);
 };
 
 const getTopQuestion = (messages: Message[]): TopQuestionResult => {
   const counts = new Map<string, { count: number; display: string }>();
 
-  for (const message of messages) {
-    if (!message?.content) continue;
+  messages.forEach((message) => {
+    if (!message?.content) return;
 
     const candidates = extractQuestionCandidates(message.content);
-    for (const candidate of candidates) {
+
+    candidates.forEach((candidate) => {
       const key = normalizeKey(candidate);
-      if (!key) continue;
+      if (!key) return;
 
       const existing = counts.get(key);
       if (existing) {
@@ -56,23 +43,25 @@ const getTopQuestion = (messages: Message[]): TopQuestionResult => {
       } else {
         counts.set(key, { count: 1, display: candidate });
       }
-    }
-  }
+    });
+  });
 
   if (counts.size === 0) {
     return { question: "No questions found yet.", count: 0 };
   }
 
-  let top: TopQuestionResult = { question: "", count: 0 };
-
-  counts.forEach(({ display, count }) => {
-    if (count > top.count) {
-      top = { question: display, count };
-    }
+  const ranked = Array.from(counts.values()).sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.display.localeCompare(b.display);
   });
 
-  return top;
+  const top = ranked[0];
 
+  if (top.count <= 1) {
+    return { question: "No Repeated Question Yet!", count: 1 };
+  }
+
+  return { question: top.display, count: top.count };
 };
 
 const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
