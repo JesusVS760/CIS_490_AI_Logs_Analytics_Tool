@@ -14,7 +14,7 @@ import TopQuestionCard from "./TopQuestionCard";
 import TodaysTrafficCard from "./TodaysTrafficCard";
 import TimeOfDayCard from "./TimeOfDayCard";
 import WorkedDatesDueDateCard from "./WorkedDatesDueDateCard";
-
+import MessagesPerConversation from "./MessagesPerConversation";
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -45,6 +45,7 @@ const AnalyticsDashboard = () => {
       <WorkedDatesDueDateCard />
       <UniqueUsersCard messages={messages} />
       <WordCloudCard messages={messages} /> 
+      <MessagesPerConversation messages={messages} />
     </div>
   );
 };
