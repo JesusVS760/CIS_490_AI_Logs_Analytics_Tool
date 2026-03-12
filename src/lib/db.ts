@@ -1,3 +1,8 @@
+//this updated code includes the assignment start date and end date
+// As well it uses a predetermined course 
+// and automatic migration for older databases that don't have a start_date
+
+
 import Database from "better-sqlite3";
 import path from "path";
 import crypto from "crypto";
@@ -28,7 +33,8 @@ db.exec(`
     name TEXT NOT NULL,
     description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    due_date DATETIME DEFAULT CURRENT_TIMESTAMP
+    start_date DATETIME,
+    due_date DATETIME
   );
 
   -- Each student's session on a given assignment
@@ -69,6 +75,19 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+// Migrate older databases safely
+const assignmentColumns = db
+  .prepare("PRAGMA table_info(assignments)")
+  .all() as { name: string }[];
+
+if (!assignmentColumns.some((col) => col.name === "start_date")) {
+  db.exec("ALTER TABLE assignments ADD COLUMN start_date DATETIME");
+}
+
+if (!assignmentColumns.some((col) => col.name === "due_date")) {
+  db.exec("ALTER TABLE assignments ADD COLUMN due_date DATETIME");
+}
 
 // Anonymize student identifiers before storing — never store raw emails
 export function anonymizeId(email: string): string {
@@ -113,26 +132,46 @@ export function upsertStudent(rawEmail: string): number {
 }
 
 // ─── Assignments ─────────────────────────────────────────────────────────────
+
 export function upsertAssignment(
   courseId: number,
   name: string,
   description?: string,
+  startDate?: string,
   dueDate?: string
 ): number {
   const existing = db
     .prepare("SELECT id FROM assignments WHERE course_id = ? AND name = ?")
     .get(courseId, name) as { id: number } | undefined;
 
-  if (existing) return existing.id;
+  if (existing) {
+    db.prepare(`
+      UPDATE assignments
+      SET description = ?,
+          start_date = ?,
+          due_date = ?
+      WHERE id = ?
+    `).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
+
+    return existing.id;
+  }
 
   const result = db
-    .prepare(
-      "INSERT INTO assignments (course_id, name, description, due_date) VALUES (?, ?, ?, ?)"
-    )
-    .run(courseId, name, description ?? null, dueDate ?? null);
+    .prepare(`
+      INSERT INTO assignments (course_id, name, description, start_date, due_date)
+      VALUES (?, ?, ?, ?, ?)
+    `)
+    .run(
+      courseId,
+      name,
+      description ?? null,
+      startDate ?? null,
+      dueDate ?? null
+    );
 
   return result.lastInsertRowid as number;
 }
+
 // ─── Sessions ────────────────────────────────────────────────────────────────
 
 export function createSession(
@@ -217,6 +256,23 @@ export function getAllMessages() {
       SELECT content
       FROM messages
       WHERE role = 'student'
+    `)
+    .all();
+}
+
+export function getAllAssignments() {
+  return db
+    .prepare(`
+      SELECT
+        id,
+        course_id as courseId,
+        name,
+        description,
+        start_date as startDate,
+        due_date as dueDate,
+        created_at as createdAt
+      FROM assignments
+      ORDER BY created_at DESC
     `)
     .all();
 }
