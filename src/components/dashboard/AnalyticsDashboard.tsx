@@ -1,5 +1,5 @@
-//Way its setup currently, AnalyticsDashboard will upload the log messages and passes 
-//them to UniqueUsersCard 
+//Way its setup currently, AnalyticsDashboard will upload the log messages and passes
+//them to UniqueUsersCard
 //Will render AnalyticsDashboard as normally
 
 "use client";
@@ -40,11 +40,10 @@ const AnalyticsDashboard = () => {
       </section>
 
       <ChatDuration />
-      
+      <WordCloudCard messages={messages} />
       <WorkedDatesDueDateCard />
       <UniqueUsersCard messages={messages} />
-      <WordCloudCard messages={messages} /> 
-      <MessagesPerConversation messages={messages} />
+      <MessagesPerConversation />
     </div>
   );
 };
