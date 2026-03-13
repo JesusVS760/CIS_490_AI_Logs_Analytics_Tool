@@ -10,7 +10,7 @@
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -55,6 +55,7 @@ type InputFormData = z.infer<typeof inputFileSchema>;
 
 export function InputFile() {
   const [loading, setLoading] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const router = useRouter();
 
   const {
@@ -71,6 +72,21 @@ export function InputFile() {
       endDate: "",
     },
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        await axios.get("/api/auth/me", {
+          withCredentials: true,
+        });
+        setIsSignedIn(true);
+      } catch {
+        setIsSignedIn(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const onSubmit = async (data: InputFormData) => {
     try {
@@ -93,11 +109,17 @@ export function InputFile() {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        withCredentials: true,
       });
 
       toast("Successful Upload ✅");
       reset();
-      router.push("/dashboard");
+
+      if (isSignedIn) {
+        router.push("/dashboard");
+      } else {
+        toast("Please sign in to access the dashboard");
+      }
     } catch (err) {
       console.error(err);
       toast("Upload failed");
@@ -107,72 +129,89 @@ export function InputFile() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-sm space-y-4">
-      <Field>
-        <FieldLabel htmlFor="assignmentName">
-          Assignment Name <span className="text-muted-foreground">(optional)</span>
-        </FieldLabel>
-        <Input
-          id="assignmentName"
-          type="text"
-          placeholder="Leave blank to use log info"
-          {...register("assignmentName")}
-        />
-        {errors.assignmentName && (
-          <p className="mt-1 text-sm text-red-500">
-            {errors.assignmentName.message}
+    <div className="w-full max-w-sm space-y-4">
+      {isSignedIn === false && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+            Sign in required for dashboard access
           </p>
-        )}
-      </Field>
-
-      <Field>
-        <FieldLabel htmlFor="startDate">
-          Assignment Start Date <span className="text-muted-foreground">(optional)</span>
-        </FieldLabel>
-        <Input id="startDate" type="date" {...register("startDate")} />
-        {errors.startDate && (
-          <p className="mt-1 text-sm text-red-500">
-            {errors.startDate.message}
+          <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+            You can upload a transcript here, but you must sign in to access the
+            dashboard page and view analytics.
           </p>
-        )}
-      </Field>
+        </div>
+      )}
 
-      <Field>
-        <FieldLabel htmlFor="endDate">Assignment End Date</FieldLabel>
-        <Input id="endDate" type="date" {...register("endDate")} />
-        {errors.endDate && (
-          <p className="mt-1 text-sm text-red-500">
-            {errors.endDate.message}
-          </p>
-        )}
-      </Field>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Field>
+          <FieldLabel htmlFor="assignmentName">
+            Assignment Name{" "}
+            <span className="text-muted-foreground">(optional)</span>
+          </FieldLabel>
+          <Input
+            id="assignmentName"
+            type="text"
+            placeholder="Leave blank to use log info"
+            {...register("assignmentName")}
+          />
+          {errors.assignmentName && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.assignmentName.message}
+            </p>
+          )}
+        </Field>
 
-      <Field>
-        <FieldLabel htmlFor="inputFile">Upload Documents</FieldLabel>
-        <Input
-          id="inputFile"
-          type="file"
-          accept=".txt,.pdf"
-          className="cursor-pointer"
-          {...register("inputFile")}
-        />
-        {errors.inputFile && (
-          <p className="mt-1 text-sm text-red-500">
-            {errors.inputFile.message as string}
-          </p>
-        )}
-        <FieldDescription>
-          Select a transcript file to upload. If assignment name or start date are blank, use the logs for that information.
-        </FieldDescription>
-      </Field>
+        <Field>
+          <FieldLabel htmlFor="startDate">
+            Assignment Start Date{" "}
+            <span className="text-muted-foreground">(optional)</span>
+          </FieldLabel>
+          <Input id="startDate" type="date" {...register("startDate")} />
+          {errors.startDate && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.startDate.message}
+            </p>
+          )}
+        </Field>
 
-      <Button
-        type="submit"
-        disabled={!isValid || loading}
-        className="w-full cursor-pointer"
-      >
-        {loading ? "Uploading..." : "Upload"}
-      </Button>
-    </form>
+        <Field>
+          <FieldLabel htmlFor="endDate">Assignment End Date</FieldLabel>
+          <Input id="endDate" type="date" {...register("endDate")} />
+          {errors.endDate && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.endDate.message}
+            </p>
+          )}
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="inputFile">Upload Documents</FieldLabel>
+          <Input
+            id="inputFile"
+            type="file"
+            accept=".txt,.pdf"
+            className="cursor-pointer"
+            {...register("inputFile")}
+          />
+          {errors.inputFile && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.inputFile.message as string}
+            </p>
+          )}
+          <FieldDescription>
+            Select a transcript file to upload. If assignment name or start date
+            are blank, use the logs for that information.
+          </FieldDescription>
+        </Field>
+
+        <Button
+          type="submit"
+          disabled={!isValid || loading}
+          className="w-full cursor-pointer"
+        >
+          {loading ? "Uploading..." : "Upload"}
+        </Button>
+      </form>
+    </div>
   );
 }

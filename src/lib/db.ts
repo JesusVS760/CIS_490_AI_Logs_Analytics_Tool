@@ -8,7 +8,7 @@ import crypto from "crypto";
 import fs from "fs";
 
 const databasePath = path.resolve(
-  process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db"),
+  process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db")
 );
 
 fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -19,7 +19,6 @@ const db = new Database(databasePath);
 db.pragma("journal_mode = WAL");
 
 db.exec(`
-  -- Each course that uploads transcripts
   CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -27,14 +26,12 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Each unique student (no PII stored)
   CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     anonymous_id TEXT NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Each assignment (e.g. HWK1) within a course
   CREATE TABLE IF NOT EXISTS assignments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_id INTEGER REFERENCES courses(id),
@@ -45,7 +42,6 @@ db.exec(`
     due_date DATETIME
   );
 
-  -- Each student's session on a given assignment
   CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER REFERENCES students(id),
@@ -55,7 +51,6 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Every message exchanged in a session
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id INTEGER REFERENCES sessions(id),
@@ -65,7 +60,6 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Snapshot of student's code file at each message
   CREATE TABLE IF NOT EXISTS code_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     message_id INTEGER REFERENCES messages(id),
@@ -75,7 +69,6 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Terminal output captured at each message
   CREATE TABLE IF NOT EXISTS terminal_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     message_id INTEGER REFERENCES messages(id),
@@ -84,7 +77,6 @@ db.exec(`
   );
 `);
 
-// Migrate older databases safely
 const assignmentColumns = db
   .prepare("PRAGMA table_info(assignments)")
   .all() as { name: string }[];
@@ -97,15 +89,12 @@ if (!assignmentColumns.some((col) => col.name === "due_date")) {
   db.exec("ALTER TABLE assignments ADD COLUMN due_date DATETIME");
 }
 
-// Anonymize student identifiers before storing — never store raw emails
 export function anonymizeId(email: string): string {
   return crypto
     .createHash("sha256")
     .update(email.toLowerCase().trim())
     .digest("hex");
 }
-
-// ─── Courses ────────────────────────────────────────────────────────────────
 
 export function upsertCourse(name: string, generatedAt?: string): number {
   const existing = db
@@ -120,8 +109,6 @@ export function upsertCourse(name: string, generatedAt?: string): number {
 
   return result.lastInsertRowid as number;
 }
-
-// ─── Students ───────────────────────────────────────────────────────────────
 
 export function upsertStudent(rawEmail: string): number {
   const anonymousId = anonymizeId(rawEmail);
@@ -139,8 +126,6 @@ export function upsertStudent(rawEmail: string): number {
   return result.lastInsertRowid as number;
 }
 
-// ─── Assignments ─────────────────────────────────────────────────────────────
-
 export function upsertAssignment(
   courseId: number,
   name: string,
@@ -153,26 +138,22 @@ export function upsertAssignment(
     .get(courseId, name) as { id: number } | undefined;
 
   if (existing) {
-    db.prepare(
-      `
+    db.prepare(`
       UPDATE assignments
       SET description = ?,
           start_date = ?,
           due_date = ?
       WHERE id = ?
-    `
-    ).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
+    `).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
 
     return existing.id;
   }
 
   const result = db
-    .prepare(
-      `
+    .prepare(`
       INSERT INTO assignments (course_id, name, description, start_date, due_date)
       VALUES (?, ?, ?, ?, ?)
-    `
-    )
+    `)
     .run(
       courseId,
       name,
@@ -183,8 +164,6 @@ export function upsertAssignment(
 
   return result.lastInsertRowid as number;
 }
-
-// ─── Sessions ────────────────────────────────────────────────────────────────
 
 export function createSession(
   studentId: number,
@@ -201,8 +180,6 @@ export function createSession(
   return result.lastInsertRowid as number;
 }
 
-// ─── Messages ────────────────────────────────────────────────────────────────
-
 export function createMessage(
   sessionId: number,
   role: "student" | "ai_tutor",
@@ -217,8 +194,6 @@ export function createMessage(
 
   return result.lastInsertRowid as number;
 }
-
-// ─── Code Snapshots ──────────────────────────────────────────────────────────
 
 export function createCodeSnapshot(
   messageId: number,
@@ -235,8 +210,6 @@ export function createCodeSnapshot(
   return result.lastInsertRowid as number;
 }
 
-// ─── Terminal Snapshots ──────────────────────────────────────────────────────
-
 export function createTerminalSnapshot(
   messageId: number,
   content: string
@@ -252,46 +225,52 @@ export function createTerminalSnapshot(
 
 export function getAllSessions() {
   return db
-    .prepare(
-      `
-      SELECT 
+    .prepare(`
+      SELECT
         id,
-        started_at as startedAt,
-        ended_at as endedAt
+        started_at AS startedAt,
+        ended_at AS endedAt
       FROM sessions
-    `
-    )
+    `)
     .all();
 }
 
 export function getAllMessages() {
   return db
-    .prepare(
-      `
-      SELECT content
-      FROM messages
-      WHERE role = 'student'
-    `
-    )
+    .prepare(`
+      SELECT
+        m.id,
+        m.content,
+        m.role,
+        m.timestamp,
+        m.session_id AS sessionId,
+        s.student_id AS studentId,
+        s.assignment_id AS assignmentId,
+        st.anonymous_id AS studentAnonymousId,
+        a.name AS assignmentName
+      FROM messages m
+      JOIN sessions s ON m.session_id = s.id
+      JOIN students st ON s.student_id = st.id
+      JOIN assignments a ON s.assignment_id = a.id
+      ORDER BY m.timestamp ASC, m.id ASC
+    `)
     .all();
 }
 
 export function getAllAssignments() {
   return db
-    .prepare(
-      `
+    .prepare(`
       SELECT
         id,
-        course_id as courseId,
+        course_id AS courseId,
         name,
         description,
-        start_date as startDate,
-        due_date as dueDate,
-        created_at as createdAt
+        start_date AS startDate,
+        due_date AS dueDate,
+        created_at AS createdAt
       FROM assignments
       ORDER BY created_at DESC
-    `
-    )
+    `)
     .all();
 }
 
