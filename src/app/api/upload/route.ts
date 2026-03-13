@@ -30,33 +30,69 @@ async function extractText(file: File): Promise<string> {
   return Buffer.from(buffer).toString("utf-8");
 }
 
+function toDateOnly(value?: string | null): string {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toISOString().slice(0, 10);
+}
+
+function getEarliestSessionDate(
+  sessions: Array<{
+    messages: Array<{ timestamp?: string | null }>;
+  }>
+): string {
+  const timestamps = sessions
+    .flatMap((session) => session.messages.map((msg) => msg.timestamp))
+    .filter((ts): ts is string => Boolean(ts))
+    .map((ts) => new Date(ts))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  if (timestamps.length === 0) return "";
+  return timestamps[0].toISOString().slice(0, 10);
+}
+
+function getAssignmentNameFromLogs(raw: string): string {
+  const patterns = [
+    /assignment\s*name\s*:\s*(.+)/i,
+    /assignment\s*:\s*(.+)/i,
+    /homework\s*:\s*(.+)/i,
+    /project\s*:\s*(.+)/i,
+    /lab\s*:\s*(.+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+
+  return "";
+}
+
+function getFileBaseName(filename: string): string {
+  return filename.replace(/\.[^/.]+$/, "").trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
 
     const file = formData.get("file") as File | null;
-    const assignmentName = String(formData.get("assignmentName") ?? "").trim();
-    const startDate = String(formData.get("startDate") ?? "").trim();
+    const uploadedAssignmentName = String(
+      formData.get("assignmentName") ?? ""
+    ).trim();
+    const uploadedStartDate = String(formData.get("startDate") ?? "").trim();
     const endDate = String(formData.get("endDate") ?? "").trim();
 
     const FIXED_COURSE_NAME = "CS 101";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    if (!assignmentName) {
-      return NextResponse.json(
-        { error: "Assignment name is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!startDate) {
-      return NextResponse.json(
-        { error: "Assignment start date is required" },
-        { status: 400 }
-      );
     }
 
     if (!endDate) {
@@ -66,24 +102,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (new Date(startDate) > new Date(endDate)) {
-      return NextResponse.json(
-        { error: "End date must be after the start date" },
-        { status: 400 }
-      );
-    }
-
     const raw = await extractText(file);
     const parsed = parseTranscript(raw);
-
-    console.log("Parsed transcript:", {
-      parsedCourseName: parsed.courseName,
-      generatedAt: parsed.generatedAt,
-      sessions: parsed.sessions.length,
-      uploadedAssignmentName: assignmentName,
-      startDate,
-      endDate,
-    });
 
     if (parsed.sessions.length === 0) {
       return NextResponse.json(
@@ -92,13 +112,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const derivedStartDate =
+      uploadedStartDate ||
+      getEarliestSessionDate(parsed.sessions) ||
+      toDateOnly(parsed.generatedAt);
+
+    const derivedAssignmentName =
+      uploadedAssignmentName ||
+      getAssignmentNameFromLogs(raw) ||
+      getFileBaseName(file.name) ||
+      "Uploaded Assignment";
+
+    if (!derivedStartDate) {
+      return NextResponse.json(
+        {
+          error:
+            "Could not determine assignment start date from the uploaded log. Please enter a start date manually.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (new Date(derivedStartDate) > new Date(endDate)) {
+      return NextResponse.json(
+        { error: "End date must be after the start date" },
+        { status: 400 }
+      );
+    }
+
+    console.log("Parsed transcript:", {
+      parsedCourseName: parsed.courseName,
+      generatedAt: parsed.generatedAt,
+      sessions: parsed.sessions.length,
+      uploadedAssignmentName,
+      finalAssignmentName: derivedAssignmentName,
+      uploadedStartDate,
+      finalStartDate: derivedStartDate,
+      endDate,
+    });
+
     const courseId = upsertCourse(FIXED_COURSE_NAME, parsed.generatedAt);
 
     const assignmentId = upsertAssignment(
       courseId,
-      assignmentName,
+      derivedAssignmentName,
       undefined,
-      startDate,
+      derivedStartDate,
       endDate
     );
 
@@ -142,8 +201,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       course: FIXED_COURSE_NAME,
-      assignmentName,
-      startDate,
+      assignmentName: derivedAssignmentName,
+      startDate: derivedStartDate,
       endDate,
       sessions: parsed.sessions.length,
     });

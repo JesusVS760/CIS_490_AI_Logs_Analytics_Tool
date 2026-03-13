@@ -24,10 +24,11 @@ const inputFileSchema = z
   .object({
     assignmentName: z
       .string()
-      .min(1, "Assignment name is required")
-      .max(100, "Assignment name is too long"),
+      .max(100, "Assignment name is too long")
+      .optional()
+      .or(z.literal("")),
 
-    startDate: z.string().min(1, "Start date is required"),
+    startDate: z.string().optional().or(z.literal("")),
 
     endDate: z.string().min(1, "End date is required"),
 
@@ -77,8 +78,15 @@ export function InputFile() {
 
       const formData = new FormData();
       formData.append("file", data.inputFile[0]);
-      formData.append("assignmentName", data.assignmentName);
-      formData.append("startDate", data.startDate);
+
+      if (data.assignmentName?.trim()) {
+        formData.append("assignmentName", data.assignmentName.trim());
+      }
+
+      if (data.startDate) {
+        formData.append("startDate", data.startDate);
+      }
+
       formData.append("endDate", data.endDate);
 
       await axios.post("/api/upload", formData, {
@@ -101,11 +109,13 @@ export function InputFile() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-sm space-y-4">
       <Field>
-        <FieldLabel htmlFor="assignmentName">Assignment Name</FieldLabel>
+        <FieldLabel htmlFor="assignmentName">
+          Assignment Name <span className="text-muted-foreground">(optional)</span>
+        </FieldLabel>
         <Input
           id="assignmentName"
           type="text"
-          placeholder="Homework 1"
+          placeholder="Leave blank to use log info"
           {...register("assignmentName")}
         />
         {errors.assignmentName && (
@@ -116,7 +126,9 @@ export function InputFile() {
       </Field>
 
       <Field>
-        <FieldLabel htmlFor="startDate">Assignment Start Date</FieldLabel>
+        <FieldLabel htmlFor="startDate">
+          Assignment Start Date <span className="text-muted-foreground">(optional)</span>
+        </FieldLabel>
         <Input id="startDate" type="date" {...register("startDate")} />
         {errors.startDate && (
           <p className="mt-1 text-sm text-red-500">
@@ -150,7 +162,7 @@ export function InputFile() {
           </p>
         )}
         <FieldDescription>
-          Select a transcript file to upload.
+          Select a transcript file to upload. If assignment name or start date are blank, use the logs for that information.
         </FieldDescription>
       </Field>
 
