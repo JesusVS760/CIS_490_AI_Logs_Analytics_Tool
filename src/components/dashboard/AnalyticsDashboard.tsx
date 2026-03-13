@@ -44,7 +44,7 @@ const AnalyticsDashboard = () => {
       <WorkedDatesDueDateCard />
       <UniqueUsersCard messages={messages} />
       <WordCloudCard messages={messages} /> 
-      <MessagesPerConversation messages={messages} />
+      <MessagesPerConversation />
     </div>
   );
 };
