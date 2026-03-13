@@ -10,7 +10,7 @@
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -57,12 +57,14 @@ export function InputFile() {
   const [loading, setLoading] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const router = useRouter();
+  const lastDateToastRef = useRef<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
     reset,
+    watch,
   } = useForm<InputFormData>({
     resolver: zodResolver(inputFileSchema),
     mode: "onChange",
@@ -72,6 +74,9 @@ export function InputFile() {
       endDate: "",
     },
   });
+
+  const startDateValue = watch("startDate");
+  const endDateValue = watch("endDate");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -87,6 +92,23 @@ export function InputFile() {
 
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (!startDateValue || !endDateValue) {
+      lastDateToastRef.current = null;
+      return;
+    }
+
+    if (new Date(startDateValue) > new Date(endDateValue)) {
+      const message = "End date must be after the start date";
+      if (lastDateToastRef.current !== message) {
+        toast.error(message);
+        lastDateToastRef.current = message;
+      }
+    } else {
+      lastDateToastRef.current = null;
+    }
+  }, [startDateValue, endDateValue]);
 
   const onSubmit = async (data: InputFormData) => {
     try {
@@ -105,24 +127,46 @@ export function InputFile() {
 
       formData.append("endDate", data.endDate);
 
-      await axios.post("/api/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      const response = await axios.post("/api/upload", formData, {
         withCredentials: true,
       });
 
-      toast("Successful Upload ✅");
+      toast.success("Successful Upload ✅");
       reset();
 
       if (isSignedIn) {
         router.push("/dashboard");
       } else {
-        toast("Please sign in to access the dashboard");
+        toast.info("Please sign in to access the dashboard");
       }
+
+      return response.data;
     } catch (err) {
-      console.error(err);
-      toast("Upload failed");
+      console.error("Upload failed:", err);
+
+      if (axios.isAxiosError(err)) {
+        const backendMessage =
+          typeof err.response?.data?.error === "string"
+            ? err.response.data.error
+            : null;
+
+        if (err.response?.status === 400 && backendMessage) {
+          toast.error(backendMessage);
+          return;
+        }
+
+        if (err.response?.status === 401) {
+          toast.error("Please sign in to access the dashboard");
+          return;
+        }
+
+        if (backendMessage) {
+          toast.error(backendMessage);
+          return;
+        }
+      }
+
+      toast.error("Upload failed");
     } finally {
       setLoading(false);
     }
@@ -145,8 +189,7 @@ export function InputFile() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Field>
           <FieldLabel htmlFor="assignmentName">
-            Assignment Name{" "}
-            <span className="text-muted-foreground">(optional)</span>
+            Assignment Name <span className="text-muted-foreground">(optional)</span>
           </FieldLabel>
           <Input
             id="assignmentName"
@@ -163,8 +206,7 @@ export function InputFile() {
 
         <Field>
           <FieldLabel htmlFor="startDate">
-            Assignment Start Date{" "}
-            <span className="text-muted-foreground">(optional)</span>
+            Assignment Start Date <span className="text-muted-foreground">(optional)</span>
           </FieldLabel>
           <Input id="startDate" type="date" {...register("startDate")} />
           {errors.startDate && (

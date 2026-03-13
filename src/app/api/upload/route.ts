@@ -39,6 +39,12 @@ function toDateOnly(value?: string | null): string {
   return date.toISOString().slice(0, 10);
 }
 
+function isValidDateString(value?: string | null): boolean {
+  if (!value) return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
+}
+
 function getEarliestSessionDate(
   sessions: Array<{
     messages: Array<{ timestamp?: string | null }>;
@@ -102,6 +108,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!isValidDateString(endDate)) {
+      return NextResponse.json(
+        { error: "Please enter a valid assignment end date." },
+        { status: 400 }
+      );
+    }
+
+    if (uploadedStartDate && !isValidDateString(uploadedStartDate)) {
+      return NextResponse.json(
+        { error: "Please enter a valid assignment start date." },
+        { status: 400 }
+      );
+    }
+
     const raw = await extractText(file);
     const parsed = parseTranscript(raw);
 
@@ -112,10 +132,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const derivedStartDate =
-      uploadedStartDate ||
-      getEarliestSessionDate(parsed.sessions) ||
-      toDateOnly(parsed.generatedAt);
+    const logDerivedStartDate =
+      getEarliestSessionDate(parsed.sessions) || toDateOnly(parsed.generatedAt);
+
+    const usedManualStartDate = Boolean(uploadedStartDate);
+    const derivedStartDate = uploadedStartDate || logDerivedStartDate;
 
     const derivedAssignmentName =
       uploadedAssignmentName ||
@@ -127,15 +148,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Could not determine assignment start date from the uploaded log. Please enter a start date manually.",
+            "Could not determine an assignment start date from the uploaded log. Please enter a start date manually.",
         },
         { status: 400 }
       );
     }
 
-    if (new Date(derivedStartDate) > new Date(endDate)) {
+    if (!isValidDateString(derivedStartDate)) {
       return NextResponse.json(
-        { error: "End date must be after the start date" },
+        {
+          error: usedManualStartDate
+            ? "Please enter a valid assignment start date."
+            : "The uploaded log contains an invalid start date. Please enter a start date manually.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const normalizedStartDate = toDateOnly(derivedStartDate);
+    const normalizedEndDate = toDateOnly(endDate);
+
+    if (!normalizedStartDate) {
+      return NextResponse.json(
+        {
+          error: usedManualStartDate
+            ? "Please enter a valid assignment start date."
+            : "The uploaded log contains an invalid start date. Please enter a start date manually.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!normalizedEndDate) {
+      return NextResponse.json(
+        { error: "Please enter a valid assignment end date." },
+        { status: 400 }
+      );
+    }
+
+    if (new Date(normalizedStartDate) > new Date(normalizedEndDate)) {
+      return NextResponse.json(
+        {
+          error: usedManualStartDate
+            ? "End date must be after the start date."
+            : `The end date is earlier than the start date found in the uploaded logs (${normalizedStartDate}). Please choose a later end date or enter a start date manually.`,
+        },
         { status: 400 }
       );
     }
@@ -147,8 +204,9 @@ export async function POST(req: NextRequest) {
       uploadedAssignmentName,
       finalAssignmentName: derivedAssignmentName,
       uploadedStartDate,
-      finalStartDate: derivedStartDate,
-      endDate,
+      logDerivedStartDate,
+      finalStartDate: normalizedStartDate,
+      endDate: normalizedEndDate,
     });
 
     const courseId = upsertCourse(FIXED_COURSE_NAME, parsed.generatedAt);
@@ -157,8 +215,8 @@ export async function POST(req: NextRequest) {
       courseId,
       derivedAssignmentName,
       undefined,
-      derivedStartDate,
-      endDate
+      normalizedStartDate,
+      normalizedEndDate
     );
 
     for (const session of parsed.sessions) {
@@ -202,8 +260,8 @@ export async function POST(req: NextRequest) {
       success: true,
       course: FIXED_COURSE_NAME,
       assignmentName: derivedAssignmentName,
-      startDate: derivedStartDate,
-      endDate,
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
       sessions: parsed.sessions.length,
     });
   } catch (error) {
