@@ -14,10 +14,10 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
   useEffect(() => {
     const frequencies = countTracker(messages);
     console.log(frequencies);
-    const wordArray = Object.entries(frequencies).map(([text, value]) => ({
-      text,
-      value,
-    }));
+    const wordArray = Object.entries(frequencies)
+      .map(([text, value]) => ({ text, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 12);
     setWords(wordArray);
   }, [messages]);
 
@@ -49,7 +49,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
                 justifyContent: "center",
                 fontSize: `${fontSize}px`,
                 fontWeight: "bold",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.6)",
                 color: "white",
                 backgroundColor: randomColor(),
                 borderRadius: "50%",

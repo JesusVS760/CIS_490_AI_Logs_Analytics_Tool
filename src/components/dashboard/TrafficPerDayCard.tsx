@@ -30,11 +30,11 @@ const TrafficPerDayCard = () => {
     const fetchSessions = async () => {
       try {
         const { data } = await axios.get("/api/sessions");
+        console.log(data);
 
         // Keep only first AI-Tutor message as startedAt
         const processed: Session[] = data.map((s: Session) => {
-          const messages = Array.isArray(s.messages) ? s.messages : [];
-          const firstAI = messages.find(
+          const firstAI = s.messages.find(
             (m) => m.role === "ai_tutor" && m.timestamp,
           );
           return { ...s, startedAt: firstAI?.timestamp ?? null };
@@ -80,7 +80,7 @@ const TrafficPerDayCard = () => {
       className="rounded-2xl border border-gray-100 p-6 shadow-sm bg-white dark:bg-zinc-900"
     >
       <h1 className="flex items-center gap-2 font-bold text-lg">
-        AI Tutor Traffic Per Day <LineChart />
+        AI Tutor Traffic Per Day <LineChart size={18} />
       </h1>
       <Line data={data} />
     </div>
