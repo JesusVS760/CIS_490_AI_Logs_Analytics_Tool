@@ -23,3 +23,13 @@ export type Message = {
   role?: "student" | "ai_tutor";
   timestamp?: string;
 };
+
+export type Session = {
+  id: number;
+  student_id: number;
+  assignment_id: number;
+  startedAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+  messages: { role: string; timestamp: string; content?: string }[];
+};

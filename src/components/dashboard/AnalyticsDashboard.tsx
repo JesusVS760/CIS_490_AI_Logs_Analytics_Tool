@@ -1,5 +1,5 @@
-//Way its setup currently, AnalyticsDashboard will upload the log messages and passes 
-//them to UniqueUsersCard 
+//Way its setup currently, AnalyticsDashboard will upload the log messages and passes
+//them to UniqueUsersCard
 //Will render AnalyticsDashboard as normally
 
 "use client";
@@ -15,6 +15,7 @@ import TodaysTrafficCard from "./TodaysTrafficCard";
 import TimeOfDayCard from "./TimeOfDayCard";
 import WorkedDatesDueDateCard from "./WorkedDatesDueDateCard";
 import MessagesPerConversation from "./MessagesPerConversation";
+import TrafficPerDayCard from "./TrafficPerDayCard";
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -35,16 +36,17 @@ const AnalyticsDashboard = () => {
   return (
     <div className="w-full space-y-8">
       <section className="grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-3">
-      <TopQuestionCard messages={messages} />
-      <TodaysTrafficCard />
+        <TopQuestionCard messages={messages} />
+        <TodaysTrafficCard />
       </section>
 
       <ChatDuration />
-      
+
       <WorkedDatesDueDateCard />
       <UniqueUsersCard messages={messages} />
-      <WordCloudCard messages={messages} /> 
+      <WordCloudCard messages={messages} />
       <MessagesPerConversation />
+      <TrafficPerDayCard />
     </div>
   );
 };
