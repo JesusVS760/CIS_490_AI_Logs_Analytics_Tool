@@ -22,11 +22,14 @@ type Session = {
 
 const ChatDuration = () => {
   const [chartData, setChartData] = useState<any>(null);
+  const [sessionsLength, setSessionsLength] = useState(0);
+  const [averageTime, setAverageTime] = useState(0); // in hours
 
   useEffect(() => {
     async function fetchSessions() {
       const res = await fetch("/api/sessions");
       const sessions: Session[] = await res.json();
+      setSessionsLength(sessions.length);
 
       const buckets = {
         "0–5": 0,
@@ -36,6 +39,9 @@ const ChatDuration = () => {
         "60+": 0,
       };
 
+      let totalMinutes = 0;
+      let validSessions = 0;
+
       sessions.forEach((session) => {
         if (!session.startedAt || !session.endedAt) return;
 
@@ -44,12 +50,17 @@ const ChatDuration = () => {
 
         const minutes = (end - start) / (1000 * 60);
 
+        totalMinutes += minutes;
+        validSessions++;
+
         if (minutes <= 5) buckets["0–5"]++;
         else if (minutes <= 15) buckets["5–15"]++;
         else if (minutes <= 30) buckets["15–30"]++;
         else if (minutes <= 60) buckets["30–60"]++;
         else buckets["60+"]++;
       });
+
+      setAverageTime(validSessions > 0 ? totalMinutes / validSessions / 60 : 0);
 
       setChartData({
         labels: Object.keys(buckets),
@@ -73,29 +84,36 @@ const ChatDuration = () => {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-gray-100 p-6 shadow-sm max-w-lg">
+    <div className="rounded-2xl border border-gray-100 p-6 shadow-sm max-w-lg flex flex-col h-full">
       <h1 className="flex items-center gap-2 font-bold text-lg mb-4">
         Chat Duration <TimerIcon size={18} />
       </h1>
 
-      {chartData && (
-        <Bar
-          data={chartData}
-          options={{
-            responsive: true,
-            plugins: {
-              legend: {
-                display: false,
+      <div className="mt-auto">
+        <div className="mb-4 text-sm text-muted-foreground">
+          <div>Total Sessions: {sessionsLength}</div>
+          <div>Average Time: {averageTime.toFixed(2)} hrs</div>
+        </div>
+
+        {chartData && (
+          <Bar
+            data={chartData}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: {
+                  display: false,
+                },
               },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                },
               },
-            },
-          }}
-        />
-      )}
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };

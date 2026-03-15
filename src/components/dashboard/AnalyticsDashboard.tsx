@@ -34,20 +34,27 @@ const AnalyticsDashboard = () => {
   }, []);
 
   return (
-    <div className="w-full space-y-8">
-      <section className="grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-3">
+    <div className="w-full space-y-8 px-4 py-6">
+      {/*Small cards*/}
+      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <TopQuestionCard messages={messages} />
         <TodaysTrafficCard messages={messages} />
+        <MessagesPerConversation />
+        <ChatDuration />
+        <WordCloudCard messages={messages} />
       </section>
 
-      <ChatDuration />
+      {/*Large cards*/}
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <UniqueUsersCard messages={messages} />
+        <WorkedDatesDueDateCard />
+      </section>
 
-      <WorkedDatesDueDateCard />
-      <UniqueUsersCard messages={messages} />
-      <WordCloudCard messages={messages} />
-      <MessagesPerConversation />
-      <TimeOfDayCard />
-      <TrafficPerDayCard />
+      {/*Medium cards*/}
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <TrafficPerDayCard />
+        <TimeOfDayCard />
+      </section>
     </div>
   );
 };
