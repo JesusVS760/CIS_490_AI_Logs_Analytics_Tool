@@ -37,7 +37,7 @@ const AnalyticsDashboard = () => {
     <div className="w-full space-y-8">
       <section className="grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-3">
         <TopQuestionCard messages={messages} />
-        <TodaysTrafficCard />
+        <TodaysTrafficCard messages={messages} />
       </section>
 
       <ChatDuration />
@@ -46,6 +46,7 @@ const AnalyticsDashboard = () => {
       <UniqueUsersCard messages={messages} />
       <WordCloudCard messages={messages} />
       <MessagesPerConversation />
+      <TimeOfDayCard />
       <TrafficPerDayCard />
     </div>
   );

@@ -14,22 +14,35 @@ type TopQuestionResult = {
 const normalizeKey = (text: string) =>
   text
     .toLowerCase()
+    .replace(/^[\s>*-]+/, "")
     .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const cleanQuestionForDisplay = (text: string) =>
+  text
+    .replace(/^[\s>*-]+/, "")
+    .replace(/^\d+[\).\s-]+/, "")
     .replace(/\s+/g, " ")
     .trim();
 
 const extractQuestionCandidates = (content: string): string[] => {
   const matches = content.match(/[^?\n]*\?/g) ?? [];
+
   return matches
-    .map((q) => q.trim())
-    .filter((q) => q.length >= 6);
+    .map((question) => cleanQuestionForDisplay(question))
+    .filter((question) => question.length >= 6);
 };
 
 const getTopQuestion = (messages: Message[]): TopQuestionResult => {
-  const counts = new Map<string, { count: number; display: string }>();
+  const studentMessages = messages.filter((message) => message.role === "student");
+  const sourceMessages = studentMessages.length > 0 ? studentMessages : messages;
 
-  messages.forEach((message) => {
-    if (!message?.content) return;
+  const counts = new Map<string, { count: number; display: string }>();
+  const orderedQuestions: string[] = [];
+
+  sourceMessages.forEach((message) => {
+    if (!message?.content?.trim()) return;
 
     const candidates = extractQuestionCandidates(message.content);
 
@@ -38,10 +51,16 @@ const getTopQuestion = (messages: Message[]): TopQuestionResult => {
       if (!key) return;
 
       const existing = counts.get(key);
+
       if (existing) {
         existing.count += 1;
+
+        if (candidate.length < existing.display.length) {
+          existing.display = candidate;
+        }
       } else {
         counts.set(key, { count: 1, display: candidate });
+        orderedQuestions.push(candidate);
       }
     });
   });
@@ -58,10 +77,16 @@ const getTopQuestion = (messages: Message[]): TopQuestionResult => {
   const top = ranked[0];
 
   if (top.count <= 1) {
-    return { question: "No Repeated Question Yet!", count: 1 };
+    return {
+      question: orderedQuestions[0] ?? "No questions found yet.",
+      count: 1,
+    };
   }
 
-  return { question: top.display, count: top.count };
+  return {
+    question: top.display,
+    count: top.count,
+  };
 };
 
 const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
