@@ -35,8 +35,11 @@ const extractQuestionCandidates = (content: string): string[] => {
 };
 
 const getTopQuestion = (messages: Message[]): TopQuestionResult => {
-  const studentMessages = messages.filter((message) => message.role === "student");
-  const sourceMessages = studentMessages.length > 0 ? studentMessages : messages;
+  const studentMessages = messages.filter(
+    (message) => message.role === "student",
+  );
+  const sourceMessages =
+    studentMessages.length > 0 ? studentMessages : messages;
 
   const counts = new Map<string, { count: number; display: string }>();
   const orderedQuestions: string[] = [];
@@ -93,7 +96,7 @@ const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
   const topQuestion = useMemo(() => getTopQuestion(messages), [messages]);
 
   return (
-    <div className="rounded-2xl border border-sky-200 bg-sky-50 p-6 shadow-sm">
+    <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Top Question</h2>
@@ -101,7 +104,9 @@ const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
             {topQuestion.question}
           </p>
           <p className="mt-6 text-sm text-slate-600">Times asked</p>
-          <p className="text-4xl font-bold text-slate-900">{topQuestion.count}</p>
+          <p className="text-4xl font-bold text-slate-900">
+            {topQuestion.count}
+          </p>
         </div>
         <div className="rounded-full bg-white/80 p-3 text-sky-700">
           <Cloud size={24} />

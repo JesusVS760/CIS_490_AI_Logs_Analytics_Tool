@@ -8,7 +8,7 @@ type TodaysTrafficCardProps = {
 
 const getNestedValue = (
   obj: Record<string, unknown>,
-  paths: string[][]
+  paths: string[][],
 ): string | null => {
   for (const path of paths) {
     let current: unknown = obj;
@@ -39,11 +39,11 @@ const getNestedValue = (
 };
 
 const getAssignmentInfo = (
-  message: Message
+  message: Message,
 ): { key: string; label: string } | null => {
   const msg = message as Record<string, unknown>;
 
- const value = getNestedValue(msg, [
+  const value = getNestedValue(msg, [
     ["assignmentName"],
     ["assignmentTitle"],
     ["assignmentId"],
@@ -125,7 +125,7 @@ const TodaysTrafficCard = ({ messages }: TodaysTrafficCardProps) => {
     }
 
     const topAssignment = Array.from(assignmentMap.values()).sort(
-      (a, b) => b.uniqueStudents.size - a.uniqueStudents.size
+      (a, b) => b.uniqueStudents.size - a.uniqueStudents.size,
     )[0];
 
     return {
@@ -135,10 +135,12 @@ const TodaysTrafficCard = ({ messages }: TodaysTrafficCardProps) => {
   }, [messages]);
 
   return (
-    <div className="rounded-2xl border border-orange-200 bg-orange-50 p-6 shadow-sm">
+    <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">Total Traffic</h2>
+          <h2 className="text-xl font-semibold text-slate-900">
+            Total Traffic
+          </h2>
           <p className="mt-6 text-4xl font-bold text-slate-900">
             {trafficData.totalTraffic}
           </p>

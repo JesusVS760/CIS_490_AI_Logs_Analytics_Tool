@@ -77,7 +77,7 @@ const TrafficPerDayCard = () => {
   return (
     <div
       style={{ width: "800px" }}
-      className="rounded-2xl border border-gray-100 p-6 shadow-sm bg-white dark:bg-zinc-900"
+      className="rounded-2xl border border-gray-200 p-6 shadow-md bg-white dark:bg-zinc-900 "
     >
       <h1 className="flex items-center gap-2 font-bold text-lg">
         AI Tutor Traffic Per Day <LineChart size={18} />

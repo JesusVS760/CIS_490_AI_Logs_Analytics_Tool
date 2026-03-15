@@ -48,7 +48,9 @@ const TimeOfDayCard = () => {
 
         const processed: SessionWithAssignment[] = sessionsRes.data.map(
           (session: SessionWithAssignment) => {
-            const messages = Array.isArray(session.messages) ? session.messages : [];
+            const messages = Array.isArray(session.messages)
+              ? session.messages
+              : [];
             const firstAI = messages.find(
               (message) => message.role === "ai_tutor" && message.timestamp,
             );
@@ -92,7 +94,9 @@ const TimeOfDayCard = () => {
     if (selectedAssignment === "all") return sessions;
 
     return sessions.filter((session) => {
-      const assignmentId = String(session.assignmentId ?? session.assignment_id);
+      const assignmentId = String(
+        session.assignmentId ?? session.assignment_id,
+      );
       return assignmentId === selectedAssignment;
     });
   }, [selectedAssignment, sessions]);
@@ -122,9 +126,9 @@ const TimeOfDayCard = () => {
   const selectedAssignmentLabel =
     selectedAssignment === "all"
       ? "All Assignments"
-      : assignmentOptions.find(
+      : (assignmentOptions.find(
           (assignment) => String(assignment.id) === selectedAssignment,
-        )?.name ?? `Assignment ${selectedAssignment}`;
+        )?.name ?? `Assignment ${selectedAssignment}`);
 
   const chartData = {
     labels: hourLabels,
@@ -145,7 +149,7 @@ const TimeOfDayCard = () => {
   return (
     <div
       style={{ width: "800px" }}
-      className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:bg-zinc-900"
+      className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md dark:bg-zinc-900"
     >
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
