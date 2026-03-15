@@ -1,3 +1,5 @@
+//note: in buildStudentAnalytics, use assignment keys for uniqueness instead of labels
+//this way differently-caused labels do not count as separate assignments 
 
 "use client";
 
@@ -251,147 +253,104 @@ const UniqueUsersCard = ({ messages }: UniqueUsersCardProps) => {
     (student) => student.messageCount === 1
   ).length;
 
-  const maxAssignmentCount = Math.max(
-    ...assignmentData.map((item) => item.count),
-    1
-  );
-
-  const maxStudentMessages = Math.max(
-    ...studentData.map((student) => student.messageCount),
-    1
-  );
-
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-zinc-900">
       <div className="mb-5">
         <h2 className="text-xl font-semibold">Unique Student Insights</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          This view shows not only how many different students appeared in the
-          logs, but also which students were most active, which assignments had
-          the broadest participation, and whether usage was concentrated among a
-          few students or spread across many.
+          This section explains student participation in plain language.
         </p>
       </div>
 
-      <div className="mb-6 grid gap-3 md:grid-cols-4">
+      <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">Total Unique Students</p>
-          <p className="mt-2 text-3xl font-bold">{overallUniqueUsers}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Distinct students found across all uploaded logs.
+          <p className="text-sm font-medium">Students in the logs</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {overallUniqueUsers} different student
+            {overallUniqueUsers === 1 ? " appears" : "s appear"} in the uploaded
+            data.
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">Total Messages</p>
-          <p className="mt-2 text-3xl font-bold">{totalMessages}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Total student activity records included in this dataset.
+          <p className="text-sm font-medium">Messages recorded</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {totalMessages} total message
+            {totalMessages === 1 ? "" : "s"} were found across all logs.
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">Assignments Tracked</p>
-          <p className="mt-2 text-3xl font-bold">{totalAssignments}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Assignments with usable student activity.
+          <p className="text-sm font-medium">Assignments tracked</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {totalAssignments} assignment
+            {totalAssignments === 1 ? "" : "s"} had usable student activity.
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">
-            Avg. Messages Per Student
-          </p>
-          <p className="mt-2 text-3xl font-bold">
-            {averageMessagesPerStudent.toFixed(1)}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Average level of activity per unique student.
+          <p className="text-sm font-medium">Average student activity</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Each student sent about {averageMessagesPerStudent.toFixed(1)}{" "}
+            message
+            {Number(averageMessagesPerStudent.toFixed(1)) === 1 ? "" : "s"} on
+            average.
           </p>
         </div>
       </div>
 
-      <div className="mb-6 grid gap-3 md:grid-cols-2">
+      <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">
-            Most Active Student
-          </p>
-          <p className="mt-1 text-lg font-semibold">
-            {topStudentByMessages?.studentLabel ?? "No student found"}
-          </p>
-          <p className="mt-2 text-3xl font-bold">
-            {topStudentByMessages?.messageCount ?? 0}
-          </p>
+          <p className="text-sm font-medium">Most active student</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Highest total number of messages in the uploaded logs.
+            {topStudentByMessages
+              ? `${topStudentByMessages.studentLabel} sent ${topStudentByMessages.messageCount} message${
+                  topStudentByMessages.messageCount === 1 ? "" : "s"
+                }.`
+              : "No student data found."}
           </p>
-          {topStudentByMessages && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Also appeared in {topStudentByMessages.assignmentsCount} assignment
-              {topStudentByMessages.assignmentsCount === 1 ? "" : "s"}.
-            </p>
-          )}
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">
-            Broadest Assignment Coverage
-          </p>
-          <p className="mt-1 text-lg font-semibold">
-            {topStudentByAssignments?.studentLabel ?? "No student found"}
-          </p>
-          <p className="mt-2 text-3xl font-bold">
-            {topStudentByAssignments?.assignmentsCount ?? 0}
-          </p>
+          <p className="text-sm font-medium">Most assignments worked on</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Student who appeared across the most assignments.
+            {topStudentByAssignments
+              ? `${topStudentByAssignments.studentLabel} appeared in ${topStudentByAssignments.assignmentsCount} assignment${
+                  topStudentByAssignments.assignmentsCount === 1 ? "" : "s"
+                }.`
+              : "No student data found."}
           </p>
-          {topStudentByAssignments && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Contributed {topStudentByAssignments.messageCount} total message
-              {topStudentByAssignments.messageCount === 1 ? "" : "s"}.
-            </p>
-          )}
         </div>
-      </div>
 
-      <div className="mb-6 grid gap-3 md:grid-cols-3">
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">Top Assignment</p>
-          <p className="mt-1 text-lg font-semibold">
-            {topAssignment?.assignmentLabel ?? "No assignment found"}
-          </p>
-          <p className="mt-2 text-3xl font-bold">{topAssignment?.count ?? 0}</p>
+          <p className="text-sm font-medium">Widest assignment reach</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Assignment with the highest number of distinct students.
+            {topAssignment
+              ? `${topAssignment.assignmentLabel} had ${topAssignment.count} unique student${
+                  topAssignment.count === 1 ? "" : "s"
+                }.`
+              : "No assignment data found."}
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">Repeat Students</p>
-          <p className="mt-2 text-3xl font-bold">{repeatStudents}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Students who appeared more than once in the logs.
-          </p>
-        </div>
-
-        <div className="rounded-xl border p-4">
-          <p className="text-sm text-muted-foreground">One-Time Students</p>
-          <p className="mt-2 text-3xl font-bold">{oneTimeStudents}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Students who appeared only once in the logs.
+          <p className="text-sm font-medium">Return usage</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {repeatStudents} repeat student
+            {repeatStudents === 1 ? "" : "s"} and {oneTimeStudents} one-time
+            student{oneTimeStudents === 1 ? "" : "s"} were found.
           </p>
         </div>
       </div>
 
-      <div className="mb-6 rounded-xl border p-4">
+      <div className="rounded-xl border p-4">
         <h3 className="text-base font-semibold">Participation Summary</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          On average, each assignment had{" "}
+          Each assignment had an average of{" "}
           <span className="font-medium text-foreground">
-            {averageUsersPerAssignment.toFixed(1)}
-          </span>{" "}
-          unique students. The most active student was{" "}
+            {averageUsersPerAssignment.toFixed(1)} unique students
+          </span>
+          . The most active student was{" "}
           <span className="font-medium text-foreground">
             {topStudentByMessages?.studentLabel ?? "N/A"}
           </span>
@@ -401,108 +360,6 @@ const UniqueUsersCard = ({ messages }: UniqueUsersCardProps) => {
           </span>
           .
         </p>
-      </div>
-
-      <div className="mb-3">
-        <h3 className="text-base font-semibold">Top Students by Usage</h3>
-        <p className="text-sm text-muted-foreground">
-          This ranking shows which students used the system the most based on
-          total message count. It also shows how many different assignments each
-          student appeared in.
-        </p>
-      </div>
-
-      <div className="mb-8 space-y-4">
-        {studentData.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No student log data found.</p>
-        ) : (
-          studentData.slice(0, 5).map((student, index) => {
-            const widthPercent = (student.messageCount / maxStudentMessages) * 100;
-
-            return (
-              <div key={student.studentKey} className="space-y-2">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Rank #{index + 1}
-                    </p>
-                    <p className="text-sm font-medium">{student.studentLabel}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">{student.messageCount}</p>
-                    <p className="text-xs text-muted-foreground">messages</p>
-                  </div>
-                </div>
-
-                <div className="h-4 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <div
-                    className="h-full rounded-full bg-zinc-900 transition-all dark:bg-zinc-200"
-                    style={{ width: `${widthPercent}%` }}
-                  />
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Appeared in {student.assignmentsCount} assignment
-                  {student.assignmentsCount === 1 ? "" : "s"}.
-                  {student.assignments.length > 0 && (
-                    <> Recent matches: {student.assignments.slice(0, 3).join(", ")}.</>
-                  )}
-                </p>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      <div className="mb-3">
-        <h3 className="text-base font-semibold">Assignments by Unique Students</h3>
-        <p className="text-sm text-muted-foreground">
-          Longer bars mean more unique students worked on that assignment.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {assignmentData.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No assignment data found.</p>
-        ) : (
-          assignmentData.slice(0, 8).map((assignment, index) => {
-            const widthPercent = (assignment.count / maxAssignmentCount) * 100;
-
-            return (
-              <div key={assignment.assignmentKey} className="space-y-2">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Rank #{index + 1}
-                    </p>
-                    <p className="text-sm font-medium">
-                      {assignment.assignmentLabel}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">{assignment.count}</p>
-                    <p className="text-xs text-muted-foreground">
-                      unique students
-                    </p>
-                  </div>
-                </div>
-
-                <div className="h-4 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <div
-                    className="h-full rounded-full bg-zinc-900 transition-all dark:bg-zinc-200"
-                    style={{ width: `${widthPercent}%` }}
-                  />
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  {assignment.count === 1
-                    ? "1 distinct student appeared in the logs for this assignment."
-                    : `${assignment.count} distinct students appeared in the logs for this assignment.`}
-                </p>
-              </div>
-            );
-          })
-        )}
       </div>
     </div>
   );

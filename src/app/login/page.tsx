@@ -2,7 +2,9 @@
 
 // Amany Fogg - login/page.tsx
 
-import { FormEvent, useEffect, useState } from "react";
+// Alex Diep - Added redirect so when the user presses the upload button without being logged in, 
+// they will be redirected to the login page and then back to the upload page after logging in.
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
@@ -17,6 +19,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const redirectTo = useMemo(() => {
+    const redirect = searchParams.get("redirect");
+    return redirect && redirect.startsWith("/") ? redirect : "/dashboard";
+  }, [searchParams]);
 
   useEffect(() => {
     const oauth = searchParams.get("oauth");
@@ -60,7 +67,7 @@ export default function LoginPage() {
       }
 
       toast.success("Logged in successfully.");
-      router.push("/dashboard");
+      router.push(redirectTo);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message =
@@ -84,7 +91,9 @@ export default function LoginPage() {
   const handleGitHubLogin = () => {
     setOauthLoading(true);
     setStatusMessage(null);
-    window.location.href = "/api/auth/github";
+    window.location.href = `/api/auth/github?redirect=${encodeURIComponent(
+      redirectTo
+    )}`;
   };
 
   const inputClassName =

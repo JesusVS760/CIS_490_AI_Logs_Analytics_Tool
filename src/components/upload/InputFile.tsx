@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 const ACCEPTED_TYPES = ["text/plain", "application/pdf"];
+const UPLOAD_DRAFT_KEY = "uploadFormDraft";
 
 const inputFileSchema = z
   .object({
@@ -55,7 +56,6 @@ type InputFormData = z.infer<typeof inputFileSchema>;
 
 export function InputFile() {
   const [loading, setLoading] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const router = useRouter();
   const lastDateToastRef = useRef<string | null>(null);
 
@@ -65,6 +65,7 @@ export function InputFile() {
     formState: { errors, isValid },
     reset,
     watch,
+    setValue,
   } = useForm<InputFormData>({
     resolver: zodResolver(inputFileSchema),
     mode: "onChange",
@@ -75,23 +76,43 @@ export function InputFile() {
     },
   });
 
+  const assignmentNameValue = watch("assignmentName");
   const startDateValue = watch("startDate");
   const endDateValue = watch("endDate");
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        await axios.get("/api/auth/me", {
-          withCredentials: true,
-        });
-        setIsSignedIn(true);
-      } catch {
-        setIsSignedIn(false);
-      }
-    };
+    const savedDraft = sessionStorage.getItem(UPLOAD_DRAFT_KEY);
 
-    checkAuth();
-  }, []);
+    if (!savedDraft) return;
+
+    try {
+      const parsed = JSON.parse(savedDraft) as {
+        assignmentName?: string;
+        startDate?: string;
+        endDate?: string;
+      };
+
+      if (parsed.assignmentName) {
+        setValue("assignmentName", parsed.assignmentName, {
+          shouldValidate: true,
+        });
+      }
+
+      if (parsed.startDate) {
+        setValue("startDate", parsed.startDate, {
+          shouldValidate: true,
+        });
+      }
+
+      if (parsed.endDate) {
+        setValue("endDate", parsed.endDate, {
+          shouldValidate: true,
+        });
+      }
+    } catch {
+      sessionStorage.removeItem(UPLOAD_DRAFT_KEY);
+    }
+  }, [setValue]);
 
   useEffect(() => {
     if (!startDateValue || !endDateValue) {
@@ -110,9 +131,37 @@ export function InputFile() {
     }
   }, [startDateValue, endDateValue]);
 
+  const saveDraft = () => {
+    sessionStorage.setItem(
+      UPLOAD_DRAFT_KEY,
+      JSON.stringify({
+        assignmentName: assignmentNameValue ?? "",
+        startDate: startDateValue ?? "",
+        endDate: endDateValue ?? "",
+      })
+    );
+  };
+
+  const clearDraft = () => {
+    sessionStorage.removeItem(UPLOAD_DRAFT_KEY);
+  };
+
   const onSubmit = async (data: InputFormData) => {
     try {
       setLoading(true);
+
+      try {
+        await axios.get("/api/auth/me");
+      } catch (authErr) {
+        if (axios.isAxiosError(authErr) && authErr.response?.status === 401) {
+          saveDraft();
+          toast.info("Please sign in first. You'll return to the upload page.");
+          router.push("/login?redirect=/upload");
+          return;
+        }
+
+        throw authErr;
+      }
 
       const formData = new FormData();
       formData.append("file", data.inputFile[0]);
@@ -127,18 +176,12 @@ export function InputFile() {
 
       formData.append("endDate", data.endDate);
 
-      const response = await axios.post("/api/upload", formData, {
-        withCredentials: true,
-      });
+      const response = await axios.post("/api/upload", formData);
 
+      clearDraft();
       toast.success("Successful Upload ✅");
       reset();
-
-      if (isSignedIn) {
-        router.push("/dashboard");
-      } else {
-        toast.info("Please sign in to access the dashboard");
-      }
+      router.push("/dashboard");
 
       return response.data;
     } catch (err) {
@@ -156,7 +199,9 @@ export function InputFile() {
         }
 
         if (err.response?.status === 401) {
-          toast.error("Please sign in to access the dashboard");
+          saveDraft();
+          toast.info("Please sign in first. You'll return to the upload page.");
+          router.push("/login?redirect=/upload");
           return;
         }
 
@@ -174,18 +219,6 @@ export function InputFile() {
 
   return (
     <div className="w-full max-w-sm space-y-4">
-      {isSignedIn === false && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
-          <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-            Sign in required for dashboard access
-          </p>
-          <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
-            You can upload a transcript here, but you must sign in to access the
-            dashboard page and view analytics.
-          </p>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Field>
           <FieldLabel htmlFor="assignmentName">
