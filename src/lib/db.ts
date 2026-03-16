@@ -6,9 +6,10 @@ import Database from "better-sqlite3";
 import path from "path";
 import crypto from "crypto";
 import fs from "fs";
+import { Session } from "@/types";
 
 const databasePath = path.resolve(
-  process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db")
+  process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db"),
 );
 
 fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -131,35 +132,39 @@ export function upsertAssignment(
   name: string,
   description?: string,
   startDate?: string,
-  dueDate?: string
+  dueDate?: string,
 ): number {
   const existing = db
     .prepare("SELECT id FROM assignments WHERE course_id = ? AND name = ?")
     .get(courseId, name) as { id: number } | undefined;
 
   if (existing) {
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE assignments
       SET description = ?,
           start_date = ?,
           due_date = ?
       WHERE id = ?
-    `).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
+    `,
+    ).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
 
     return existing.id;
   }
 
   const result = db
-    .prepare(`
+    .prepare(
+      `
       INSERT INTO assignments (course_id, name, description, start_date, due_date)
       VALUES (?, ?, ?, ?, ?)
-    `)
+    `,
+    )
     .run(
       courseId,
       name,
       description ?? null,
       startDate ?? null,
-      dueDate ?? null
+      dueDate ?? null,
     );
 
   return result.lastInsertRowid as number;
@@ -169,11 +174,11 @@ export function createSession(
   studentId: number,
   assignmentId: number,
   startedAt?: string,
-  endedAt?: string
+  endedAt?: string,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO sessions (student_id, assignment_id, started_at, ended_at) VALUES (?, ?, ?, ?)"
+      "INSERT INTO sessions (student_id, assignment_id, started_at, ended_at) VALUES (?, ?, ?, ?)",
     )
     .run(studentId, assignmentId, startedAt ?? null, endedAt ?? null);
 
@@ -184,11 +189,11 @@ export function createMessage(
   sessionId: number,
   role: "student" | "ai_tutor",
   content: string,
-  timestamp?: string
+  timestamp?: string,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)"
+      "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
     )
     .run(sessionId, role, content, timestamp ?? null);
 
@@ -199,11 +204,11 @@ export function createCodeSnapshot(
   messageId: number,
   filename: string,
   content: string | null,
-  isEmpty: boolean
+  isEmpty: boolean,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO code_snapshots (message_id, filename, content, is_empty) VALUES (?, ?, ?, ?)"
+      "INSERT INTO code_snapshots (message_id, filename, content, is_empty) VALUES (?, ?, ?, ?)",
     )
     .run(messageId, filename, content ?? null, isEmpty ? 1 : 0);
 
@@ -212,32 +217,60 @@ export function createCodeSnapshot(
 
 export function createTerminalSnapshot(
   messageId: number,
-  content: string
+  content: string,
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO terminal_snapshots (message_id, content) VALUES (?, ?)"
+      "INSERT INTO terminal_snapshots (message_id, content) VALUES (?, ?)",
     )
     .run(messageId, content);
 
   return result.lastInsertRowid as number;
 }
 
-export function getAllSessions() {
-  return db
-    .prepare(`
+export function getAllSessions(): (Session & { messages: any[] })[] {
+  const sessions = db
+    .prepare(
+      `
       SELECT
         id,
+        student_id,
+        assignment_id,
         started_at AS startedAt,
-        ended_at AS endedAt
+        ended_at AS endedAt,
+        created_at AS createdAt
       FROM sessions
-    `)
-    .all();
-}
+    `,
+    )
+    .all() as Session[];
 
+  return sessions.map((session) => {
+    // messages table assumed to exist with session_id foreign key
+    const messages = db
+      .prepare(
+        `
+        SELECT
+          id,
+          role,
+          content,
+          timestamp
+        FROM messages
+        WHERE session_id = ?
+        ORDER BY timestamp ASC
+      `,
+      )
+      .all(session.id) as any[];
+
+    return {
+      ...session,
+      messages,
+    };
+  });
+}
 export function getAllMessages() {
   return db
-    .prepare(`
+    .prepare(
+      `
       SELECT
         m.id,
         m.content,
@@ -253,13 +286,15 @@ export function getAllMessages() {
       JOIN students st ON s.student_id = st.id
       JOIN assignments a ON s.assignment_id = a.id
       ORDER BY m.timestamp ASC, m.id ASC
-    `)
+    `,
+    )
     .all();
 }
 
 export function getAllAssignments() {
   return db
-    .prepare(`
+    .prepare(
+      `
       SELECT
         id,
         course_id AS courseId,
@@ -270,7 +305,8 @@ export function getAllAssignments() {
         created_at AS createdAt
       FROM assignments
       ORDER BY created_at DESC
-    `)
+    `,
+    )
     .all();
 }
 
