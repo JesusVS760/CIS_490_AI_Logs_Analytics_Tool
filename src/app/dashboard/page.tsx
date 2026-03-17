@@ -1,6 +1,7 @@
 "use client";
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
+import llmService from "@/services/llm-service";
 import axios from "axios";
 import { useEffect, useState } from "react";
 

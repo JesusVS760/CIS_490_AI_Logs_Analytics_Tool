@@ -1,8 +1,13 @@
-import { NextResponse } from "next/server";
+import llmService from "@/services/llm-service";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function POST(req: NextRequest) {
   try {
+    const { text } = await req.json();
+    const analytics = await llmService.generateAnalytics(text);
+
+    return NextResponse.json(analytics);
   } catch (error) {
-    NextResponse.json({ error: "Failed to fetch LLM" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch LLM" }, { status: 500 });
   }
 }
