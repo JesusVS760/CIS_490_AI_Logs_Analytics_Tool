@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { LineChart, Settings, CircleUserIcon } from "lucide-react";
 import Notifications from "./Notifications";
@@ -19,35 +20,88 @@ type StoredUser = {
 export default function Navbar() {
   const [nameUser, setNameUser] = useState("User");
   const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
-    const storedUserRaw = localStorage.getItem("dashboardUser");
+    let isMounted = true;
 
-    if (storedUserRaw) {
+    const fetchCurrentUser = async () => {
       try {
-        const storedUser: StoredUser = JSON.parse(storedUserRaw);
-        setNameUser(storedUser.nameUser || "User");
-        setProfilePic(storedUser.profilePic || null);
+        const res = await axios.get("/api/auth/me", {
+          withCredentials: true,
+        });
+
+        if (!isMounted) return;
+
+        const nextUser: StoredUser = {
+          nameUser:
+            res.data?.username ||
+            res.data?.user?.name ||
+            res.data?.user?.email ||
+            "User",
+          profilePic: res.data?.profilePic || null,
+        };
+
+        setNameUser(nextUser.nameUser);
+        setProfilePic(nextUser.profilePic);
+        localStorage.setItem("dashboardUser", JSON.stringify(nextUser));
       } catch (error) {
-        console.error("Failed to parse stored navbar user:", error);
+        if (!isMounted) return;
+
+        setNameUser("User");
+        setProfilePic(null);
+        localStorage.removeItem("dashboardUser");
+      } finally {
+        if (isMounted) {
+          setLoadingUser(false);
+        }
       }
-    }
+    };
+
+    fetchCurrentUser();
 
     const handleProfileUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<ProfileUpdatedDetail>;
 
-      if (typeof customEvent.detail?.nameUser === "string") {
-        setNameUser(customEvent.detail.nameUser);
+      setNameUser((prev) =>
+        typeof customEvent.detail?.nameUser === "string"
+          ? customEvent.detail.nameUser
+          : prev
+      );
+
+      setProfilePic((prev) =>
+        customEvent.detail?.profilePic !== undefined
+          ? customEvent.detail.profilePic
+          : prev
+      );
+
+      const cached = localStorage.getItem("dashboardUser");
+      let parsed: StoredUser = { nameUser: "User", profilePic: null };
+
+      if (cached) {
+        try {
+          parsed = JSON.parse(cached);
+        } catch {}
       }
 
-      if (customEvent.detail?.profilePic !== undefined) {
-        setProfilePic(customEvent.detail.profilePic);
-      }
+      const updatedUser: StoredUser = {
+        nameUser:
+          typeof customEvent.detail?.nameUser === "string"
+            ? customEvent.detail.nameUser
+            : parsed.nameUser,
+        profilePic:
+          customEvent.detail?.profilePic !== undefined
+            ? customEvent.detail.profilePic ?? null
+            : parsed.profilePic,
+      };
+
+      localStorage.setItem("dashboardUser", JSON.stringify(updatedUser));
     };
 
     window.addEventListener("profile-updated", handleProfileUpdated);
 
     return () => {
+      isMounted = false;
       window.removeEventListener("profile-updated", handleProfileUpdated);
     };
   }, []);
@@ -84,7 +138,7 @@ export default function Navbar() {
 
             <div className="hidden md:flex flex-col leading-tight">
               <span className="max-w-[120px] truncate text-sm font-medium">
-                {nameUser}
+                {loadingUser ? "Loading..." : nameUser}
               </span>
               <span className="text-xs text-muted-foreground">Settings</span>
             </div>

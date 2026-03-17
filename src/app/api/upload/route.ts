@@ -20,7 +20,10 @@ import { extractText as extractPdfText } from "unpdf";
 async function extractText(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
 
-  if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+  if (
+    file.type === "application/pdf" ||
+    file.name.toLowerCase().endsWith(".pdf")
+  ) {
     const { text } = await extractPdfText(new Uint8Array(buffer), {
       mergePages: true,
     });
@@ -61,6 +64,44 @@ function getEarliestSessionDate(
   return timestamps[0].toISOString().slice(0, 10);
 }
 
+function getLatestSessionDate(
+  sessions: Array<{
+    messages: Array<{ timestamp?: string | null }>;
+  }>
+): string {
+  const timestamps = sessions
+    .flatMap((session) => session.messages.map((msg) => msg.timestamp))
+    .filter((ts): ts is string => Boolean(ts))
+    .map((ts) => new Date(ts))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  if (timestamps.length === 0) return "";
+  return timestamps[0].toISOString().slice(0, 10);
+}
+
+function getEarliestValidDate(values: Array<string | null | undefined>): string {
+  const dates = values
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  if (dates.length === 0) return "";
+  return dates[0].toISOString().slice(0, 10);
+}
+
+function getLatestValidDate(values: Array<string | null | undefined>): string {
+  const dates = values
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  if (dates.length === 0) return "";
+  return dates[0].toISOString().slice(0, 10);
+}
+
 function getAssignmentNameFromLogs(raw: string): string {
   const patterns = [
     /assignment\s*name\s*:\s*(.+)/i,
@@ -84,11 +125,26 @@ function getFileBaseName(filename: string): string {
   return filename.replace(/\.[^/.]+$/, "").trim();
 }
 
+function getUploadedFiles(formData: FormData): File[] {
+  const multiFiles = formData
+    .getAll("files")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+
+  if (multiFiles.length > 0) return multiFiles;
+
+  const singleFile = formData.get("file");
+  if (singleFile instanceof File && singleFile.size > 0) {
+    return [singleFile];
+  }
+
+  return [];
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
 
-    const file = formData.get("file") as File | null;
+    const files = getUploadedFiles(formData);
     const uploadedAssignmentName = String(
       formData.get("assignmentName") ?? ""
     ).trim();
@@ -97,8 +153,8 @@ export async function POST(req: NextRequest) {
 
     const FIXED_COURSE_NAME = "CS 101";
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (files.length === 0) {
+      return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
     if (!endDate) {
@@ -122,33 +178,90 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const raw = await extractText(file);
-    const parsed = parseTranscript(raw);
+    const parsedFiles: Array<{
+      fileName: string;
+      raw: string;
+      parsed: ReturnType<typeof parseTranscript>;
+      logDerivedStartDate: string;
+      logDerivedEndDate: string;
+      logDerivedAssignmentName: string;
+    }> = [];
 
-    if (parsed.sessions.length === 0) {
+    for (const file of files) {
+      const raw = await extractText(file);
+      const parsed = parseTranscript(raw);
+
+      if (parsed.sessions.length === 0) {
+        return NextResponse.json(
+          {
+            error: `Could not parse transcript in "${file.name}" — check the file format`,
+          },
+          { status: 422 }
+        );
+      }
+
+      const logDerivedStartDate =
+        getEarliestSessionDate(parsed.sessions) || toDateOnly(parsed.generatedAt);
+
+      const logDerivedEndDate =
+        getLatestSessionDate(parsed.sessions) || toDateOnly(parsed.generatedAt);
+
+      const logDerivedAssignmentName = getAssignmentNameFromLogs(raw).trim();
+
+      parsedFiles.push({
+        fileName: file.name,
+        raw,
+        parsed,
+        logDerivedStartDate,
+        logDerivedEndDate,
+        logDerivedAssignmentName,
+      });
+    }
+
+    const allSessions = parsedFiles.flatMap((file) => file.parsed.sessions);
+
+    const combinedLogDerivedStartDate =
+      getEarliestSessionDate(allSessions) ||
+      getEarliestValidDate(
+        parsedFiles.map((file) => toDateOnly(file.parsed.generatedAt))
+      );
+
+    const combinedLogDerivedEndDate =
+      getLatestSessionDate(allSessions) ||
+      getLatestValidDate(
+        parsedFiles.map((file) => toDateOnly(file.parsed.generatedAt))
+      );
+
+    if (!combinedLogDerivedEndDate) {
       return NextResponse.json(
-        { error: "Could not parse transcript — check the file format" },
-        { status: 422 }
+        {
+          error:
+            "Could not determine the correct assignment end date from the uploaded logs.",
+        },
+        { status: 400 }
       );
     }
 
-    const logDerivedStartDate =
-      getEarliestSessionDate(parsed.sessions) || toDateOnly(parsed.generatedAt);
+    const normalizedExpectedEndDate = toDateOnly(combinedLogDerivedEndDate);
+    const normalizedEnteredEndDate = toDateOnly(endDate);
 
-    const usedManualStartDate = Boolean(uploadedStartDate);
-    const derivedStartDate = uploadedStartDate || logDerivedStartDate;
+    if (normalizedEnteredEndDate !== normalizedExpectedEndDate) {
+      return NextResponse.json(
+        {
+          error: `Incorrect assignment end date. Please enter ${normalizedExpectedEndDate}.`,
+          expectedEndDate: normalizedExpectedEndDate,
+        },
+        { status: 400 }
+      );
+    }
 
-    const derivedAssignmentName =
-      uploadedAssignmentName ||
-      getAssignmentNameFromLogs(raw) ||
-      getFileBaseName(file.name) ||
-      "Uploaded Assignment";
+    const derivedStartDate = uploadedStartDate || combinedLogDerivedStartDate;
 
     if (!derivedStartDate) {
       return NextResponse.json(
         {
           error:
-            "Could not determine an assignment start date from the uploaded log. Please enter a start date manually.",
+            "Could not determine an assignment start date from the uploaded logs. Please enter a start date manually.",
         },
         { status: 400 }
       );
@@ -157,39 +270,31 @@ export async function POST(req: NextRequest) {
     if (!isValidDateString(derivedStartDate)) {
       return NextResponse.json(
         {
-          error: usedManualStartDate
+          error: uploadedStartDate
             ? "Please enter a valid assignment start date."
-            : "The uploaded log contains an invalid start date. Please enter a start date manually.",
+            : "The uploaded logs contain an invalid start date. Please enter a start date manually.",
         },
         { status: 400 }
       );
     }
 
     const normalizedStartDate = toDateOnly(derivedStartDate);
-    const normalizedEndDate = toDateOnly(endDate);
 
     if (!normalizedStartDate) {
       return NextResponse.json(
         {
-          error: usedManualStartDate
+          error: uploadedStartDate
             ? "Please enter a valid assignment start date."
-            : "The uploaded log contains an invalid start date. Please enter a start date manually.",
+            : "The uploaded logs contain an invalid start date. Please enter a start date manually.",
         },
         { status: 400 }
       );
     }
 
-    if (!normalizedEndDate) {
-      return NextResponse.json(
-        { error: "Please enter a valid assignment end date." },
-        { status: 400 }
-      );
-    }
-
-    if (new Date(normalizedStartDate) > new Date(normalizedEndDate)) {
+    if (new Date(normalizedStartDate) > new Date(normalizedEnteredEndDate)) {
       return NextResponse.json(
         {
-          error: usedManualStartDate
+          error: uploadedStartDate
             ? "End date must be after the start date."
             : `The end date is earlier than the start date found in the uploaded logs (${normalizedStartDate}). Please choose a later end date or enter a start date manually.`,
         },
@@ -197,61 +302,65 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("Parsed transcript:", {
-      parsedCourseName: parsed.courseName,
-      generatedAt: parsed.generatedAt,
-      sessions: parsed.sessions.length,
-      uploadedAssignmentName,
-      finalAssignmentName: derivedAssignmentName,
-      uploadedStartDate,
-      logDerivedStartDate,
-      finalStartDate: normalizedStartDate,
-      endDate: normalizedEndDate,
-    });
+    const firstExtractedAssignmentName = parsedFiles
+      .map((file) => file.logDerivedAssignmentName)
+      .find(Boolean);
 
-    const courseId = upsertCourse(FIXED_COURSE_NAME, parsed.generatedAt);
+    const derivedAssignmentName =
+      uploadedAssignmentName ||
+      firstExtractedAssignmentName ||
+      (parsedFiles.length === 1
+        ? getFileBaseName(parsedFiles[0].fileName)
+        : "Uploaded Assignment");
+
+    const courseId = upsertCourse(
+      FIXED_COURSE_NAME,
+      parsedFiles[0]?.parsed.generatedAt ?? null
+    );
 
     const assignmentId = upsertAssignment(
       courseId,
       derivedAssignmentName,
       undefined,
       normalizedStartDate,
-      normalizedEndDate
+      normalizedEnteredEndDate
     );
 
-    for (const session of parsed.sessions) {
-      const studentId = upsertStudent(session.studentEmail);
+    for (const parsedFile of parsedFiles) {
+      for (const session of parsedFile.parsed.sessions) {
+        const studentId = upsertStudent(session.studentEmail);
 
-      const startedAt = session.messages[0]?.timestamp ?? null;
-      const endedAt =
-        session.messages[session.messages.length - 1]?.timestamp ?? null;
+        const startedAt = session.messages[0]?.timestamp ?? null;
+        const endedAt =
+          session.messages[session.messages.length - 1]?.timestamp ?? null;
 
-      const sessionId = createSession(
-        studentId,
-        assignmentId,
-        startedAt,
-        endedAt
-      );
-
-      for (const msg of session.messages) {
-        const messageId = createMessage(
-          sessionId,
-          msg.role,
-          msg.content,
-          msg.timestamp
+        const sessionId = createSession(
+          studentId,
+          assignmentId,
+          startedAt,
+          endedAt
         );
 
-        for (const codeFile of msg.codeFiles) {
-          createCodeSnapshot(
-            messageId,
-            codeFile.filename,
-            codeFile.content,
-            codeFile.isEmpty
+        for (const msg of session.messages) {
+          const messageId = createMessage(
+            sessionId,
+            msg.role,
+            msg.content,
+            msg.timestamp
           );
-        }
 
-        if (msg.terminalContent) {
-          createTerminalSnapshot(messageId, msg.terminalContent);
+          for (const codeFile of msg.codeFiles) {
+            createCodeSnapshot(
+              messageId,
+              codeFile.filename,
+              codeFile.content,
+              codeFile.isEmpty
+            );
+          }
+
+          if (msg.terminalContent) {
+            createTerminalSnapshot(messageId, msg.terminalContent);
+          }
         }
       }
     }
@@ -261,12 +370,12 @@ export async function POST(req: NextRequest) {
       course: FIXED_COURSE_NAME,
       assignmentName: derivedAssignmentName,
       startDate: normalizedStartDate,
-      endDate: normalizedEndDate,
-      sessions: parsed.sessions.length,
+      endDate: normalizedEnteredEndDate,
+      expectedEndDate: normalizedExpectedEndDate,
+      filesProcessed: parsedFiles.length,
+      sessions: allSessions.length,
     });
-  } catch (error) {
-    console.error("Upload route failed:", error);
-
+  } catch {
     return NextResponse.json(
       { error: "Failed to process transcript" },
       { status: 500 }

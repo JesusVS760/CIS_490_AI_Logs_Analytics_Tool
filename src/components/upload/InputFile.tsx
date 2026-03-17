@@ -12,200 +12,189 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 const ACCEPTED_TYPES = ["text/plain", "application/pdf"];
-const UPLOAD_DRAFT_KEY = "uploadFormDraft";
+const ACCEPTED_EXTENSIONS = [".txt", ".pdf"];
 
-const inputFileSchema = z
-  .object({
-    assignmentName: z
-      .string()
-      .max(100, "Assignment name is too long")
-      .optional()
-      .or(z.literal("")),
+type UploadResponse = {
+  success?: boolean;
+  filesProcessed?: number;
+  expectedEndDate?: string;
+  error?: string;
+};
 
-    startDate: z.string().optional().or(z.literal("")),
-
-    endDate: z.string().min(1, "End date is required"),
-
-    inputFile: z
-      .any()
-      .refine((files) => files?.length === 1, "File is required")
-      .refine(
-        (files) => ACCEPTED_TYPES.includes(files?.[0]?.type),
-        "Only TXT and PDF files are allowed"
-      ),
-  })
-  .refine(
-    (data) => {
-      if (!data.startDate || !data.endDate) return true;
-      return new Date(data.startDate) <= new Date(data.endDate);
-    },
-    {
-      message: "End date must be after the start date",
-      path: ["endDate"],
-    }
+function isAcceptedFile(file: File) {
+  const fileName = file.name.toLowerCase();
+  return (
+    ACCEPTED_TYPES.includes(file.type) ||
+    ACCEPTED_EXTENSIONS.some((ext) => fileName.endsWith(ext))
   );
-
-type InputFormData = z.infer<typeof inputFileSchema>;
+}
 
 export function InputFile() {
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [assignmentName, setAssignmentName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [endDateError, setEndDateError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
-  const lastDateToastRef = useRef<string | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid },
-    reset,
-    watch,
-    setValue,
-  } = useForm<InputFormData>({
-    resolver: zodResolver(inputFileSchema),
-    mode: "onChange",
-    defaultValues: {
-      assignmentName: "",
-      startDate: "",
-      endDate: "",
-    },
-  });
-
-  const assignmentNameValue = watch("assignmentName");
-  const startDateValue = watch("startDate");
-  const endDateValue = watch("endDate");
 
   useEffect(() => {
-    const savedDraft = sessionStorage.getItem(UPLOAD_DRAFT_KEY);
-
-    if (!savedDraft) return;
-
-    try {
-      const parsed = JSON.parse(savedDraft) as {
-        assignmentName?: string;
-        startDate?: string;
-        endDate?: string;
-      };
-
-      if (parsed.assignmentName) {
-        setValue("assignmentName", parsed.assignmentName, {
-          shouldValidate: true,
+    const checkAuth = async () => {
+      try {
+        await axios.get("/api/auth/me", {
+          withCredentials: true,
         });
+        setCheckingAuth(false);
+      } catch {
+        router.replace("/login?redirect=/upload");
       }
+    };
 
-      if (parsed.startDate) {
-        setValue("startDate", parsed.startDate, {
-          shouldValidate: true,
-        });
-      }
+    checkAuth();
+  }, [router]);
 
-      if (parsed.endDate) {
-        setValue("endDate", parsed.endDate, {
-          shouldValidate: true,
-        });
-      }
-    } catch {
-      sessionStorage.removeItem(UPLOAD_DRAFT_KEY);
-    }
-  }, [setValue]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
 
-  useEffect(() => {
-    if (!startDateValue || !endDateValue) {
-      lastDateToastRef.current = null;
+    if (files.length === 0) return;
+
+    const invalidFile = files.find((file) => !isAcceptedFile(file));
+    if (invalidFile) {
+      toast.error("Only TXT and PDF files are allowed");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
-    if (new Date(startDateValue) > new Date(endDateValue)) {
-      const message = "End date must be after the start date";
-      if (lastDateToastRef.current !== message) {
-        toast.error(message);
-        lastDateToastRef.current = message;
-      }
-    } else {
-      lastDateToastRef.current = null;
-    }
-  }, [startDateValue, endDateValue]);
+    setSelectedFiles((prev) => {
+      const merged = [...prev];
 
-  const saveDraft = () => {
-    sessionStorage.setItem(
-      UPLOAD_DRAFT_KEY,
-      JSON.stringify({
-        assignmentName: assignmentNameValue ?? "",
-        startDate: startDateValue ?? "",
-        endDate: endDateValue ?? "",
-      })
+      for (const file of files) {
+        const exists = merged.some(
+          (f) =>
+            f.name === file.name &&
+            f.size === file.size &&
+            f.lastModified === file.lastModified
+        );
+
+        if (!exists) {
+          merged.push(file);
+        }
+      }
+
+      return merged;
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setSelectedFiles((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
     );
   };
 
-  const clearDraft = () => {
-    sessionStorage.removeItem(UPLOAD_DRAFT_KEY);
-  };
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEndDateError("");
 
-  const onSubmit = async (data: InputFormData) => {
+    if (selectedFiles.length === 0) {
+      toast.error("At least one file is required");
+      return;
+    }
+
+    if (!endDate) {
+      setEndDateError("Assignment end date is required");
+      toast.error("Assignment end date is required");
+      return;
+    }
+
+    if (startDate && new Date(startDate) > new Date(endDate)) {
+      setEndDateError("End date must be after the start date");
+      toast.error("End date must be after the start date");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      try {
-        await axios.get("/api/auth/me");
-      } catch (authErr) {
-        if (axios.isAxiosError(authErr) && authErr.response?.status === 401) {
-          saveDraft();
-          toast.info("Please sign in first. You'll return to the upload page.");
-          router.push("/login?redirect=/upload");
-          return;
-        }
-
-        throw authErr;
-      }
-
       const formData = new FormData();
-      formData.append("file", data.inputFile[0]);
 
-      if (data.assignmentName?.trim()) {
-        formData.append("assignmentName", data.assignmentName.trim());
+      for (const file of selectedFiles) {
+        formData.append("files", file);
       }
 
-      if (data.startDate) {
-        formData.append("startDate", data.startDate);
+      if (assignmentName.trim()) {
+        formData.append("assignmentName", assignmentName.trim());
       }
 
-      formData.append("endDate", data.endDate);
+      if (startDate) {
+        formData.append("startDate", startDate);
+      }
 
-      const response = await axios.post("/api/upload", formData);
+      formData.append("endDate", endDate);
 
-      clearDraft();
-      toast.success("Successful Upload ✅");
-      reset();
+      const response = await axios.post("/api/upload", formData, {
+        withCredentials: true,
+      });
+
+      const responseData = response.data as UploadResponse;
+      const filesProcessed = responseData.filesProcessed;
+
+      toast.success(
+        filesProcessed
+          ? `${filesProcessed} log${filesProcessed === 1 ? "" : "s"} uploaded successfully ✅`
+          : "Successful Upload ✅"
+      );
+
+      setAssignmentName("");
+      setStartDate("");
+      setEndDate("");
+      setEndDateError("");
+      setSelectedFiles([]);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
       router.push("/dashboard");
-
-      return response.data;
-    } catch (err) {
-      console.error("Upload failed:", err);
-
+    } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        const responseData = err.response?.data as UploadResponse | undefined;
+
         const backendMessage =
-          typeof err.response?.data?.error === "string"
-            ? err.response.data.error
+          typeof responseData?.error === "string" ? responseData.error : null;
+
+        const expectedEndDate =
+          typeof responseData?.expectedEndDate === "string"
+            ? responseData.expectedEndDate
             : null;
 
-        if (err.response?.status === 400 && backendMessage) {
-          toast.error(backendMessage);
+        if (status === 401) {
+          router.replace("/login?redirect=/upload");
           return;
         }
 
-        if (err.response?.status === 401) {
-          saveDraft();
-          toast.info("Please sign in first. You'll return to the upload page.");
-          router.push("/login?redirect=/upload");
+        if (expectedEndDate) {
+          const message = `Incorrect end date. Please enter ${expectedEndDate}.`;
+          setEndDate("");
+          setEndDateError(message);
+          toast.error(message);
           return;
         }
 
         if (backendMessage) {
+          if (backendMessage.toLowerCase().includes("end date")) {
+            setEndDateError(backendMessage);
+          }
           toast.error(backendMessage);
           return;
         }
@@ -217,9 +206,19 @@ export function InputFile() {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="w-full max-w-sm">
+        <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+          Checking access...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-sm space-y-4">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
         <Field>
           <FieldLabel htmlFor="assignmentName">
             Assignment Name <span className="text-muted-foreground">(optional)</span>
@@ -228,34 +227,39 @@ export function InputFile() {
             id="assignmentName"
             type="text"
             placeholder="Leave blank to use log info"
-            {...register("assignmentName")}
+            value={assignmentName}
+            onChange={(e) => setAssignmentName(e.target.value)}
           />
-          {errors.assignmentName && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.assignmentName.message}
-            </p>
-          )}
         </Field>
 
         <Field>
           <FieldLabel htmlFor="startDate">
             Assignment Start Date <span className="text-muted-foreground">(optional)</span>
           </FieldLabel>
-          <Input id="startDate" type="date" {...register("startDate")} />
-          {errors.startDate && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.startDate.message}
-            </p>
-          )}
+          <Input
+            id="startDate"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
         </Field>
 
         <Field>
           <FieldLabel htmlFor="endDate">Assignment End Date</FieldLabel>
-          <Input id="endDate" type="date" {...register("endDate")} />
-          {errors.endDate && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.endDate.message}
-            </p>
+          <Input
+            id="endDate"
+            type="date"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              if (endDateError) setEndDateError("");
+            }}
+            className={endDateError ? "border-red-500 focus-visible:ring-red-500" : ""}
+          />
+          {endDateError && (
+            <FieldDescription className="text-red-500">
+              {endDateError}
+            </FieldDescription>
           )}
         </Field>
 
@@ -265,23 +269,45 @@ export function InputFile() {
             id="inputFile"
             type="file"
             accept=".txt,.pdf"
+            multiple
             className="cursor-pointer"
-            {...register("inputFile")}
+            onChange={handleFileChange}
+            ref={fileInputRef}
           />
-          {errors.inputFile && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.inputFile.message as string}
-            </p>
-          )}
           <FieldDescription>
-            Select a transcript file to upload. If assignment name or start date
-            are blank, use the logs for that information.
+            Select multiple files at once, or keep adding files in separate picks before uploading.
           </FieldDescription>
+
+          {selectedFiles.length > 0 && (
+            <div className="mt-2 rounded-xl border p-3 text-sm">
+              <p className="font-medium">
+                {selectedFiles.length} file{selectedFiles.length === 1 ? "" : "s"} selected
+              </p>
+
+              <ul className="mt-2 space-y-2 text-muted-foreground">
+                {selectedFiles.map((file, index) => (
+                  <li
+                    key={`${file.name}-${file.size}-${file.lastModified}`}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="text-sm text-red-500 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Field>
 
         <Button
           type="submit"
-          disabled={!isValid || loading}
+          disabled={loading || selectedFiles.length === 0 || !endDate}
           className="w-full cursor-pointer"
         >
           {loading ? "Uploading..." : "Upload"}

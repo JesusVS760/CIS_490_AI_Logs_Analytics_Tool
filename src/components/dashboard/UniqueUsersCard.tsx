@@ -56,20 +56,85 @@ const getNestedString = (
   return null;
 };
 
+const looksLikeEmail = (value: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+const toTitleCase = (value: string) =>
+  value.replace(/\b\w/g, (char) => char.toUpperCase());
+
+const formatStudentDisplayLabel = (label: string) => {
+  const value = label.trim();
+
+  if (!looksLikeEmail(value)) {
+    return value;
+  }
+
+  const localPart = value.split("@")[0];
+
+  const cleaned = localPart
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return toTitleCase(cleaned);
+};
+
+const maskEmail = (email: string) => {
+  const trimmed = email.trim();
+  if (!looksLikeEmail(trimmed)) return trimmed;
+
+  const [local, domain] = trimmed.split("@");
+  if (!local || !domain) return trimmed;
+
+  if (local.length <= 2) {
+    return `${local[0] ?? ""}***@${domain}`;
+  }
+
+  return `${local.slice(0, 2)}***@${domain}`;
+};
+
+const truncateText = (value: string, max = 32) => {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max)}...`;
+};
+
+const formatStudentSecondaryLabel = (
+  studentLabel: string,
+  studentKey: string
+): string | null => {
+  if (looksLikeEmail(studentLabel)) {
+    return maskEmail(studentLabel);
+  }
+
+  if (looksLikeEmail(studentKey)) {
+    return maskEmail(studentKey);
+  }
+
+  const cleanedKey = studentKey.trim();
+  const cleanedLabel = studentLabel.trim().toLowerCase();
+
+  if (cleanedKey && cleanedKey.toLowerCase() !== cleanedLabel) {
+    return `ID: ${truncateText(cleanedKey, 24)}`;
+  }
+
+  return null;
+};
+
+// Stable grouping key: prefer email / IDs, not name text.
 const getStudentKey = (message: Message): string | null => {
   const msg = message as Record<string, unknown>;
 
   const value = getNestedString(msg, [
+    ["studentEmail"],
+    ["email"],
+    ["student"],
+    ["studentName"],
+    ["studentIdentifier"],
     ["studentId"],
     ["studentAnonymousId"],
     ["userId"],
-    ["email"],
-    ["username"],
-    ["userName"],
-    ["senderId"],
     ["senderEmail"],
-    ["studentEmail"],
-    ["studentName"],
+    ["senderId"],
     ["student", "email"],
     ["student", "id"],
     ["student", "anonymous_id"],
@@ -81,30 +146,47 @@ const getStudentKey = (message: Message): string | null => {
     ["session", "student", "anonymousId"],
   ]);
 
-  return value ? value.toLowerCase() : null;
+  return value ? value.toLowerCase().trim() : null;
 };
 
+// Best user-facing label available from the logs.
 const getStudentLabel = (message: Message): string | null => {
   const msg = message as Record<string, unknown>;
 
-  return getNestedString(msg, [
-    ["studentName"],
-    ["username"],
-    ["userName"],
-    ["email"],
+  const explicitName = getNestedString(msg, [
+    ["studentFullName"],
+    ["fullName"],
+    ["student", "name"],
+    ["session", "student", "name"],
+  ]);
+
+  if (explicitName && !looksLikeEmail(explicitName)) {
+    return explicitName;
+  }
+
+  const transcriptStudentValue = getNestedString(msg, [
     ["studentEmail"],
+    ["email"],
+    ["student"],
+    ["studentName"],
+    ["studentIdentifier"],
+    ["senderEmail"],
+    ["student", "email"],
+    ["session", "studentEmail"],
+    ["session", "student", "email"],
+  ]);
+
+  if (transcriptStudentValue) {
+    return transcriptStudentValue;
+  }
+
+  return getNestedString(msg, [
     ["studentId"],
     ["studentAnonymousId"],
     ["userId"],
-    ["senderEmail"],
     ["senderId"],
-    ["student", "name"],
-    ["student", "email"],
     ["student", "id"],
     ["student", "anonymousId"],
-    ["session", "student", "name"],
-    ["session", "studentEmail"],
-    ["session", "student", "email"],
     ["session", "student", "id"],
   ]);
 };
@@ -135,6 +217,16 @@ const getAssignmentKey = (
     key: value.toLowerCase(),
     label: value,
   };
+};
+
+const isBetterStudentLabel = (currentLabel: string, nextLabel: string) => {
+  const currentIsEmail = looksLikeEmail(currentLabel);
+  const nextIsEmail = looksLikeEmail(nextLabel);
+
+  if (currentIsEmail && !nextIsEmail) return true;
+  if (!currentIsEmail && nextIsEmail) return false;
+
+  return nextLabel.length > currentLabel.length;
 };
 
 const buildAssignmentUniqueUsers = (messages: Message[]): AssignmentData[] => {
@@ -192,6 +284,10 @@ const buildStudentAnalytics = (messages: Message[]): StudentData[] => {
 
     const current = studentMap.get(studentKey)!;
     current.messageCount += 1;
+
+    if (isBetterStudentLabel(current.label, studentLabel)) {
+      current.label = studentLabel;
+    }
 
     if (assignmentInfo) {
       current.assignments.add(assignmentInfo.label);
@@ -256,45 +352,46 @@ const UniqueUsersCard = ({ messages }: UniqueUsersCardProps) => {
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-zinc-900">
       <div className="mb-5">
-        <h2 className="text-xl font-semibold">Unique Student Insights</h2>
+        <h2 className="text-xl font-semibold">Student Activity</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          This section explains student participation in plain language.
+          A quick look at who has shown up in the uploaded logs and where most
+          of the activity is happening.
         </p>
       </div>
 
       <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border p-4">
-          <p className="text-sm font-medium">Students in the logs</p>
+          <p className="text-sm font-medium">Students found</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {overallUniqueUsers} different student
-            {overallUniqueUsers === 1 ? " appears" : "s appear"} in the uploaded
-            data.
+            {overallUniqueUsers} student
+            {overallUniqueUsers === 1 ? "" : "s"} showed up across the current
+            set of logs.
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm font-medium">Messages recorded</p>
+          <p className="text-sm font-medium">Messages captured</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {totalMessages} total message
-            {totalMessages === 1 ? "" : "s"} were found across all logs.
+            {totalMessages} message{totalMessages === 1 ? "" : "s"} were tied to
+            student activity.
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm font-medium">Assignments tracked</p>
+          <p className="text-sm font-medium">Assignments with activity</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {totalAssignments} assignment
-            {totalAssignments === 1 ? "" : "s"} had usable student activity.
+            {totalAssignments === 1 ? "" : "s"} had at least one student appear
+            in the logs.
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm font-medium">Average student activity</p>
+          <p className="text-sm font-medium">Average activity per student</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Each student sent about {averageMessagesPerStudent.toFixed(1)}{" "}
-            message
-            {Number(averageMessagesPerStudent.toFixed(1)) === 1 ? "" : "s"} on
-            average.
+            On average, each student contributed{" "}
+            {averageMessagesPerStudent.toFixed(1)} message
+            {Number(averageMessagesPerStudent.toFixed(1)) === 1 ? "" : "s"}.
           </p>
         </div>
       </div>
@@ -304,62 +401,157 @@ const UniqueUsersCard = ({ messages }: UniqueUsersCardProps) => {
           <p className="text-sm font-medium">Most active student</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {topStudentByMessages
-              ? `${topStudentByMessages.studentLabel} sent ${topStudentByMessages.messageCount} message${
+              ? `${formatStudentDisplayLabel(
+                  topStudentByMessages.studentLabel
+                )} had ${
+                  topStudentByMessages.messageCount
+                } logged message${
                   topStudentByMessages.messageCount === 1 ? "" : "s"
                 }.`
-              : "No student data found."}
+              : "No student activity found yet."}
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm font-medium">Most assignments worked on</p>
+          <p className="text-sm font-medium">Worked across the most assignments</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {topStudentByAssignments
-              ? `${topStudentByAssignments.studentLabel} appeared in ${topStudentByAssignments.assignmentsCount} assignment${
+              ? `${formatStudentDisplayLabel(
+                  topStudentByAssignments.studentLabel
+                )} appeared in ${
+                  topStudentByAssignments.assignmentsCount
+                } assignment${
                   topStudentByAssignments.assignmentsCount === 1 ? "" : "s"
                 }.`
-              : "No student data found."}
+              : "No student activity found yet."}
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm font-medium">Widest assignment reach</p>
+          <p className="text-sm font-medium">Assignment with the widest reach</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {topAssignment
-              ? `${topAssignment.assignmentLabel} had ${topAssignment.count} unique student${
-                  topAssignment.count === 1 ? "" : "s"
-                }.`
-              : "No assignment data found."}
+              ? `${topAssignment.assignmentLabel} involved ${
+                  topAssignment.count
+                } unique student${topAssignment.count === 1 ? "" : "s"}.`
+              : "No assignment activity found yet."}
           </p>
         </div>
 
         <div className="rounded-xl border p-4">
-          <p className="text-sm font-medium">Return usage</p>
+          <p className="text-sm font-medium">Returning vs one-time students</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {repeatStudents} repeat student
-            {repeatStudents === 1 ? "" : "s"} and {oneTimeStudents} one-time
-            student{oneTimeStudents === 1 ? "" : "s"} were found.
+            {repeatStudents} returning and {oneTimeStudents} one-time student
+            {oneTimeStudents === 1 ? "" : "s"} were found in this upload.
           </p>
         </div>
       </div>
 
-      <div className="rounded-xl border p-4">
-        <h3 className="text-base font-semibold">Participation Summary</h3>
+      <div className="mb-6 rounded-xl border p-4">
+        <h3 className="text-base font-semibold">What stands out</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Each assignment had an average of{" "}
+          Student activity is spread across{" "}
           <span className="font-medium text-foreground">
-            {averageUsersPerAssignment.toFixed(1)} unique students
+            {totalAssignments} assignment{totalAssignments === 1 ? "" : "s"}
           </span>
-          . The most active student was{" "}
+          , with an average of{" "}
           <span className="font-medium text-foreground">
-            {topStudentByMessages?.studentLabel ?? "N/A"}
+            {averageUsersPerAssignment.toFixed(1)} students per assignment
           </span>
-          , and the assignment with the widest reach was{" "}
-          <span className="font-medium text-foreground">
-            {topAssignment?.assignmentLabel ?? "N/A"}
-          </span>
-          .
+          .{" "}
+          {topStudentByMessages ? (
+            <>
+              The busiest student in the current logs is{" "}
+              <span className="font-medium text-foreground">
+                {formatStudentDisplayLabel(topStudentByMessages.studentLabel)}
+              </span>
+              , while{" "}
+              <span className="font-medium text-foreground">
+                {topAssignment?.assignmentLabel ?? "N/A"}
+              </span>{" "}
+              drew the broadest participation.
+            </>
+          ) : (
+            "Upload more logs to surface student patterns here."
+          )}
         </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border p-4">
+          <h3 className="text-base font-semibold">Students behind the activity</h3>
+          <div className="mt-3 space-y-3">
+            {studentData.slice(0, 5).map((student) => {
+              const primaryName = formatStudentDisplayLabel(student.studentLabel);
+              const secondaryLabel = formatStudentSecondaryLabel(
+                student.studentLabel,
+                student.studentKey
+              );
+
+              return (
+                <div
+                  key={student.studentKey}
+                  className="rounded-lg border p-3 text-sm"
+                >
+                  <p className="font-medium text-foreground">{primaryName}</p>
+
+                  {secondaryLabel && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {secondaryLabel}
+                    </p>
+                  )}
+
+                  <p className="mt-2 text-muted-foreground">
+                    {student.messageCount} logged message
+                    {student.messageCount === 1 ? "" : "s"} across{" "}
+                    {student.assignmentsCount} assignment
+                    {student.assignmentsCount === 1 ? "" : "s"}.
+                  </p>
+
+                  {student.assignments.length > 0 && (
+                    <p className="mt-1 text-muted-foreground">
+                      Worked on: {student.assignments.slice(0, 3).join(", ")}
+                      {student.assignments.length > 3 ? " ..." : ""}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+
+            {studentData.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No student activity found.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border p-4">
+          <h3 className="text-base font-semibold">Where students are showing up</h3>
+          <div className="mt-3 space-y-3">
+            {assignmentData.slice(0, 5).map((assignment) => (
+              <div
+                key={assignment.assignmentKey}
+                className="rounded-lg border p-3 text-sm"
+              >
+                <p className="font-medium text-foreground">
+                  {assignment.assignmentLabel}
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  {assignment.count} student
+                  {assignment.count === 1 ? "" : "s"} appeared in this
+                  assignment.
+                </p>
+              </div>
+            ))}
+
+            {assignmentData.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No assignment activity found.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
