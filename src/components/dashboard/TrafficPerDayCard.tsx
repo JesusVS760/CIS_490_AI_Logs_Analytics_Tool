@@ -20,7 +20,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   Tooltip,
-  Legend,
+  Legend
 );
 
 const TrafficPerDayCard = () => {
@@ -35,7 +35,7 @@ const TrafficPerDayCard = () => {
         // Keep only first AI-Tutor message as startedAt
         const processed: Session[] = data.map((s: Session) => {
           const firstAI = s.messages.find(
-            (m) => m.role === "ai_tutor" && m.timestamp,
+            (m) => m.role === "ai_tutor" && m.timestamp
           );
           return { ...s, startedAt: firstAI?.timestamp ?? null };
         });
@@ -57,7 +57,7 @@ const TrafficPerDayCard = () => {
         if (!s.startedAt) return false;
         const date = new Date(s.startedAt);
         return date.getDate() === day;
-      }).length,
+      }).length
   );
 
   const data = {
@@ -75,10 +75,7 @@ const TrafficPerDayCard = () => {
   };
 
   return (
-    <div
-      style={{ width: "800px" }}
-      className="rounded-2xl border border-gray-200 p-6 shadow-md bg-white dark:bg-zinc-900 "
-    >
+    <div className="rounded-2xl border border-gray-200 p-6 shadow-md bg-white dark:bg-zinc-900 w-full">
       <h1 className="flex items-center gap-2 font-bold text-lg">
         AI Tutor Traffic Per Day <LineChart size={18} />
       </h1>

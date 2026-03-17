@@ -19,7 +19,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   Tooltip,
-  Legend,
+  Legend
 );
 
 type Assignment = {
@@ -52,14 +52,14 @@ const TimeOfDayCard = () => {
               ? session.messages
               : [];
             const firstAI = messages.find(
-              (message) => message.role === "ai_tutor" && message.timestamp,
+              (message) => message.role === "ai_tutor" && message.timestamp
             );
 
             return {
               ...session,
               startedAt: firstAI?.timestamp ?? session.startedAt ?? null,
             };
-          },
+          }
         );
 
         setSessions(processed);
@@ -77,7 +77,7 @@ const TimeOfDayCard = () => {
 
     sessions.forEach((session) => {
       const assignmentId = Number(
-        session.assignmentId ?? session.assignment_id,
+        session.assignmentId ?? session.assignment_id
       );
 
       if (!Number.isNaN(assignmentId)) {
@@ -95,7 +95,7 @@ const TimeOfDayCard = () => {
 
     return sessions.filter((session) => {
       const assignmentId = String(
-        session.assignmentId ?? session.assignment_id,
+        session.assignmentId ?? session.assignment_id
       );
       return assignmentId === selectedAssignment;
     });
@@ -126,9 +126,9 @@ const TimeOfDayCard = () => {
   const selectedAssignmentLabel =
     selectedAssignment === "all"
       ? "All Assignments"
-      : (assignmentOptions.find(
-          (assignment) => String(assignment.id) === selectedAssignment,
-        )?.name ?? `Assignment ${selectedAssignment}`);
+      : assignmentOptions.find(
+          (assignment) => String(assignment.id) === selectedAssignment
+        )?.name ?? `Assignment ${selectedAssignment}`;
 
   const chartData = {
     labels: hourLabels,
@@ -147,10 +147,7 @@ const TimeOfDayCard = () => {
   };
 
   return (
-    <div
-      style={{ width: "800px" }}
-      className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md dark:bg-zinc-900"
-    >
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md dark:bg-zinc-900 w-full">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-bold">

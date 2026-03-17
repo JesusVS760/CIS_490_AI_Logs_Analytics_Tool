@@ -35,28 +35,28 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="w-full space-y-8 px-4 py-6">
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         <div className="flex flex-col gap-3">
           <TopQuestionCard messages={messages} />
           <TodaysTrafficCard messages={messages} />
         </div>
-        <div className="flex items-stretch p-2">
+        <div className="flex items-stretch">
           <MessagesPerConversation />
         </div>
-        <div className="flex items-stretch p-2">
+        <div className="flex items-stretch">
           <ChatDuration />
         </div>
-        <div className="flex items-stretch p-2">
+        <div className="flex items-stretch">
           <WordCloudCard messages={messages} />
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6">
         <UniqueUsersCard messages={messages} />
         <WorkedDatesDueDateCard />
       </section>
 
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <TrafficPerDayCard />
         <TimeOfDayCard />
       </section>

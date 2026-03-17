@@ -24,7 +24,10 @@ function getPath(obj: unknown, path: (string | number)[]) {
   return cur;
 }
 
-function pickFirstId(obj: unknown, paths: (string | number)[][]): string | null {
+function pickFirstId(
+  obj: unknown,
+  paths: (string | number)[][]
+): string | null {
   for (const p of paths) {
     const v = getPath(obj, p);
     if (typeof v === "string" && v.trim() !== "") return v.trim();
@@ -253,7 +256,7 @@ const MessagesPerConversation = () => {
   const totalConversations = conversationCounts.length;
 
   return (
-    <div className="rounded-2xl border border-gray-100 p-6 shadow-sm max-w-lg bg-white dark:bg-zinc-900">
+    <div className="rounded-2xl border border-gray-100 p-6 shadow-sm w-full bg-white dark:bg-zinc-900">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h1 className="flex items-center gap-2 font-bold text-lg">
           Messages Per Conversation <MessageSquareText size={18} />
@@ -281,7 +284,8 @@ const MessagesPerConversation = () => {
           <div className="mb-4 text-sm text-muted-foreground">
             <div>Total Messages: {messages.length}</div>
             <div>
-              Total Conversations {selectedStudentKey === "all" ? "" : "(filtered)"}:{" "}
+              Total Conversations{" "}
+              {selectedStudentKey === "all" ? "" : "(filtered)"}:{" "}
               {totalConversations}
             </div>
           </div>

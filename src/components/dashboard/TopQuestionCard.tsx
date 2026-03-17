@@ -36,7 +36,7 @@ const extractQuestionCandidates = (content: string): string[] => {
 
 const getTopQuestion = (messages: Message[]): TopQuestionResult => {
   const studentMessages = messages.filter(
-    (message) => message.role === "student",
+    (message) => message.role === "student"
   );
   const sourceMessages =
     studentMessages.length > 0 ? studentMessages : messages;
@@ -96,7 +96,7 @@ const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
   const topQuestion = useMemo(() => getTopQuestion(messages), [messages]);
 
   return (
-    <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
+    <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4 shadow-sm w-full">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Top Question</h2>
