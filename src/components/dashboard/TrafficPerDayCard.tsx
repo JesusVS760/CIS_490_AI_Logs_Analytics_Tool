@@ -79,7 +79,21 @@ const TrafficPerDayCard = () => {
       <h1 className="flex items-center gap-2 font-bold text-lg">
         AI Tutor Traffic Per Day <LineChart size={18} />
       </h1>
-      <Line data={data} />
+      <Line
+        data={data}
+        options={{
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                precision: 0,
+              },
+            },
+          },
+        }}
+      />{" "}
     </div>
   );
 };
