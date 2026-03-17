@@ -115,23 +115,34 @@ export default function VerifyEmailPage() {
 
   const verify = async () => {
     setStatus(null);
-    if (!email) return setStatus("Missing email. Please register again.");
-    if (code.length !== 6 || digits.some((d) => !d))
+
+    if (!email) {
+      return setStatus("Missing email. Please register again.");
+    }
+
+    if (code.length !== 6 || digits.some((d) => !d)) {
       return setStatus("Enter the 6-digit code.");
+    }
 
     setLoading(true);
+
     try {
       const formData = new FormData();
+      formData.append("action", "verify");
       formData.append("email", email);
       formData.append("code", code);
 
-      const res = await axios.post("/api/auth/verify-email", formData);
+      const res = await axios.post("/api/verify-email", formData);
       const data = parse(res.data);
-      if (!data.success) return setStatus(data.message);
+
+      if (!data.success) {
+        return setStatus(data.message);
+      }
 
       try {
         localStorage.removeItem("pendingVerifyEmail");
       } catch {}
+
       router.push(data.redirectTo ?? "/login");
     } catch (err) {
       setStatus(
@@ -146,17 +157,26 @@ export default function VerifyEmailPage() {
 
   const resend = async () => {
     setStatus(null);
-    if (!email) return setStatus("Missing email. Please register again.");
+
+    if (!email) {
+      return setStatus("Missing email. Please register again.");
+    }
 
     setResending(true);
+
     try {
       const formData = new FormData();
+      formData.append("action", "resend");
       formData.append("email", email);
-      const res = await axios.post("/api/auth/resend-verification", formData);
-      const data = parse(res.data);
-      if (!data.success) return setStatus(data.message);
 
-      setDigits(initialDigits);
+      const res = await axios.post("/api/verify-email", formData);
+      const data = parse(res.data);
+
+      if (!data.success) {
+        return setStatus(data.message);
+      }
+
+      setDigits(Array(CODE_LEN).fill(""));
       focus(0);
       setStatus(data.message || "New code sent.");
     } catch (err) {
@@ -204,6 +224,7 @@ export default function VerifyEmailPage() {
       <h1 className="text-center text-3xl font-semibold text-slate-900">
         Verify Your Email
       </h1>
+
       <p className="mt-3 text-center text-sm text-slate-700">
         A 6-digit code was sent to the email you provided.
         <br />
