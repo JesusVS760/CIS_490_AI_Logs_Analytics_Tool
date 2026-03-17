@@ -138,9 +138,7 @@ const TodaysTrafficCard = ({ messages }: TodaysTrafficCardProps) => {
     <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm w-full">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">
-            Total Traffic
-          </h2>
+          <h2 className="text-xl font-semibold text-slate-900">Total Users</h2>
           <p className="mt-6 text-4xl font-bold text-slate-900">
             {trafficData.totalTraffic}
           </p>

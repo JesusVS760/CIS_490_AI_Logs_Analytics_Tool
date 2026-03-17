@@ -1,8 +1,8 @@
-//the allowment to choose date of assignment is best ulitized in this section(s) as well as the API 
+//the allowment to choose date of assignment is best ulitized in this section(s) as well as the API
 //and database
-// Added assignment name, startDate and endDate to the upload form and API. 
-// This allows us to better organize the data and also to utilize the date of assignment for analytics purposes. 
-// The predetermined course is used to simplify the process for the user, as they don't have to select a course when uploading a file. 
+// Added assignment name, startDate and endDate to the upload form and API.
+// This allows us to better organize the data and also to utilize the date of assignment for analytics purposes.
+// The predetermined course is used to simplify the process for the user, as they don't have to select a course when uploading a file.
 // The automatic migration ensures that older databases that don't have a start_date column can still function properly without any issues.
 
 "use client";
@@ -150,7 +150,9 @@ export function InputFile() {
 
       toast.success(
         filesProcessed
-          ? `${filesProcessed} log${filesProcessed === 1 ? "" : "s"} uploaded successfully ✅`
+          ? `${filesProcessed} log${
+              filesProcessed === 1 ? "" : "s"
+            } uploaded successfully ✅`
           : "Successful Upload ✅"
       );
 
@@ -221,7 +223,8 @@ export function InputFile() {
       <form onSubmit={onSubmit} className="space-y-4">
         <Field>
           <FieldLabel htmlFor="assignmentName">
-            Assignment Name <span className="text-muted-foreground">(optional)</span>
+            Assignment Name{" "}
+            <span className="text-muted-foreground">(optional)</span>
           </FieldLabel>
           <Input
             id="assignmentName"
@@ -234,7 +237,8 @@ export function InputFile() {
 
         <Field>
           <FieldLabel htmlFor="startDate">
-            Assignment Start Date <span className="text-muted-foreground">(optional)</span>
+            Assignment Start Date{" "}
+            <span className="text-muted-foreground">(optional)</span>
           </FieldLabel>
           <Input
             id="startDate"
@@ -254,7 +258,9 @@ export function InputFile() {
               setEndDate(e.target.value);
               if (endDateError) setEndDateError("");
             }}
-            className={endDateError ? "border-red-500 focus-visible:ring-red-500" : ""}
+            className={
+              endDateError ? "border-red-500 focus-visible:ring-red-500" : ""
+            }
           />
           {endDateError && (
             <FieldDescription className="text-red-500">
@@ -275,13 +281,15 @@ export function InputFile() {
             ref={fileInputRef}
           />
           <FieldDescription>
-            Select multiple files at once, or keep adding files in separate picks before uploading.
+            Select multiple files at once, or keep adding files in separate
+            picks before uploading.
           </FieldDescription>
 
           {selectedFiles.length > 0 && (
             <div className="mt-2 rounded-xl border p-3 text-sm">
               <p className="font-medium">
-                {selectedFiles.length} file{selectedFiles.length === 1 ? "" : "s"} selected
+                {selectedFiles.length} file
+                {selectedFiles.length === 1 ? "" : "s"} selected
               </p>
 
               <ul className="mt-2 space-y-2 text-muted-foreground">
