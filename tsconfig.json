@@ -3,7 +3,6 @@
     "baseUrl": ".",
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
-
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -15,13 +14,11 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@config": ["src/config"],
+      "@config/*": ["src/config/*"]
     }
   },
   "include": [
