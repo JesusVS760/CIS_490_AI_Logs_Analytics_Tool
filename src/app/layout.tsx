@@ -15,9 +15,25 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const themeScript = `
+    (function () {
+      try {
+        var savedTheme = localStorage.getItem("dashboardTheme");
+        if (savedTheme === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      } catch (e) {}
+    })();
+  `;
+
   return (
-    <html lang="en" className="h-full">
-      <body className="h-full bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300">
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="h-full bg-white text-black transition-colors duration-300 dark:bg-gray-900 dark:text-white">
         <ThemeProvider>
           <SidebarProvider style={{ display: "flex", minHeight: "100vh" }}>
             <AppSidebar />
@@ -30,7 +46,7 @@ export default function RootLayout({
               }}
             >
               <Navbar />
-              <main className="flex-1 p-6 bg-white dark:bg-gray-900 transition-colors duration-300">
+              <main className="flex-1 bg-white p-6 transition-colors duration-300 dark:bg-gray-900">
                 {children}
               </main>
             </SidebarInset>

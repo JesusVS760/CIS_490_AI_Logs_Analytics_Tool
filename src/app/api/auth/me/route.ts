@@ -11,12 +11,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     success: true,
     username: auth.name,
-    profilePic: null,
-    darkMode: false,
+    profilePic: auth.profilePic,
+    darkMode: auth.darkMode,
     user: {
       id: auth.instructorId,
       email: auth.email,
       name: auth.name,
+      darkMode: auth.darkMode,
+      profilePic: auth.profilePic,
     },
   });
 }

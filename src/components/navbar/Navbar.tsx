@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import Link from "next/link";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { LineChart, Settings, CircleUserIcon } from "lucide-react";
 import Notifications from "./Notifications";
@@ -25,6 +26,17 @@ export default function Navbar() {
   useEffect(() => {
     let isMounted = true;
 
+    const cached = localStorage.getItem("dashboardUser");
+    if (cached) {
+      try {
+        const parsed: StoredUser = JSON.parse(cached);
+        if (isMounted) {
+          setNameUser(parsed.nameUser || "User");
+          setProfilePic(parsed.profilePic || null);
+        }
+      } catch {}
+    }
+
     const fetchCurrentUser = async () => {
       try {
         const res = await axios.get("/api/auth/me", {
@@ -35,11 +47,14 @@ export default function Navbar() {
 
         const nextUser: StoredUser = {
           nameUser:
-            res.data?.username ||
             res.data?.user?.name ||
+            res.data?.username ||
             res.data?.user?.email ||
             "User",
-          profilePic: res.data?.profilePic || null,
+          profilePic:
+            res.data?.user?.profilePic ??
+            res.data?.profilePic ??
+            null,
         };
 
         setNameUser(nextUser.nameUser);
@@ -71,16 +86,16 @@ export default function Navbar() {
 
       setProfilePic((prev) =>
         customEvent.detail?.profilePic !== undefined
-          ? customEvent.detail.profilePic
+          ? customEvent.detail.profilePic ?? null
           : prev
       );
 
-      const cached = localStorage.getItem("dashboardUser");
+      const cachedUser = localStorage.getItem("dashboardUser");
       let parsed: StoredUser = { nameUser: "User", profilePic: null };
 
-      if (cached) {
+      if (cachedUser) {
         try {
-          parsed = JSON.parse(cached);
+          parsed = JSON.parse(cachedUser);
         } catch {}
       }
 
@@ -122,7 +137,7 @@ export default function Navbar() {
           <SearchBar />
           <Notifications />
 
-          <a
+          <Link
             href="/settings"
             className="flex items-center gap-2 rounded-md px-2 py-1 transition hover:bg-muted"
           >
@@ -130,13 +145,13 @@ export default function Navbar() {
               <img
                 src={profilePic}
                 alt="Profile"
-                className="h-8 w-8 rounded-full object-cover border border-gray-300 dark:border-gray-700"
+                className="h-8 w-8 rounded-full border border-gray-300 object-cover dark:border-gray-700"
               />
             ) : (
               <CircleUserIcon className="h-8 w-8" />
             )}
 
-            <div className="hidden md:flex flex-col leading-tight">
+            <div className="hidden flex-col leading-tight md:flex">
               <span className="max-w-[120px] truncate text-sm font-medium">
                 {loadingUser ? "Loading..." : nameUser}
               </span>
@@ -144,7 +159,7 @@ export default function Navbar() {
             </div>
 
             <Settings className="h-4 w-4" />
-          </a>
+          </Link>
         </section>
       </div>
     </header>

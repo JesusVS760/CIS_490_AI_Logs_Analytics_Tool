@@ -39,7 +39,10 @@ export default function SettingClient() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
-  const saveUserToStorage = (userName: string, userProfilePic: string | null) => {
+  const saveUserToStorage = (
+    userName: string,
+    userProfilePic: string | null
+  ) => {
     const storedUser: StoredUser = {
       nameUser: userName,
       profilePic: userProfilePic,
@@ -47,7 +50,10 @@ export default function SettingClient() {
     localStorage.setItem("dashboardUser", JSON.stringify(storedUser));
   };
 
-  const dispatchProfileUpdated = (userName: string, userProfilePic: string | null) => {
+  const dispatchProfileUpdated = (
+    userName: string,
+    userProfilePic: string | null
+  ) => {
     window.dispatchEvent(
       new CustomEvent("profile-updated", {
         detail: {
@@ -58,30 +64,49 @@ export default function SettingClient() {
     );
   };
 
+  const applyTheme = (isDark: boolean) => {
+    setModeDark(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+    localStorage.setItem("dashboardTheme", isDark ? "dark" : "light");
+
+    window.dispatchEvent(
+      new CustomEvent("theme-updated", {
+        detail: { darkMode: isDark },
+      })
+    );
+  };
+
   useEffect(() => {
+    const savedTheme = localStorage.getItem("dashboardTheme");
+
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      setModeDark(true);
+    } else if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
+      setModeDark(false);
+    }
+
     const fetchUser = async () => {
       try {
         const res = await axios.get("/api/auth/me", {
           withCredentials: true,
         });
 
-        const user = res.data.user;
-        const fetchedName = user?.name || "";
-        const fetchedProfilePic = user?.profilePic || null;
-        const savedDarkMode = Boolean(user?.darkMode);
+        const fetchedName =
+          res.data?.user?.name || res.data?.username || "User";
+        const fetchedProfilePic =
+          res.data?.user?.profilePic ?? res.data?.profilePic ?? null;
+        const fetchedDarkMode = Boolean(
+          res.data?.user?.darkMode ?? res.data?.darkMode ?? false
+        );
 
         setNameUser(fetchedName);
         setProfilePic(fetchedProfilePic);
-        setModeDark(savedDarkMode);
 
         saveUserToStorage(fetchedName, fetchedProfilePic);
         dispatchProfileUpdated(fetchedName, fetchedProfilePic);
-
-        if (savedDarkMode) {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
+        applyTheme(fetchedDarkMode);
       } catch (error) {
         router.push("/login");
       } finally {
@@ -101,22 +126,19 @@ export default function SettingClient() {
       const nextMode = !modeDark;
 
       const res = await axios.put(
-        "/api/user/theme",
+        "/api/auth/theme",
         { darkMode: nextMode },
         { withCredentials: true }
       );
 
       const updatedDarkMode =
-        typeof res.data?.darkMode === "boolean" ? res.data.darkMode : nextMode;
+        typeof res.data?.darkMode === "boolean"
+          ? res.data.darkMode
+          : typeof res.data?.user?.darkMode === "boolean"
+            ? res.data.user.darkMode
+            : nextMode;
 
-      setModeDark(updatedDarkMode);
-
-      if (updatedDarkMode) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-
+      applyTheme(updatedDarkMode);
       toast.success("Mode updated ✅");
     } catch (error) {
       toast.error("Failed to update mode ❌");
@@ -126,7 +148,9 @@ export default function SettingClient() {
   };
 
   const changeUsername = async () => {
-    if (!newNameUser.trim()) {
+    const trimmedName = newNameUser.trim();
+
+    if (!trimmedName) {
       toast.error("Username cannot be empty ❌");
       return;
     }
@@ -134,17 +158,19 @@ export default function SettingClient() {
     try {
       setUpdatingUsername(true);
 
-      await axios.put(
-        "/api/user/username",
-        { username: newNameUser },
+      const res = await axios.put(
+        "/api/auth/username",
+        { name: trimmedName },
         { withCredentials: true }
       );
 
-      setNameUser(newNameUser);
-      saveUserToStorage(newNameUser, profilePic);
-      dispatchProfileUpdated(newNameUser, profilePic);
+      const updatedName = res.data?.user?.name || trimmedName;
 
+      setNameUser(updatedName);
       setNewNameUser("");
+      saveUserToStorage(updatedName, profilePic);
+      dispatchProfileUpdated(updatedName, profilePic);
+
       toast.success("Username updated ✅");
     } catch (error) {
       toast.error("Update failed ❌");
@@ -154,8 +180,15 @@ export default function SettingClient() {
   };
 
   const changePassword = async () => {
-    if (!newPassword.trim()) {
+    const trimmedPassword = newPassword.trim();
+
+    if (!trimmedPassword) {
       toast.error("Password cannot be empty ❌");
+      return;
+    }
+
+    if (trimmedPassword.length < 6) {
+      toast.error("Password must be at least 6 characters ❌");
       return;
     }
 
@@ -163,13 +196,13 @@ export default function SettingClient() {
       setUpdatingPassword(true);
 
       await axios.put(
-        "/api/user/password",
-        { password: newPassword },
+        "/api/auth/password",
+        { newPassword: trimmedPassword },
         { withCredentials: true }
       );
 
+      setNewPassword("");
       toast.success("Password updated ✅");
-      router.push("/login");
     } catch (error) {
       toast.error("Password update failed ❌");
     } finally {
@@ -183,11 +216,12 @@ export default function SettingClient() {
     try {
       setDeletingAccount(true);
 
-      await axios.delete("/api/user", {
+      await axios.delete("/api/auth/delete", {
         withCredentials: true,
       });
 
       localStorage.removeItem("dashboardUser");
+      localStorage.removeItem("dashboardTheme");
 
       toast.success("Account deleted ✅");
       router.push("/login");
@@ -215,12 +249,12 @@ export default function SettingClient() {
     try {
       setUploadingPhoto(true);
 
-      const res = await axios.put("/api/user/profile-pic", formData, {
+      const res = await axios.put("/api/auth/profile-pic", formData, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const updatedProfilePic = res.data.profilePic
+      const updatedProfilePic = res.data?.profilePic
         ? `${res.data.profilePic}?t=${Date.now()}`
         : previewUrl;
 
@@ -288,7 +322,8 @@ export default function SettingClient() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Manage your account, profile, appearance, and security preferences.
+              Manage your account, profile, appearance, and security
+              preferences.
             </p>
           </div>
 
@@ -329,7 +364,9 @@ export default function SettingClient() {
 
                 <button
                   type="button"
-                  onClick={() => document.getElementById("profileUpload")?.click()}
+                  onClick={() =>
+                    document.getElementById("profileUpload")?.click()
+                  }
                   disabled={uploadingPhoto}
                   className="flex w-full items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-white transition hover:bg-purple-700 disabled:opacity-50"
                 >
@@ -367,7 +404,11 @@ export default function SettingClient() {
             <div className="space-y-6 lg:col-span-2">
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
-                  {modeDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  {modeDark ? (
+                    <Moon className="h-5 w-5" />
+                  ) : (
+                    <Sun className="h-5 w-5" />
+                  )}
                   <h2 className="text-xl font-semibold">Appearance</h2>
                 </div>
 
@@ -407,7 +448,10 @@ export default function SettingClient() {
                 </p>
 
                 <div className="mt-4">
-                  <label htmlFor="new-username" className="mb-2 block text-sm font-medium">
+                  <label
+                    htmlFor="new-username"
+                    className="mb-2 block text-sm font-medium"
+                  >
                     New Username
                   </label>
                   <input
@@ -445,7 +489,10 @@ export default function SettingClient() {
                 </p>
 
                 <div className="mt-4">
-                  <label htmlFor="new-password" className="mb-2 block text-sm font-medium">
+                  <label
+                    htmlFor="new-password"
+                    className="mb-2 block text-sm font-medium"
+                  >
                     New Password
                   </label>
 

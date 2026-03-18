@@ -11,17 +11,9 @@ export interface AuthPayload {
   instructorId: number;
   email: string;
   name: string;
+  darkMode: boolean;
+  profilePic: string | null;
 }
-
-// Ensure the sessions table exists at import time
-db.exec(`
-  CREATE TABLE IF NOT EXISTS instructor_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    instructor_id INTEGER NOT NULL REFERENCES instructors(id) ON DELETE CASCADE,
-    token TEXT NOT NULL UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
 
 /**
  * Looks up the session_token cookie in the DB.
@@ -35,16 +27,37 @@ export async function verifyAuth(
 
   const row = db
     .prepare(
-      `SELECT i.id, i.email, i.name
-       FROM instructor_sessions s
-       JOIN instructors i ON i.id = s.instructor_id
-       WHERE s.token = ?`
+      `
+      SELECT
+        i.id,
+        i.email,
+        i.name,
+        COALESCE(i.dark_mode, 0) AS dark_mode,
+        i.profile_pic
+      FROM instructor_sessions s
+      JOIN instructors i ON i.id = s.instructor_id
+      WHERE s.token = ?
+      `
     )
-    .get(token) as { id: number; email: string; name: string } | undefined;
-  console.log(row);
+    .get(token) as
+    | {
+        id: number;
+        email: string;
+        name: string;
+        dark_mode: number;
+        profile_pic: string | null;
+      }
+    | undefined;
+
   if (!row) return null;
 
-  return { instructorId: row.id, email: row.email, name: row.name };
+  return {
+    instructorId: row.id,
+    email: row.email,
+    name: row.name,
+    darkMode: Boolean(row.dark_mode),
+    profilePic: row.profile_pic ?? null,
+  };
 }
 
 /**
@@ -54,9 +67,11 @@ export async function requireAuth(
   req: NextRequest
 ): Promise<AuthPayload | NextResponse> {
   const payload = await verifyAuth(req);
+
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
   return payload;
 }
 
@@ -66,9 +81,14 @@ export async function requireAuth(
  */
 export function createSessionToken(instructorId: number): string {
   const token = crypto.randomBytes(32).toString("hex");
+
   db.prepare(
-    "INSERT INTO instructor_sessions (instructor_id, token) VALUES (?, ?)"
+    `
+    INSERT INTO instructor_sessions (instructor_id, token)
+    VALUES (?, ?)
+    `
   ).run(instructorId, token);
+
   return token;
 }
 

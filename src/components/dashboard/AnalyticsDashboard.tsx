@@ -16,6 +16,7 @@ import TimeOfDayCard from "./TimeOfDayCard";
 import WorkedDatesDueDateCard from "./WorkedDatesDueDateCard";
 import MessagesPerConversation from "./MessagesPerConversation";
 import TrafficPerDayCard from "./TrafficPerDayCard";
+import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,12 +41,15 @@ const AnalyticsDashboard = () => {
           <TopQuestionCard messages={messages} />
           <TodaysTrafficCard messages={messages} />
         </div>
+
         <div className="flex items-stretch">
           <MessagesPerConversation />
         </div>
+
         <div className="flex items-stretch">
           <ChatDuration />
         </div>
+
         <div className="flex items-stretch">
           <WordCloudCard messages={messages} />
         </div>
@@ -53,6 +57,7 @@ const AnalyticsDashboard = () => {
 
       <section className="grid grid-cols-1 gap-6">
         <UniqueUsersCard messages={messages} />
+        <UniqueStudentTotalMsgCard messages={messages} />
         <WorkedDatesDueDateCard />
       </section>
 

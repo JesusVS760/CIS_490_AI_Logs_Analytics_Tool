@@ -9,7 +9,7 @@ import fs from "fs";
 import { Session } from "@/types";
 
 const databasePath = path.resolve(
-  process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db"),
+  process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db")
 );
 
 fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -18,8 +18,74 @@ console.info(`[db] using sqlite file: ${databasePath}`);
 
 const db = new Database(databasePath);
 db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
+
+function parseTranscriptTimestamp(value?: string | null): Date | null {
+  if (!value) return null;
+
+  const match = value.match(
+    /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})\s*([AP]M)$/
+  );
+
+  if (!match) return null;
+
+  const [, mm, dd, yyyy, hh, min, ss, ampm] = match;
+
+  let hours = Number(hh);
+  const month = Number(mm) - 1;
+  const day = Number(dd);
+  const year = Number(yyyy);
+  const minutes = Number(min);
+  const seconds = Number(ss);
+
+  if (ampm === "AM" && hours === 12) hours = 0;
+  if (ampm === "PM" && hours !== 12) hours += 12;
+
+  const date = new Date(year, month, day, hours, minutes, seconds);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseAnyDate(value?: string | null): Date | null {
+  if (!value) return null;
+
+  const transcriptDate = parseTranscriptTimestamp(value);
+  if (transcriptDate) return transcriptDate;
+
+  const nativeDate = new Date(value);
+  return Number.isNaN(nativeDate.getTime()) ? null : nativeDate;
+}
+
+function normalizeTimestamp(value?: string | null): string | null {
+  const date = parseAnyDate(value);
+  if (!date) return null;
+  return date.toISOString();
+}
+
+function toDateOnly(value?: string | null): string | null {
+  const date = parseAnyDate(value);
+  if (!date) return null;
+  return date.toISOString().slice(0, 10);
+}
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS instructors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    dark_mode INTEGER NOT NULL DEFAULT 0,
+    profile_pic TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS instructor_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    instructor_id INTEGER NOT NULL REFERENCES instructors(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -47,6 +113,8 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER REFERENCES students(id),
     assignment_id INTEGER REFERENCES assignments(id),
+    import_key TEXT UNIQUE,
+    source_file TEXT,
     started_at DATETIME,
     ended_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -54,7 +122,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id INTEGER REFERENCES sessions(id),
+    session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
     role TEXT NOT NULL CHECK(role IN ('student', 'ai_tutor')),
     content TEXT NOT NULL,
     timestamp DATETIME,
@@ -63,7 +131,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS code_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_id INTEGER REFERENCES messages(id),
+    message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
     filename TEXT NOT NULL,
     content TEXT,
     is_empty INTEGER DEFAULT 0,
@@ -72,11 +140,25 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS terminal_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_id INTEGER REFERENCES messages(id),
+    message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
     content TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+const instructorColumns = db
+  .prepare("PRAGMA table_info(instructors)")
+  .all() as { name: string }[];
+
+if (!instructorColumns.some((col) => col.name === "dark_mode")) {
+  db.exec(
+    "ALTER TABLE instructors ADD COLUMN dark_mode INTEGER NOT NULL DEFAULT 0"
+  );
+}
+
+if (!instructorColumns.some((col) => col.name === "profile_pic")) {
+  db.exec("ALTER TABLE instructors ADD COLUMN profile_pic TEXT");
+}
 
 const assignmentColumns = db
   .prepare("PRAGMA table_info(assignments)")
@@ -90,6 +172,35 @@ if (!assignmentColumns.some((col) => col.name === "due_date")) {
   db.exec("ALTER TABLE assignments ADD COLUMN due_date DATETIME");
 }
 
+const sessionColumns = db
+  .prepare("PRAGMA table_info(sessions)")
+  .all() as { name: string }[];
+
+if (!sessionColumns.some((col) => col.name === "import_key")) {
+  db.exec("ALTER TABLE sessions ADD COLUMN import_key TEXT");
+}
+
+if (!sessionColumns.some((col) => col.name === "source_file")) {
+  db.exec("ALTER TABLE sessions ADD COLUMN source_file TEXT");
+}
+
+db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_instructors_email_unique
+  ON instructors(email);
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_instructor_sessions_token_unique
+  ON instructor_sessions(token);
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_name_unique
+  ON courses(name);
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_course_name_unique
+  ON assignments(course_id, name);
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_import_key_unique
+  ON sessions(import_key);
+`);
+
 export function anonymizeId(email: string): string {
   return crypto
     .createHash("sha256")
@@ -97,34 +208,61 @@ export function anonymizeId(email: string): string {
     .digest("hex");
 }
 
+export function buildSessionImportKey(input: {
+  studentAnonymousId: string;
+  assignmentId: number;
+  sourceFile: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  firstMessage?: string | null;
+  lastMessage?: string | null;
+}): string {
+  const raw = [
+    input.studentAnonymousId,
+    String(input.assignmentId),
+    input.sourceFile,
+    input.startedAt ?? "",
+    input.endedAt ?? "",
+    input.firstMessage ?? "",
+    input.lastMessage ?? "",
+  ].join("||");
+
+  return crypto.createHash("sha256").update(raw).digest("hex");
+}
+
 export function upsertCourse(name: string, generatedAt?: string): number {
-  const existing = db
+  db.prepare(
+    `
+    INSERT INTO courses (name, generated_at)
+    VALUES (?, ?)
+    ON CONFLICT(name) DO UPDATE SET
+      generated_at = COALESCE(excluded.generated_at, courses.generated_at)
+    `
+  ).run(name, normalizeTimestamp(generatedAt) ?? null);
+
+  const row = db
     .prepare("SELECT id FROM courses WHERE name = ?")
-    .get(name) as { id: number } | undefined;
+    .get(name) as { id: number };
 
-  if (existing) return existing.id;
-
-  const result = db
-    .prepare("INSERT INTO courses (name, generated_at) VALUES (?, ?)")
-    .run(name, generatedAt ?? null);
-
-  return result.lastInsertRowid as number;
+  return row.id;
 }
 
 export function upsertStudent(rawEmail: string): number {
   const anonymousId = anonymizeId(rawEmail);
 
-  const existing = db
+  db.prepare(
+    `
+    INSERT INTO students (anonymous_id)
+    VALUES (?)
+    ON CONFLICT(anonymous_id) DO NOTHING
+    `
+  ).run(anonymousId);
+
+  const row = db
     .prepare("SELECT id FROM students WHERE anonymous_id = ?")
-    .get(anonymousId) as { id: number } | undefined;
+    .get(anonymousId) as { id: number };
 
-  if (existing) return existing.id;
-
-  const result = db
-    .prepare("INSERT INTO students (anonymous_id) VALUES (?)")
-    .run(anonymousId);
-
-  return result.lastInsertRowid as number;
+  return row.id;
 }
 
 export function upsertAssignment(
@@ -132,70 +270,84 @@ export function upsertAssignment(
   name: string,
   description?: string,
   startDate?: string,
-  dueDate?: string,
+  dueDate?: string
 ): number {
-  const existing = db
+  db.prepare(
+    `
+    INSERT INTO assignments (course_id, name, description, start_date, due_date)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(course_id, name) DO UPDATE SET
+      description = COALESCE(excluded.description, assignments.description),
+      start_date = COALESCE(excluded.start_date, assignments.start_date),
+      due_date = COALESCE(excluded.due_date, assignments.due_date)
+    `
+  ).run(
+    courseId,
+    name,
+    description ?? null,
+    startDate ?? null,
+    dueDate ?? null
+  );
+
+  const row = db
     .prepare("SELECT id FROM assignments WHERE course_id = ? AND name = ?")
-    .get(courseId, name) as { id: number } | undefined;
+    .get(courseId, name) as { id: number };
 
-  if (existing) {
-    db.prepare(
-      `
-      UPDATE assignments
-      SET description = ?,
-          start_date = ?,
-          due_date = ?
-      WHERE id = ?
-    `,
-    ).run(description ?? null, startDate ?? null, dueDate ?? null, existing.id);
-
-    return existing.id;
-  }
-
-  const result = db
-    .prepare(
-      `
-      INSERT INTO assignments (course_id, name, description, start_date, due_date)
-      VALUES (?, ?, ?, ?, ?)
-    `,
-    )
-    .run(
-      courseId,
-      name,
-      description ?? null,
-      startDate ?? null,
-      dueDate ?? null,
-    );
-
-  return result.lastInsertRowid as number;
+  return row.id;
 }
 
-export function createSession(
-  studentId: number,
-  assignmentId: number,
-  startedAt?: string,
-  endedAt?: string,
-): number {
-  const result = db
-    .prepare(
-      "INSERT INTO sessions (student_id, assignment_id, started_at, ended_at) VALUES (?, ?, ?, ?)",
+export function createOrGetSession(params: {
+  studentId: number;
+  assignmentId: number;
+  importKey: string;
+  sourceFile?: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+}): { id: number; inserted: boolean } {
+  const insert = db.prepare(
+    `
+    INSERT OR IGNORE INTO sessions (
+      student_id,
+      assignment_id,
+      import_key,
+      source_file,
+      started_at,
+      ended_at
     )
-    .run(studentId, assignmentId, startedAt ?? null, endedAt ?? null);
+    VALUES (?, ?, ?, ?, ?, ?)
+    `
+  );
 
-  return result.lastInsertRowid as number;
+  const result = insert.run(
+    params.studentId,
+    params.assignmentId,
+    params.importKey,
+    params.sourceFile ?? null,
+    normalizeTimestamp(params.startedAt) ?? null,
+    normalizeTimestamp(params.endedAt) ?? null
+  );
+
+  const row = db
+    .prepare("SELECT id FROM sessions WHERE import_key = ?")
+    .get(params.importKey) as { id: number };
+
+  return {
+    id: row.id,
+    inserted: result.changes > 0,
+  };
 }
 
 export function createMessage(
   sessionId: number,
   role: "student" | "ai_tutor",
   content: string,
-  timestamp?: string,
+  timestamp?: string
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
+      "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)"
     )
-    .run(sessionId, role, content, timestamp ?? null);
+    .run(sessionId, role, content, normalizeTimestamp(timestamp) ?? null);
 
   return result.lastInsertRowid as number;
 }
@@ -204,11 +356,11 @@ export function createCodeSnapshot(
   messageId: number,
   filename: string,
   content: string | null,
-  isEmpty: boolean,
+  isEmpty: boolean
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO code_snapshots (message_id, filename, content, is_empty) VALUES (?, ?, ?, ?)",
+      "INSERT INTO code_snapshots (message_id, filename, content, is_empty) VALUES (?, ?, ?, ?)"
     )
     .run(messageId, filename, content ?? null, isEmpty ? 1 : 0);
 
@@ -217,35 +369,42 @@ export function createCodeSnapshot(
 
 export function createTerminalSnapshot(
   messageId: number,
-  content: string,
+  content: string
 ): number {
   const result = db
     .prepare(
-      "INSERT INTO terminal_snapshots (message_id, content) VALUES (?, ?)",
+      "INSERT INTO terminal_snapshots (message_id, content) VALUES (?, ?)"
     )
     .run(messageId, content);
 
   return result.lastInsertRowid as number;
 }
 
-export function getAllSessions(): (Session & { messages: any[] })[] {
+export const runInTransaction = db.transaction((fn: () => void) => {
+  fn();
+});
+
+export function getAllSessions(): (Session & {
+  messages: any[];
+  workedDates: string[];
+})[] {
   const sessions = db
     .prepare(
       `
       SELECT
         id,
-        student_id,
-        assignment_id,
+        student_id AS studentId,
+        assignment_id AS assignmentId,
         started_at AS startedAt,
         ended_at AS endedAt,
         created_at AS createdAt
       FROM sessions
-    `,
+      ORDER BY COALESCE(started_at, created_at) ASC, id ASC
+      `
     )
     .all() as Session[];
 
   return sessions.map((session) => {
-    // messages table assumed to exist with session_id foreign key
     const messages = db
       .prepare(
         `
@@ -256,19 +415,29 @@ export function getAllSessions(): (Session & { messages: any[] })[] {
           timestamp
         FROM messages
         WHERE session_id = ?
-        ORDER BY timestamp ASC
-      `,
+        ORDER BY COALESCE(timestamp, created_at) ASC, id ASC
+        `
       )
       .all(session.id) as any[];
+
+    const workedDates = Array.from(
+      new Set(
+        messages
+          .map((message) => toDateOnly(message.timestamp))
+          .filter((value): value is string => Boolean(value))
+      )
+    ).sort();
 
     return {
       ...session,
       messages,
+      workedDates,
     };
   });
 }
+
 export function getAllMessages() {
-  return db
+  const rows = db
     .prepare(
       `
       SELECT
@@ -285,10 +454,15 @@ export function getAllMessages() {
       JOIN sessions s ON m.session_id = s.id
       JOIN students st ON s.student_id = st.id
       JOIN assignments a ON s.assignment_id = a.id
-      ORDER BY m.timestamp ASC, m.id ASC
-    `,
+      ORDER BY COALESCE(m.timestamp, m.created_at) ASC, m.id ASC
+      `
     )
-    .all();
+    .all() as any[];
+
+  return rows.map((row) => ({
+    ...row,
+    workedDate: toDateOnly(row.timestamp),
+  }));
 }
 
 export function getAllAssignments() {
@@ -305,7 +479,7 @@ export function getAllAssignments() {
         created_at AS createdAt
       FROM assignments
       ORDER BY created_at DESC
-    `,
+      `
     )
     .all();
 }

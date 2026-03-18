@@ -8,11 +8,24 @@ export default function ThemeProvider({
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
+    const applyTheme = (isDark: boolean) => {
+      document.documentElement.classList.toggle("dark", isDark);
+      localStorage.setItem("dashboardTheme", isDark ? "dark" : "light");
+    };
 
-    if (savedTheme === "dark") {
-      document.documentElement.classList.add("darks");
-    }
+    const savedTheme = localStorage.getItem("dashboardTheme");
+    applyTheme(savedTheme === "dark");
+
+    const handleThemeUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ darkMode?: boolean }>;
+      applyTheme(Boolean(customEvent.detail?.darkMode));
+    };
+
+    window.addEventListener("theme-updated", handleThemeUpdated);
+
+    return () => {
+      window.removeEventListener("theme-updated", handleThemeUpdated);
+    };
   }, []);
 
   return <>{children}</>;
