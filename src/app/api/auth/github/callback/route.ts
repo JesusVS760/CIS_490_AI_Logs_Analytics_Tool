@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
+import { ensureInstructorsTable } from "@/lib/instructors";
 import { createSessionToken } from "@/lib/auth";
-import bcrypt from "bcryptjs";
 
-// Ensure table exists
-db.exec(`
-  CREATE TABLE IF NOT EXISTS instructors (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+ensureInstructorsTable();
 
 type GitHubUser = {
   id: number;
@@ -51,6 +42,7 @@ export async function GET(req: NextRequest) {
 
     const tokenData = (await tokenRes.json()) as { access_token?: string };
     const accessToken = tokenData.access_token;
+
     if (!tokenRes.ok || !accessToken) {
       return NextResponse.redirect(new URL("/login?oauth=failed", req.url));
     }
@@ -89,17 +81,83 @@ export async function GET(req: NextRequest) {
 
     const normalizedEmail = primaryEmail.toLowerCase().trim();
     const displayName = ghUser.name?.trim() || ghUser.login;
+    const githubId = String(ghUser.id);
 
     let instructor = db
-      .prepare("SELECT id FROM instructors WHERE email = ?")
-      .get(normalizedEmail) as { id: number } | undefined;
+      .prepare(
+        `
+        SELECT id, email, auth_provider, github_id, has_local_password
+        FROM instructors
+        WHERE github_id = ?
+        `,
+      )
+      .get(githubId) as
+      | {
+          id: number;
+          email: string;
+          auth_provider: string;
+          github_id: string | null;
+          has_local_password: number;
+        }
+      | undefined;
 
     if (!instructor) {
-      const placeholderHash = await bcrypt.hash(`oauth:${ghUser.id}:${Date.now()}`, 10);
+      instructor = db
+        .prepare(
+          `
+          SELECT id, email, auth_provider, github_id, has_local_password
+          FROM instructors
+          WHERE email = ?
+          `,
+        )
+        .get(normalizedEmail) as
+        | {
+            id: number;
+            email: string;
+            auth_provider: string;
+            github_id: string | null;
+            has_local_password: number;
+          }
+        | undefined;
+    }
+
+    if (!instructor) {
       const result = db
-        .prepare("INSERT INTO instructors (name, email, password_hash) VALUES (?, ?, ?)")
-        .run(displayName, normalizedEmail, placeholderHash);
-      instructor = { id: Number(result.lastInsertRowid) };
+        .prepare(
+          `
+          INSERT INTO instructors (
+            name,
+            email,
+            password_hash,
+            auth_provider,
+            github_id,
+            has_local_password
+          )
+          VALUES (?, ?, ?, 'github', ?, 0)
+          `,
+        )
+        .run(displayName, normalizedEmail, "", githubId);
+
+      instructor = {
+        id: Number(result.lastInsertRowid),
+        email: normalizedEmail,
+        auth_provider: "github",
+        github_id: githubId,
+        has_local_password: 0,
+      };
+    } else {
+      const nextProvider =
+        instructor.has_local_password || instructor.auth_provider === "local"
+          ? "both"
+          : "github";
+
+      db.prepare(
+        `
+        UPDATE instructors
+        SET name = ?, github_id = ?, auth_provider = ?
+        WHERE id = ?
+        `,
+      ).run(displayName, githubId, nextProvider, instructor.id);
     }
 
     const token = createSessionToken(instructor.id);
@@ -114,7 +172,8 @@ export async function GET(req: NextRequest) {
     });
 
     return res;
-  } catch {
+  } catch (error) {
+    console.error("GitHub callback error:", error);
     return NextResponse.redirect(new URL("/login?oauth=failed", req.url));
   }
 }

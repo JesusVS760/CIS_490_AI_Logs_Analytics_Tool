@@ -1,21 +1,10 @@
 import db from "@/lib/db";
+import { ensureInstructorsTable } from "@/lib/instructors";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
-// Create instructors table if it does not exist
-db.exec(`
-  CREATE TABLE IF NOT EXISTS instructors (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    is_verified INTEGER NOT NULL DEFAULT 0,
-    verification_code TEXT,
-    verification_expires TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+ensureInstructorsTable();
 
 const instructorColumns = db
   .prepare("PRAGMA table_info(instructors)")
@@ -70,6 +59,7 @@ export async function POST(req: NextRequest) {
     const email = String(formData.get("email") || "").trim().toLowerCase();
     const password = String(formData.get("password") || "");
     const name = String(formData.get("name") || "").trim();
+    const normalizedEmail = email.toLowerCase().trim();
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -86,56 +76,67 @@ export async function POST(req: NextRequest) {
     }
 
     const existing = db
-      .prepare("SELECT id FROM instructors WHERE email = ?")
-      .get(email);
+      .prepare(
+        `
+        SELECT id, auth_provider, github_id, has_local_password
+        FROM instructors
+        WHERE email = ?
+        `,
+      )
+      .get(normalizedEmail) as
+      | {
+          id: number;
+          auth_provider: string;
+          github_id: string | null;
+          has_local_password: number;
+        }
+      | undefined;
 
-    if (existing) {
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    if (!existing) {
+      const result = db
+        .prepare(
+          `
+          INSERT INTO instructors (name, email, password_hash, auth_provider, has_local_password)
+          VALUES (?, ?, ?, 'local', 1)
+          `,
+        )
+        .run(name, normalizedEmail, passwordHash);
+
+      return NextResponse.json(
+        {
+          success: true,
+          user: { id: result.lastInsertRowid, email: normalizedEmail, name },
+        },
+        { status: 201 },
+      );
+    }
+
+    if (existing.has_local_password) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 409 },
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
-    const verificationCode = generateVerificationCode();
-    const verificationExpires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const nextProvider =
+      existing.auth_provider === "github" ? "both" : existing.auth_provider;
 
-    const result = db
-      .prepare(`
-        INSERT INTO instructors (
-          name,
-          email,
-          password_hash,
-          is_verified,
-          verification_code,
-          verification_expires
-        )
-        VALUES (?, ?, ?, 0, ?, ?)
-      `)
-      .run(name, email, passwordHash, verificationCode, verificationExpires);
-
-    try {
-      await sendVerificationEmail(email, verificationCode);
-    } catch (mailError) {
-      console.error("Verification email send failed:", mailError);
-      db.prepare("DELETE FROM instructors WHERE id = ?").run(result.lastInsertRowid);
-
-      return NextResponse.json(
-        { error: "Could not send verification email. Please try again." },
-        { status: 500 },
-      );
-    }
+    db.prepare(
+      `
+      UPDATE instructors
+      SET name = ?, password_hash = ?, has_local_password = 1, auth_provider = ?
+      WHERE id = ?
+      `,
+    ).run(name, passwordHash, nextProvider, existing.id);
 
     return NextResponse.json(
       {
         success: true,
-        user: {
-          id: Number(result.lastInsertRowid),
-          email,
-          name,
-        },
+        user: { id: existing.id, email: normalizedEmail, name },
       },
-      { status: 201 },
+      { status: 200 },
     );
   } catch (error) {
     console.error("Register error:", error);
