@@ -1,12 +1,13 @@
 "use client";
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
-import llmService from "@/services/llm-service";
 import axios from "axios";
 import { createContext, useContext, useEffect, useState } from "react";
 
-export const AiAnalyticsContext = createContext<any>(null);
-
+export const AiAnalyticsContext = createContext<any>({
+  isAiAccepted: false,
+  setIsAiAccepted: () => {},
+});
 export const useAiAnalytics = () => useContext(AiAnalyticsContext);
 
 export default function DashboardPage() {

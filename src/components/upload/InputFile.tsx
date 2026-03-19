@@ -15,6 +15,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAiAnalytics } from "@/app/dashboard/page";
+import { Switch } from "../ui/switch";
 
 const ACCEPTED_TYPES = ["text/plain", "application/pdf"];
 const ACCEPTED_EXTENSIONS = [".txt", ".pdf"];
@@ -317,6 +318,11 @@ export function InputFile() {
             </div>
           )}
         </Field>
+
+        <div className="flex flex-row items-center gap-2">
+          <Switch onChange={() => setIsChecked(!isChecked)} />
+          <span>Opt in for Ai Analyzer</span>
+        </div>
 
         <Button
           type="submit"
