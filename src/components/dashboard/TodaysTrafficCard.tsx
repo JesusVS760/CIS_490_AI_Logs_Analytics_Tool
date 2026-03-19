@@ -143,7 +143,7 @@ const TodaysTrafficCard = ({ messages }: TodaysTrafficCardProps) => {
             {trafficData.totalTraffic}
           </p>
           <p className="mt-2 text-base text-slate-700">
-            AI Tutor users for assignment: {trafficData.assignmentLabel}
+            {/* AI Tutor users for assignment: {trafficData.assignmentLabel} */}
           </p>
         </div>
         <div className="rounded-full bg-white/80 p-3 text-orange-700">

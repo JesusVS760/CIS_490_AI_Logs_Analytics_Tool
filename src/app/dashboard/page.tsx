@@ -3,10 +3,15 @@ import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
 import llmService from "@/services/llm-service";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+
+export const AiAnalyticsContext = createContext<any>(null);
+
+export const useAiAnalytics = () => useContext(AiAnalyticsContext);
 
 export default function DashboardPage() {
   const [hasSessions, setHasSessions] = useState<boolean | null>(null);
+  const [isAiAccepted, setIsAiAccepted] = useState<boolean>(false);
 
   useEffect(() => {
     const checkUploadData = async () => {
@@ -28,7 +33,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <>
+    <AiAnalyticsContext.Provider value={{ isAiAccepted, setIsAiAccepted }}>
       <div>
         {hasSessions ? (
           <AnalyticsDashboard />
@@ -38,6 +43,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-    </>
+    </AiAnalyticsContext.Provider>
   );
 }

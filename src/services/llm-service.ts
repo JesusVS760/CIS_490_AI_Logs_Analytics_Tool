@@ -1,16 +1,12 @@
 import { openai } from "@/lib/openai";
 
 export const llmService = {
-  async generateAnalytics(userInput: string) {
-    try {
-      const systemPrompt = `
-You are an analytics assistant. 
-Given user input, output **strictly valid JSON** with structured analytics. 
-- Do not include any explanation or extra text.
-- Numeric values should be numbers, not strings with $ or commas.
-- Keys should be descriptive and consistent.
-`;
+  async generateAnalytics(userInput: string, systemPrompt: string) {
+    if (!userInput || typeof userInput !== "string") {
+      throw new Error("userInput must be a non-empty string");
+    }
 
+    try {
       const response = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [
@@ -19,17 +15,15 @@ Given user input, output **strictly valid JSON** with structured analytics.
         ],
       });
 
-      const text: any = response.choices[0].message.content;
+      const text = response.choices[0].message.content;
 
-      try {
-        const parsed = JSON.parse(text);
-        return parsed;
-      } catch (err) {
-        console.warn("LLM response is not valid JSON, returning raw string");
-        return { raw: text };
+      if (!text) {
+        throw new Error("LLM returned empty response");
       }
+
+      return JSON.parse(text);
     } catch (error) {
-      console.error(error);
+      console.error("LLM error:", error);
       throw error;
     }
   },

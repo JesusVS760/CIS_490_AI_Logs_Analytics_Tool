@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useAiAnalytics } from "@/app/dashboard/page";
 
 const ACCEPTED_TYPES = ["text/plain", "application/pdf"];
 const ACCEPTED_EXTENSIONS = [".txt", ".pdf"];
@@ -41,6 +42,10 @@ export function InputFile() {
   const [endDate, setEndDate] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [endDateError, setEndDateError] = useState("");
+  const [isChecked, setIsChecked] = useState<boolean>(false);
+
+  const { isAiAccepted, setIsAiAccepted } = useAiAnalytics();
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
