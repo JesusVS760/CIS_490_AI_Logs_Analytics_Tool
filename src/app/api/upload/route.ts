@@ -4,7 +4,7 @@
 //startDate and endDate from the upload form and API.
 
 
-import {
+import db, {
   anonymizeId,
   buildSessionImportKey,
   createCodeSnapshot,
@@ -19,6 +19,7 @@ import {
 import { parseTranscript } from "@/lib/parseTranscript";
 import { NextRequest, NextResponse } from "next/server";
 import { extractText as extractPdfText } from "unpdf";
+import { createHash } from "crypto";
 
 type ParsedTranscript = ReturnType<typeof parseTranscript>;
 
@@ -33,6 +34,7 @@ type FileConfig = {
 type PreparedUpload = {
   uploadId: string;
   fileName: string;
+  fileFingerprint: string;
   raw: string;
   parsed: ParsedTranscript;
   logDates: string[];
@@ -67,6 +69,14 @@ async function extractText(file: File): Promise<string> {
   }
 
   return Buffer.from(buffer).toString("utf-8");
+}
+
+function buildStableFileFingerprint(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex").slice(0, 24);
+}
+
+function buildStableSourceFile(fileName: string, fingerprint: string): string {
+  return `${fileName}__${fingerprint}`;
 }
 
 function parseTranscriptTimestamp(value?: string | null): Date | null {
@@ -256,6 +266,25 @@ function findMatchingFileConfig(
   );
 }
 
+function getExistingStableSourceFiles(): Set<string> {
+  const rows = db
+    .prepare(
+      `
+      SELECT DISTINCT source_file
+      FROM sessions
+      WHERE source_file IS NOT NULL
+        AND TRIM(source_file) <> ''
+      `
+    )
+    .all() as Array<{ source_file?: string | null }>;
+
+  return new Set(
+    rows
+      .map((row) => row.source_file?.trim() || "")
+      .filter((value) => Boolean(value))
+  );
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -306,6 +335,7 @@ export async function POST(req: NextRequest) {
 
       const raw = await extractText(file);
       const parsed = parseTranscript(raw);
+      const fileFingerprint = buildStableFileFingerprint(raw);
 
       if (parsed.sessions.length === 0) {
         hasParseError = true;
@@ -379,6 +409,7 @@ export async function POST(req: NextRequest) {
         preparedUploads.push({
           uploadId,
           fileName: file.name,
+          fileFingerprint,
           raw,
           parsed,
           logDates,
@@ -490,6 +521,7 @@ export async function POST(req: NextRequest) {
       preparedUploads.push({
         uploadId,
         fileName: file.name,
+        fileFingerprint,
         raw,
         parsed,
         logDates,
@@ -540,10 +572,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const existingStableSourceFiles = getExistingStableSourceFiles();
+
+    if (existingStableSourceFiles.size > 0) {
+      const disallowedFiles = preparedUploads.filter((file) => {
+        const stableSourceFile = buildStableSourceFile(
+          file.fileName,
+          file.fileFingerprint
+        );
+
+        return !existingStableSourceFiles.has(stableSourceFile);
+      });
+
+      if (disallowedFiles.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "New log files with different content are not allowed after the first import.",
+            fileErrors: disallowedFiles.map((file) => ({
+              uploadId: file.uploadId,
+              fileName: file.fileName,
+              expectedEndDate: file.logDerivedEndDate,
+              expectedEndDates: file.logDates.length
+                ? file.logDates
+                : file.logDerivedEndDate
+                  ? [file.logDerivedEndDate]
+                  : [],
+              logDates: file.logDates,
+              error:
+                "This log file has different content from the logs already stored and cannot be added.",
+            })),
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     let insertedSessions = 0;
     let skippedDuplicateSessions = 0;
     let insertedMessages = 0;
-    const assignmentsUsed = new Map<string, string>();
+    const assignmentsUsed = new Set<number>();
 
     runInTransaction(() => {
       const courseId = upsertCourse(
@@ -551,32 +619,21 @@ export async function POST(req: NextRequest) {
         preparedUploads[0]?.parsed.generatedAt ?? undefined
       );
 
-      const assignmentIdCache = new Map<string, number>();
-
       for (const preparedFile of preparedUploads) {
-        const assignmentKey = [
+        const assignmentId = upsertAssignment(
+          courseId,
           preparedFile.resolvedAssignmentName,
+          undefined,
           preparedFile.resolvedStartDate,
-          preparedFile.resolvedEndDate,
-        ].join("__");
+          preparedFile.resolvedEndDate
+        );
 
-        let assignmentId = assignmentIdCache.get(assignmentKey);
+        assignmentsUsed.add(assignmentId);
 
-        if (!assignmentId) {
-          assignmentId = upsertAssignment(
-            courseId,
-            preparedFile.resolvedAssignmentName,
-            undefined,
-            preparedFile.resolvedStartDate,
-            preparedFile.resolvedEndDate
-          );
-
-          assignmentIdCache.set(assignmentKey, assignmentId);
-          assignmentsUsed.set(
-            assignmentKey,
-            preparedFile.resolvedAssignmentName
-          );
-        }
+        const stableSourceFile = buildStableSourceFile(
+          preparedFile.fileName,
+          preparedFile.fileFingerprint
+        );
 
         for (const session of preparedFile.parsed.sessions) {
           const rawEmail = session.studentEmail?.trim();
@@ -603,7 +660,7 @@ export async function POST(req: NextRequest) {
           const importKey = buildSessionImportKey({
             studentAnonymousId: anonymizeId(rawEmail),
             assignmentId,
-            sourceFile: preparedFile.fileName,
+            sourceFile: stableSourceFile,
             startedAt,
             endedAt,
             firstMessage,
@@ -614,7 +671,7 @@ export async function POST(req: NextRequest) {
             studentId,
             assignmentId,
             importKey,
-            sourceFile: preparedFile.fileName,
+            sourceFile: stableSourceFile,
             startedAt,
             endedAt,
           });

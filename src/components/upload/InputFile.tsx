@@ -441,6 +441,11 @@ export function InputFile() {
         fileInputRef.current.value = "";
       }
 
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("logs-uploaded-at", String(Date.now()));
+        window.dispatchEvent(new Event("logs-uploaded"));
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
