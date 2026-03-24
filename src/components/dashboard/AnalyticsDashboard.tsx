@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import ChatDuration from "./ChatDuration";
-import UniqueUsersCard from "./UniqueUsersCard";
 import { Message } from "@/types";
 import { WordCloudCard } from "./WordCloud";
 import TopQuestionCard from "./TopQuestionCard";
@@ -18,7 +17,6 @@ import MessagesPerConversation from "./MessagesPerConversation";
 import TrafficPerDayCard from "./TrafficPerDayCard";
 import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
 import MessagesPerAssignmentCard from "./MessagesPerAssignmentCard";
-
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -83,9 +81,7 @@ const AnalyticsDashboard = () => {
       </section>
 
       <section className="grid grid-cols-1 gap-6">
-        <UniqueUsersCard messages={messages} />
         <UniqueStudentTotalMsgCard messages={messages} />
-        <WorkedDatesDueDateCard />
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">

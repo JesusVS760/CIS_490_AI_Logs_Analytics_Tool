@@ -1,3 +1,4 @@
+import { useAiAnalytics } from "@/app/dashboard/page";
 import { countTracker } from "@/lib/countTracker";
 import { randomColor } from "@/lib/utils";
 import { Message } from "@/types";
