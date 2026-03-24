@@ -17,6 +17,8 @@ import WorkedDatesDueDateCard from "./WorkedDatesDueDateCard";
 import MessagesPerConversation from "./MessagesPerConversation";
 import TrafficPerDayCard from "./TrafficPerDayCard";
 import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
+import MessagesPerAssignmentCard from "./MessagesPerAssignmentCard";
+
 
 const AnalyticsDashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
