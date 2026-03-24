@@ -33,3 +33,5 @@ export type Session = {
   createdAt: string;
   messages: { role: string; timestamp: string; content?: string }[];
 };
+
+type wordCloud = Record<string, number>;

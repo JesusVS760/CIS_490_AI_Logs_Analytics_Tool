@@ -1,18 +1,14 @@
 import llmService from "@/services/llm-service";
 import { NextRequest, NextResponse } from "next/server";
 
-const systemPrompt = ``;
-
+const systemPrompt = "";
 export async function POST(req: NextRequest) {
   try {
-    console.log("chat duration req:", req);
-    const body = await req.json();
-    const chatDurationAnalytics = llmService.generateAnalytics(
-      JSON.stringify(body),
-      systemPrompt
-    );
+    const messages = await req.json();
+    const wordCloudAnalytics: Record<string, number> =
+      llmService.generateAnalytics(messages, systemPrompt);
 
-    return NextResponse.json(chatDurationAnalytics);
+    return NextResponse.json(wordCloudAnalytics);
   } catch (error) {
     return NextResponse.json(
       { error: "failed to fetch chat duration llm" },

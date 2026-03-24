@@ -45,7 +45,7 @@ export function InputFile() {
   const [endDateError, setEndDateError] = useState("");
   const [isChecked, setIsChecked] = useState<boolean>(false);
 
-  const { isAiAccepted, setIsAiAccepted } = useAiAnalytics();
+  const { setIsAiAccepted } = useAiAnalytics();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
@@ -320,7 +320,7 @@ export function InputFile() {
         </Field>
 
         <div className="flex flex-row items-center gap-2">
-          <Switch onChange={() => setIsChecked(!isChecked)} />
+          <Switch onChange={() => setIsAiAccepted(!isChecked)} />
           <span>Opt in for Ai Analyzer</span>
         </div>
 

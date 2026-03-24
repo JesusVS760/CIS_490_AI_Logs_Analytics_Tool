@@ -1,6 +1,8 @@
+import { useAiAnalytics } from "@/app/dashboard/page";
 import { countTracker } from "@/lib/countTracker";
 import { randomColor } from "@/lib/utils";
 import { Message } from "@/types";
+import axios from "axios";
 import { Bold, Bubbles, Text } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -11,8 +13,21 @@ type WordCloudCardProps = {
 export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
   const [words, setWords] = useState<{ text: string; value: number }[]>([]);
 
+  const { isAiAccepted } = useAiAnalytics();
+
   useEffect(() => {
-    const frequencies = countTracker(messages);
+    let frequencies: Record<string, number> = { "": 0 };
+
+    if (isAiAccepted) {
+      frequencies = countTracker(messages);
+    } else {
+      try {
+        frequencies = axios.post("./api/analytics/chat-duration", messages);
+      } catch (error) {
+        console.log("error: ", error);
+      }
+    }
+
     console.log(frequencies);
     const wordArray = Object.entries(frequencies)
       .map(([text, value]) => ({ text, value }))

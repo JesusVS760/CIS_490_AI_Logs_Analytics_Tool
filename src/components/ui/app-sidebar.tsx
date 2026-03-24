@@ -21,11 +21,13 @@ import {
   Settings,
   LogOut,
   CircleUserIcon,
+  Book,
 } from "lucide-react";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
   { title: "Upload", icon: Upload, href: "/upload" },
+  { title: "Assignment", icon: Book, href: "/assignments" },
   { title: "Settings", icon: Settings, href: "/settings" },
   { title: "Logout", icon: LogOut, href: "/logout" },
 ];
@@ -75,7 +77,8 @@ export function AppSidebar() {
             res.data?.username ||
             res.data?.user?.email ||
             "User",
-          profilePic: res.data?.user?.profilePic ?? res.data?.profilePic ?? null,
+          profilePic:
+            res.data?.user?.profilePic ?? res.data?.profilePic ?? null,
         };
 
         setNameUser(nextUser.nameUser);
