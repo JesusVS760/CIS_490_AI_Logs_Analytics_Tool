@@ -4,7 +4,7 @@
 //startDate and endDate from the upload form and API.
 
 
-import db, {
+import {
   anonymizeId,
   buildSessionImportKey,
   createCodeSnapshot,
@@ -266,25 +266,6 @@ function findMatchingFileConfig(
   );
 }
 
-function getExistingStableSourceFiles(): Set<string> {
-  const rows = db
-    .prepare(
-      `
-      SELECT DISTINCT source_file
-      FROM sessions
-      WHERE source_file IS NOT NULL
-        AND TRIM(source_file) <> ''
-      `
-    )
-    .all() as Array<{ source_file?: string | null }>;
-
-  return new Set(
-    rows
-      .map((row) => row.source_file?.trim() || "")
-      .filter((value) => Boolean(value))
-  );
-}
-
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -324,6 +305,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const sharedNormalizedStartDate = uploadedStartDate
+      ? toDateOnly(uploadedStartDate)
+      : "";
+    const sharedNormalizedEndDate = sharedEndDate
+      ? toDateOnly(sharedEndDate)
+      : "";
 
     const preparedUploads: PreparedUpload[] = [];
     const fileErrors: FileValidationError[] = [];
@@ -392,8 +380,8 @@ export async function POST(req: NextRequest) {
       const logDerivedAssignmentName = getAssignmentNameFromLogs(raw).trim();
 
       const resolvedAssignmentName =
-        fileConfig?.assignmentName ||
         uploadedAssignmentName ||
+        fileConfig?.assignmentName ||
         firstParsedAssignmentName ||
         logDerivedAssignmentName ||
         getFileBaseName(file.name);
@@ -404,6 +392,13 @@ export async function POST(req: NextRequest) {
           : logDerivedEndDate
             ? [logDerivedEndDate]
             : [];
+
+      const configNormalizedStartDate = fileConfig?.startDate
+        ? toDateOnly(fileConfig.startDate)
+        : "";
+      const configNormalizedEndDate = fileConfig?.endDate
+        ? toDateOnly(fileConfig.endDate)
+        : "";
 
       if (detectDatesOnly) {
         preparedUploads.push({
@@ -417,34 +412,39 @@ export async function POST(req: NextRequest) {
           logDerivedEndDate,
           logDerivedAssignmentName,
           resolvedAssignmentName,
-          resolvedStartDate: uploadedStartDate || logDerivedStartDate,
-          resolvedEndDate: logDerivedEndDate,
+          resolvedStartDate:
+            sharedNormalizedStartDate ||
+            configNormalizedStartDate ||
+            logDerivedStartDate,
+          resolvedEndDate:
+            sharedNormalizedEndDate ||
+            configNormalizedEndDate ||
+            logDerivedEndDate,
         });
         continue;
       }
 
-      const enteredEndDate =
-        fileConfig?.endDate || sharedEndDate || logDerivedEndDate;
+      const normalizedEnteredEndDate =
+        sharedNormalizedEndDate ||
+        configNormalizedEndDate ||
+        logDerivedEndDate;
 
-      if (enteredEndDate && !isValidDateString(enteredEndDate)) {
+      if (!normalizedEnteredEndDate) {
         fileErrors.push({
           uploadId,
           fileName: file.name,
+          expectedEndDate: logDerivedEndDate,
+          expectedEndDates,
+          logDates,
           error: "Please enter a valid assignment end date for this file.",
         });
         continue;
       }
 
-      const normalizedEnteredEndDate = enteredEndDate
-        ? toDateOnly(enteredEndDate)
-        : logDerivedEndDate;
-
       const isAllowedEndDate =
-        !normalizedEnteredEndDate
-          ? false
-          : logDates.length > 0
-            ? expectedEndDates.includes(normalizedEnteredEndDate)
-            : normalizedEnteredEndDate === logDerivedEndDate;
+        logDates.length > 0
+          ? expectedEndDates.includes(normalizedEnteredEndDate)
+          : normalizedEnteredEndDate === logDerivedEndDate;
 
       if (!isAllowedEndDate) {
         fileErrors.push({
@@ -461,10 +461,12 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const resolvedStartDate =
-        fileConfig?.startDate || uploadedStartDate || logDerivedStartDate;
+      const normalizedStartDate =
+        sharedNormalizedStartDate ||
+        configNormalizedStartDate ||
+        logDerivedStartDate;
 
-      if (!resolvedStartDate) {
+      if (!normalizedStartDate) {
         fileErrors.push({
           uploadId,
           fileName: file.name,
@@ -477,26 +479,12 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      if (!isValidDateString(resolvedStartDate)) {
+      if (!isValidDateString(normalizedStartDate)) {
         fileErrors.push({
           uploadId,
           fileName: file.name,
           error:
-            fileConfig?.startDate || uploadedStartDate
-              ? "Please enter a valid assignment start date."
-              : "The uploaded log contains an invalid start date. Please enter a start date manually.",
-        });
-        continue;
-      }
-
-      const normalizedStartDate = toDateOnly(resolvedStartDate);
-
-      if (!normalizedStartDate) {
-        fileErrors.push({
-          uploadId,
-          fileName: file.name,
-          error:
-            fileConfig?.startDate || uploadedStartDate
+            sharedNormalizedStartDate || configNormalizedStartDate
               ? "Please enter a valid assignment start date."
               : "The uploaded log contains an invalid start date. Please enter a start date manually.",
         });
@@ -511,7 +499,7 @@ export async function POST(req: NextRequest) {
           expectedEndDates,
           logDates,
           error:
-            fileConfig?.startDate || uploadedStartDate
+            sharedNormalizedStartDate || configNormalizedStartDate
               ? "End date must be after the start date."
               : `The end date is earlier than the start date found in the uploaded log (${normalizedStartDate}). Please choose a later end date or enter a start date manually.`,
         });
@@ -572,42 +560,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existingStableSourceFiles = getExistingStableSourceFiles();
-
-    if (existingStableSourceFiles.size > 0) {
-      const disallowedFiles = preparedUploads.filter((file) => {
-        const stableSourceFile = buildStableSourceFile(
-          file.fileName,
-          file.fileFingerprint
-        );
-
-        return !existingStableSourceFiles.has(stableSourceFile);
-      });
-
-      if (disallowedFiles.length > 0) {
-        return NextResponse.json(
-          {
-            error:
-              "New log files with different content are not allowed after the first import.",
-            fileErrors: disallowedFiles.map((file) => ({
-              uploadId: file.uploadId,
-              fileName: file.fileName,
-              expectedEndDate: file.logDerivedEndDate,
-              expectedEndDates: file.logDates.length
-                ? file.logDates
-                : file.logDerivedEndDate
-                  ? [file.logDerivedEndDate]
-                  : [],
-              logDates: file.logDates,
-              error:
-                "This log file has different content from the logs already stored and cannot be added.",
-            })),
-          },
-          { status: 409 }
-        );
-      }
-    }
-
     let insertedSessions = 0;
     let skippedDuplicateSessions = 0;
     let insertedMessages = 0;
@@ -650,8 +602,9 @@ export async function POST(req: NextRequest) {
 
           const startedAt = normalizedMessageTimestamps[0] ?? null;
           const endedAt =
-            normalizedMessageTimestamps[normalizedMessageTimestamps.length - 1] ??
-            null;
+            normalizedMessageTimestamps[
+              normalizedMessageTimestamps.length - 1
+            ] ?? null;
 
           const firstMessage = session.messages[0]?.content ?? "";
           const lastMessage =

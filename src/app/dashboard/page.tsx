@@ -1,42 +1,123 @@
 "use client";
+
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
 import axios from "axios";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-export const AiAnalyticsContext = createContext<any>({
+type AiAnalyticsContextType = {
+  isAiAccepted: boolean;
+  setIsAiAccepted: (value: boolean) => void;
+  pendingUploadSuccess: boolean;
+  setPendingUploadSuccess: (value: boolean) => void;
+  refreshAnalyticsData: () => Promise<void>;
+  sessions: any[];
+  messages: any[];
+  hasSessions: boolean;
+  loadingAnalytics: boolean;
+};
+
+export const AiAnalyticsContext = createContext<AiAnalyticsContextType>({
   isAiAccepted: false,
   setIsAiAccepted: () => {},
+  pendingUploadSuccess: false,
+  setPendingUploadSuccess: () => {},
+  refreshAnalyticsData: async () => {},
+  sessions: [],
+  messages: [],
+  hasSessions: false,
+  loadingAnalytics: true,
 });
+
 export const useAiAnalytics = () => useContext(AiAnalyticsContext);
 
 export default function DashboardPage() {
-  const [hasSessions, setHasSessions] = useState<boolean | null>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [isAiAccepted, setIsAiAccepted] = useState<boolean>(false);
+  const [pendingUploadSuccess, setPendingUploadSuccess] =
+    useState<boolean>(false);
 
-  useEffect(() => {
-    const checkUploadData = async () => {
-      try {
-        const response = await axios.get("/api/sessions");
-        const sessions = response.data;
+  const refreshAnalyticsData = useCallback(async () => {
+    try {
+      setLoadingAnalytics(true);
 
-        if (sessions && sessions.length > 0) {
-          setHasSessions(true);
-        } else {
-          setHasSessions(false);
-        }
-      } catch (error) {
-        console.error("failed to fetch", error);
-        setHasSessions(false);
-      }
-    };
-    checkUploadData();
+      const [sessionsResponse, messagesResponse] = await Promise.all([
+        axios.get("/api/sessions", {
+          withCredentials: true,
+          params: { t: Date.now() },
+        }),
+        axios.get("/api/messages", {
+          withCredentials: true,
+          params: { t: Date.now() },
+        }),
+      ]);
+
+      const nextSessions = Array.isArray(sessionsResponse.data)
+        ? sessionsResponse.data
+        : [];
+      const nextMessages = Array.isArray(messagesResponse.data)
+        ? messagesResponse.data
+        : [];
+
+      setSessions(nextSessions);
+      setMessages(nextMessages);
+    } catch (error) {
+      console.error("failed to refresh analytics data", error);
+      setSessions([]);
+      setMessages([]);
+    } finally {
+      setLoadingAnalytics(false);
+    }
   }, []);
 
+  useEffect(() => {
+    refreshAnalyticsData();
+  }, [refreshAnalyticsData]);
+
+  const hasSessions = sessions.length > 0;
+
+  const contextValue = useMemo(
+    () => ({
+      isAiAccepted,
+      setIsAiAccepted,
+      pendingUploadSuccess,
+      setPendingUploadSuccess,
+      refreshAnalyticsData,
+      sessions,
+      messages,
+      hasSessions,
+      loadingAnalytics,
+    }),
+    [
+      isAiAccepted,
+      pendingUploadSuccess,
+      refreshAnalyticsData,
+      sessions,
+      messages,
+      hasSessions,
+      loadingAnalytics,
+    ]
+  );
+
   return (
-    <AiAnalyticsContext.Provider value={{ isAiAccepted, setIsAiAccepted }}>
+    <AiAnalyticsContext.Provider value={contextValue}>
       <div>
-        {hasSessions ? (
+        {loadingAnalytics ? (
+          <div className="flex justify-center items-center min-h-screen">
+            <div className="text-sm text-muted-foreground">
+              Loading dashboard...
+            </div>
+          </div>
+        ) : hasSessions ? (
           <AnalyticsDashboard />
         ) : (
           <div className="flex justify-center items-center min-h-screen">

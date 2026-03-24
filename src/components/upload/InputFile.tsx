@@ -10,7 +10,7 @@
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -20,12 +20,39 @@ import { Switch } from "../ui/switch";
 const ACCEPTED_TYPES = ["text/plain", "application/pdf"];
 const ACCEPTED_EXTENSIONS = [".txt", ".pdf"];
 
+type FileValidationError = {
+  uploadId?: string;
+  fileName?: string;
+  expectedEndDate?: string;
+  expectedEndDates?: string[];
+  logDates?: string[];
+  error?: string;
+};
+
 type UploadResponse = {
   success?: boolean;
   filesProcessed?: number;
   expectedEndDate?: string;
   error?: string;
+  fileErrors?: FileValidationError[];
+  aiAnalyzerOptIn?: boolean;
+  files?: Array<{
+    uploadId?: string;
+    fileName?: string;
+    detectedEndDate?: string;
+    suggestedEndDates?: string[];
+    detectedStartDate?: string;
+    assignmentName?: string;
+    startDate?: string;
+    endDate?: string;
+  }>;
 };
+
+type AnalyticsBridge = Partial<{
+  setIsAiAccepted: (value: boolean) => void;
+  refreshAnalyticsData: () => Promise<void>;
+  setPendingUploadSuccess: (value: boolean) => void;
+}>;
 
 function isAcceptedFile(file: File) {
   const fileName = file.name.toLowerCase();
@@ -33,6 +60,10 @@ function isAcceptedFile(file: File) {
     ACCEPTED_TYPES.includes(file.type) ||
     ACCEPTED_EXTENSIONS.some((ext) => fileName.endsWith(ext))
   );
+}
+
+function uniqueStrings(values: Array<string | undefined | null>) {
+  return Array.from(new Set(values.filter(Boolean) as string[]));
 }
 
 export function InputFile() {
@@ -43,10 +74,9 @@ export function InputFile() {
   const [endDate, setEndDate] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [endDateError, setEndDateError] = useState("");
-  const [isChecked, setIsChecked] = useState<boolean>(false);
+  const [isChecked, setIsChecked] = useState(false);
 
-  const { setIsAiAccepted } = useAiAnalytics();
-
+  const analytics = useAiAnalytics() as AnalyticsBridge;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
@@ -65,6 +95,10 @@ export function InputFile() {
     checkAuth();
   }, [router]);
 
+  const selectedFileCountLabel = useMemo(() => {
+    return `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} selected`;
+  }, [selectedFiles]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
@@ -72,7 +106,7 @@ export function InputFile() {
 
     const invalidFile = files.find((file) => !isAcceptedFile(file));
     if (invalidFile) {
-      toast.error("Only TXT and PDF files are allowed");
+      toast.error("Only TXT and PDF files are allowed.");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -107,24 +141,87 @@ export function InputFile() {
     );
   };
 
+  const resetForm = () => {
+    setAssignmentName("");
+    setStartDate("");
+    setEndDate("");
+    setEndDateError("");
+    setSelectedFiles([]);
+    setIsChecked(false);
+    analytics.setIsAiAccepted?.(false);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const buildFileErrorMessage = (fileErrors: FileValidationError[]) => {
+    const lines = fileErrors.map((fileError) => {
+      const fileName = fileError.fileName || "A file";
+      const expectedDate = fileError.expectedEndDate;
+      const expectedDates = fileError.expectedEndDates?.filter(Boolean) || [];
+      const logDates = fileError.logDates?.filter(Boolean) || [];
+
+      if (fileError.error) {
+        return `${fileName}: ${fileError.error}`;
+      }
+
+      if (expectedDates.length > 1) {
+        return `${fileName}: expected one of ${expectedDates.join(", ")}.`;
+      }
+
+      if (expectedDate) {
+        return `${fileName}: expected end date ${expectedDate}.`;
+      }
+
+      if (logDates.length > 1) {
+        return `${fileName}: detected multiple log dates (${logDates.join(
+          ", "
+        )}).`;
+      }
+
+      return `${fileName}: invalid log date data.`;
+    });
+
+    return lines.join(" ");
+  };
+
+  const tryAutofillEndDateFromErrors = (fileErrors: FileValidationError[]) => {
+    const singleExpectedDates = uniqueStrings([
+      ...fileErrors.map((fileError) => fileError.expectedEndDate),
+      ...fileErrors.flatMap((fileError) => fileError.expectedEndDates || []),
+    ]);
+
+    if (singleExpectedDates.length === 1) {
+      const suggestedDate = singleExpectedDates[0];
+      setEndDate(suggestedDate);
+      return suggestedDate;
+    }
+
+    return "";
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (loading) return;
+
     setEndDateError("");
 
     if (selectedFiles.length === 0) {
-      toast.error("At least one file is required");
+      toast.error("At least one file is required.");
       return;
     }
 
     if (!endDate) {
-      setEndDateError("Assignment end date is required");
-      toast.error("Assignment end date is required");
+      setEndDateError("Assignment end date is required.");
+      toast.error("Assignment end date is required.");
       return;
     }
 
     if (startDate && new Date(startDate) > new Date(endDate)) {
-      setEndDateError("End date must be after the start date");
-      toast.error("End date must be after the start date");
+      setEndDateError("End date must be after the start date.");
+      toast.error("End date must be after the start date.");
       return;
     }
 
@@ -146,69 +243,81 @@ export function InputFile() {
       }
 
       formData.append("endDate", endDate);
+      formData.append("aiAnalyzerOptIn", String(isChecked));
 
-      const response = await axios.post("/api/upload", formData, {
+      const response = await axios.post<UploadResponse>("/api/upload", formData, {
         withCredentials: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
-      const responseData = response.data as UploadResponse;
-      const filesProcessed = responseData.filesProcessed;
+      const responseData = response.data;
+      const filesProcessed = responseData.filesProcessed ?? selectedFiles.length;
 
-      toast.success(
-        filesProcessed
-          ? `${filesProcessed} log${
-              filesProcessed === 1 ? "" : "s"
-            } uploaded successfully ✅`
-          : "Successful Upload ✅"
-      );
+      analytics.setIsAiAccepted?.(isChecked);
+      analytics.setPendingUploadSuccess?.(true);
 
-      setAssignmentName("");
-      setStartDate("");
-      setEndDate("");
-      setEndDateError("");
-      setSelectedFiles([]);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (analytics.refreshAnalyticsData) {
+        await analytics.refreshAnalyticsData();
       }
 
-      router.push("/dashboard");
+      toast.success(
+        `${filesProcessed} log${filesProcessed === 1 ? "" : "s"} uploaded successfully ✅`
+      );
+
+      resetForm();
+
+      router.replace(`/dashboard?refresh=${Date.now()}`);
+      router.refresh();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
         const responseData = err.response?.data as UploadResponse | undefined;
-
-        const backendMessage =
-          typeof responseData?.error === "string" ? responseData.error : null;
-
-        const expectedEndDate =
-          typeof responseData?.expectedEndDate === "string"
-            ? responseData.expectedEndDate
-            : null;
 
         if (status === 401) {
           router.replace("/login?redirect=/upload");
           return;
         }
 
-        if (expectedEndDate) {
-          const message = `Incorrect end date. Please enter ${expectedEndDate}.`;
-          setEndDate("");
+        if (responseData?.fileErrors?.length) {
+          const suggestedDate = tryAutofillEndDateFromErrors(
+            responseData.fileErrors
+          );
+          const combinedMessage = buildFileErrorMessage(responseData.fileErrors);
+
+          if (suggestedDate) {
+            const message = `${combinedMessage} Suggested date applied: ${suggestedDate}.`;
+            setEndDateError(message);
+            toast.error(message);
+            return;
+          }
+
+          setEndDateError(combinedMessage);
+          toast.error(combinedMessage);
+          return;
+        }
+
+        if (responseData?.expectedEndDate) {
+          const suggestedDate = responseData.expectedEndDate;
+          const message = `Incorrect end date. Suggested date: ${suggestedDate}.`;
+
+          setEndDate(suggestedDate);
           setEndDateError(message);
           toast.error(message);
           return;
         }
 
-        if (backendMessage) {
-          if (backendMessage.toLowerCase().includes("end date")) {
-            setEndDateError(backendMessage);
+        if (responseData?.error) {
+          if (responseData.error.toLowerCase().includes("end date")) {
+            setEndDateError(responseData.error);
           }
-          toast.error(backendMessage);
+          toast.error(responseData.error);
           return;
         }
       }
 
-      toast.error("Upload failed");
+      toast.error("Upload failed.");
     } finally {
       setLoading(false);
     }
@@ -273,6 +382,10 @@ export function InputFile() {
               {endDateError}
             </FieldDescription>
           )}
+          <FieldDescription>
+            If you upload files from different assignments with different real
+            due dates in one batch, upload those separately.
+          </FieldDescription>
         </Field>
 
         <Field>
@@ -293,10 +406,7 @@ export function InputFile() {
 
           {selectedFiles.length > 0 && (
             <div className="mt-2 rounded-xl border p-3 text-sm">
-              <p className="font-medium">
-                {selectedFiles.length} file
-                {selectedFiles.length === 1 ? "" : "s"} selected
-              </p>
+              <p className="font-medium">{selectedFileCountLabel}</p>
 
               <ul className="mt-2 space-y-2 text-muted-foreground">
                 {selectedFiles.map((file, index) => (
@@ -320,8 +430,14 @@ export function InputFile() {
         </Field>
 
         <div className="flex flex-row items-center gap-2">
-          <Switch onChange={() => setIsAiAccepted(!isChecked)} />
-          <span>Opt in for Ai Analyzer</span>
+          <Switch
+            checked={isChecked}
+            onCheckedChange={(checked) => {
+              setIsChecked(checked);
+              analytics.setIsAiAccepted?.(checked);
+            }}
+          />
+          <span>Opt in for AI Analyzer</span>
         </div>
 
         <Button

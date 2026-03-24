@@ -4,63 +4,45 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import axios from "axios";
 import ChatDuration from "./ChatDuration";
-import { Message } from "@/types";
 import { WordCloudCard } from "./WordCloud";
 import TopQuestionCard from "./TopQuestionCard";
 import TodaysTrafficCard from "./TodaysTrafficCard";
 import TimeOfDayCard from "./TimeOfDayCard";
-import WorkedDatesDueDateCard from "./WorkedDatesDueDateCard";
 import MessagesPerConversation from "./MessagesPerConversation";
 import TrafficPerDayCard from "./TrafficPerDayCard";
 import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
-import MessagesPerAssignmentCard from "./MessagesPerAssignmentCard";
+import { useAiAnalytics } from "@/app/dashboard/page";
 
 const AnalyticsDashboard = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { messages, loadingAnalytics, pendingUploadSuccess, hasSessions } =
+    useAiAnalytics();
 
-  const fetchMessages = useCallback(async () => {
-    try {
-      const res = await axios.get("/api/messages", {
-        params: {
-          t: Date.now(),
-        },
-      });
+  if (loadingAnalytics) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="text-sm text-muted-foreground">
+          Loading analytics...
+        </div>
+      </div>
+    );
+  }
 
-      setMessages(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error("Failed to fetch messages:", err);
-      setMessages([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages, refreshKey]);
-
-  useEffect(() => {
-    const handleLogsUploaded = () => {
-      setRefreshKey((prev) => prev + 1);
-    };
-
-    window.addEventListener("logs-uploaded", handleLogsUploaded);
-
-    const uploadedAt = sessionStorage.getItem("logs-uploaded-at");
-    if (uploadedAt) {
-      setRefreshKey((prev) => prev + 1);
-      sessionStorage.removeItem("logs-uploaded-at");
-    }
-
-    return () => {
-      window.removeEventListener("logs-uploaded", handleLogsUploaded);
-    };
-  }, []);
+  if (!hasSessions) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="text-sm text-muted-foreground">
+          No uploaded session data found yet.
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div key={refreshKey} className="w-full space-y-8 px-4 py-6">
+    <div
+      key={pendingUploadSuccess ? "uploaded" : "default"}
+      className="w-full space-y-8 px-4 py-6"
+    >
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         <div className="flex flex-col gap-3">
           <TopQuestionCard messages={messages} />
