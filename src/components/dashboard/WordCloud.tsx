@@ -12,28 +12,28 @@ type WordCloudCardProps = {
 export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
   const [words, setWords] = useState<{ text: string; value: number }[]>([]);
 
-  const { isAiAccepted } = useAiAnalytics();
+  // const { isAiAccepted } = useAiAnalytics();
 
-  useEffect(() => {
-    let frequencies: Record<string, number> = { "": 0 };
+  // useEffect(() => {
+  //   let frequencies: Record<string, number> = { "": 0 };
 
-    if (isAiAccepted) {
-      frequencies = countTracker(messages);
-    } else {
-      try {
-        frequencies = axios.post("./api/analytics/chat-duration", messages);
-      } catch (error) {
-        console.log("error: ", error);
-      }
-    }
+  //   if (isAiAccepted) {
+  //     frequencies = countTracker(messages);
+  //   } else {
+  //     try {
+  //       frequencies = axios.post("./api/analytics/chat-duration", messages);
+  //     } catch (error) {
+  //       console.log("error: ", error);
+  //     }
+  //   }
 
-    console.log(frequencies);
-    const wordArray = Object.entries(frequencies)
-      .map(([text, value]) => ({ text, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 12);
-    setWords(wordArray);
-  }, [messages]);
+  //   console.log(frequencies);
+  //   const wordArray = Object.entries(frequencies)
+  //     .map(([text, value]) => ({ text, value }))
+  //     .sort((a, b) => b.value - a.value)
+  //     .slice(0, 12);
+  //   setWords(wordArray);
+  // }, [messages]);
 
   const maxCount = Math.max(...words.map((w) => w.value), 1);
 
