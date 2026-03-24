@@ -68,6 +68,10 @@ function toDateOnly(value?: string | null): string | null {
   return date.toISOString().slice(0, 10);
 }
 
+function normalizeDateOnly(value?: string | null): string | null {
+  return toDateOnly(value);
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS instructors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -194,8 +198,18 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_name_unique
   ON courses(name);
 
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_course_name_unique
+  DROP INDEX IF EXISTS idx_assignments_course_name_unique;
+
+  CREATE INDEX IF NOT EXISTS idx_assignments_course_name_lookup
   ON assignments(course_id, name);
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_course_name_dates_unique
+  ON assignments(
+    course_id,
+    name,
+    COALESCE(start_date, ''),
+    COALESCE(due_date, '')
+  );
 
   CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_import_key_unique
   ON sessions(import_key);
@@ -272,28 +286,58 @@ export function upsertAssignment(
   startDate?: string,
   dueDate?: string
 ): number {
-  db.prepare(
-    `
-    INSERT INTO assignments (course_id, name, description, start_date, due_date)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(course_id, name) DO UPDATE SET
-      description = COALESCE(excluded.description, assignments.description),
-      start_date = COALESCE(excluded.start_date, assignments.start_date),
-      due_date = COALESCE(excluded.due_date, assignments.due_date)
-    `
-  ).run(
-    courseId,
-    name,
-    description ?? null,
-    startDate ?? null,
-    dueDate ?? null
-  );
+  const normalizedStartDate = normalizeDateOnly(startDate);
+  const normalizedDueDate = normalizeDateOnly(dueDate);
 
-  const row = db
-    .prepare("SELECT id FROM assignments WHERE course_id = ? AND name = ?")
-    .get(courseId, name) as { id: number };
+  const existing = db
+    .prepare(
+      `
+      SELECT id
+      FROM assignments
+      WHERE course_id = ?
+        AND name = ?
+        AND COALESCE(start_date, '') = COALESCE(?, '')
+        AND COALESCE(due_date, '') = COALESCE(?, '')
+      LIMIT 1
+      `
+    )
+    .get(
+      courseId,
+      name,
+      normalizedStartDate ?? null,
+      normalizedDueDate ?? null
+    ) as { id: number } | undefined;
 
-  return row.id;
+  if (existing) {
+    if (description && description.trim()) {
+      db.prepare(
+        `
+        UPDATE assignments
+        SET description = COALESCE(?, description)
+        WHERE id = ?
+        `
+      ).run(description.trim(), existing.id);
+    }
+
+    return existing.id;
+  }
+
+  const result = db
+    .prepare(
+      `
+      INSERT INTO assignments (course_id, name, description, start_date, due_date)
+      VALUES (?, ?, ?, ?, ?)
+      `
+    )
+    .run(
+      courseId,
+      name,
+      description?.trim() || null,
+      normalizedStartDate,
+      normalizedDueDate
+    );
+
+  return result.lastInsertRowid as number;
 }
 
 export function createOrGetSession(params: {
@@ -387,22 +431,33 @@ export const runInTransaction = db.transaction((fn: () => void) => {
 export function getAllSessions(): (Session & {
   messages: any[];
   workedDates: string[];
+  assignmentName?: string | null;
+  assignmentStartDate?: string | null;
+  assignmentDueDate?: string | null;
 })[] {
   const sessions = db
     .prepare(
       `
       SELECT
-        id,
-        student_id AS studentId,
-        assignment_id AS assignmentId,
-        started_at AS startedAt,
-        ended_at AS endedAt,
-        created_at AS createdAt
-      FROM sessions
-      ORDER BY COALESCE(started_at, created_at) ASC, id ASC
+        s.id,
+        s.student_id AS studentId,
+        s.assignment_id AS assignmentId,
+        s.started_at AS startedAt,
+        s.ended_at AS endedAt,
+        s.created_at AS createdAt,
+        a.name AS assignmentName,
+        a.start_date AS assignmentStartDate,
+        a.due_date AS assignmentDueDate
+      FROM sessions s
+      LEFT JOIN assignments a ON s.assignment_id = a.id
+      ORDER BY COALESCE(s.started_at, s.created_at) ASC, s.id ASC
       `
     )
-    .all() as Session[];
+    .all() as (Session & {
+    assignmentName?: string | null;
+    assignmentStartDate?: string | null;
+    assignmentDueDate?: string | null;
+  })[];
 
   return sessions.map((session) => {
     const messages = db
@@ -449,7 +504,9 @@ export function getAllMessages() {
         s.student_id AS studentId,
         s.assignment_id AS assignmentId,
         st.anonymous_id AS studentAnonymousId,
-        a.name AS assignmentName
+        a.name AS assignmentName,
+        a.start_date AS assignmentStartDate,
+        a.due_date AS assignmentDueDate
       FROM messages m
       JOIN sessions s ON m.session_id = s.id
       JOIN students st ON s.student_id = st.id
@@ -478,7 +535,7 @@ export function getAllAssignments() {
         due_date AS dueDate,
         created_at AS createdAt
       FROM assignments
-      ORDER BY created_at DESC
+      ORDER BY created_at DESC, id DESC
       `
     )
     .all();

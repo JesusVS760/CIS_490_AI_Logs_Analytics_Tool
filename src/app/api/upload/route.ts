@@ -4,7 +4,7 @@
 //startDate and endDate from the upload form and API.
 
 
-import {
+import db, {
   anonymizeId,
   buildSessionImportKey,
   createCodeSnapshot,
@@ -19,6 +19,41 @@ import {
 import { parseTranscript } from "@/lib/parseTranscript";
 import { NextRequest, NextResponse } from "next/server";
 import { extractText as extractPdfText } from "unpdf";
+import { createHash } from "crypto";
+
+type ParsedTranscript = ReturnType<typeof parseTranscript>;
+
+type FileConfig = {
+  uploadId?: string;
+  fileName?: string;
+  assignmentName?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+type PreparedUpload = {
+  uploadId: string;
+  fileName: string;
+  fileFingerprint: string;
+  raw: string;
+  parsed: ParsedTranscript;
+  logDates: string[];
+  logDerivedStartDate: string;
+  logDerivedEndDate: string;
+  logDerivedAssignmentName: string;
+  resolvedAssignmentName: string;
+  resolvedStartDate: string;
+  resolvedEndDate: string;
+};
+
+type FileValidationError = {
+  uploadId?: string;
+  fileName?: string;
+  expectedEndDate?: string;
+  expectedEndDates?: string[];
+  logDates?: string[];
+  error?: string;
+};
 
 async function extractText(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -34,6 +69,14 @@ async function extractText(file: File): Promise<string> {
   }
 
   return Buffer.from(buffer).toString("utf-8");
+}
+
+function buildStableFileFingerprint(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex").slice(0, 24);
+}
+
+function buildStableSourceFile(fileName: string, fingerprint: string): string {
+  return `${fileName}__${fingerprint}`;
 }
 
 function parseTranscriptTimestamp(value?: string | null): Date | null {
@@ -163,6 +206,85 @@ function getSortedUniqueLogDates(
   return Array.from(uniqueDates).sort();
 }
 
+function getUploadId(file: File): string {
+  return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
+function parseFileConfigs(formData: FormData): {
+  configs: FileConfig[];
+  error: string | null;
+} {
+  const raw = formData.get("fileConfigs");
+
+  if (typeof raw !== "string" || !raw.trim()) {
+    return { configs: [], error: null };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return {
+        configs: [],
+        error: "Invalid file configuration payload.",
+      };
+    }
+
+    const configs: FileConfig[] = parsed.map((item) => ({
+      uploadId:
+        typeof item?.uploadId === "string" ? item.uploadId.trim() : undefined,
+      fileName:
+        typeof item?.fileName === "string" ? item.fileName.trim() : undefined,
+      assignmentName:
+        typeof item?.assignmentName === "string"
+          ? item.assignmentName.trim()
+          : undefined,
+      startDate:
+        typeof item?.startDate === "string" ? item.startDate.trim() : undefined,
+      endDate:
+        typeof item?.endDate === "string" ? item.endDate.trim() : undefined,
+    }));
+
+    return { configs, error: null };
+  } catch {
+    return {
+      configs: [],
+      error: "Invalid file configuration payload.",
+    };
+  }
+}
+
+function findMatchingFileConfig(
+  file: File,
+  fileConfigs: FileConfig[]
+): FileConfig | undefined {
+  const uploadId = getUploadId(file);
+
+  return (
+    fileConfigs.find((config) => config.uploadId === uploadId) ??
+    fileConfigs.find((config) => config.fileName === file.name)
+  );
+}
+
+function getExistingStableSourceFiles(): Set<string> {
+  const rows = db
+    .prepare(
+      `
+      SELECT DISTINCT source_file
+      FROM sessions
+      WHERE source_file IS NOT NULL
+        AND TRIM(source_file) <> ''
+      `
+    )
+    .all() as Array<{ source_file?: string | null }>;
+
+  return new Set(
+    rows
+      .map((row) => row.source_file?.trim() || "")
+      .filter((value) => Boolean(value))
+  );
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -172,7 +294,12 @@ export async function POST(req: NextRequest) {
       formData.get("assignmentName") ?? ""
     ).trim();
     const uploadedStartDate = String(formData.get("startDate") ?? "").trim();
-    const endDate = String(formData.get("endDate") ?? "").trim();
+    const sharedEndDate = String(formData.get("endDate") ?? "").trim();
+    const detectDatesOnly =
+      String(formData.get("detectDatesOnly") ?? "").trim() === "true";
+
+    const { configs: fileConfigs, error: fileConfigError } =
+      parseFileConfigs(formData);
 
     const FIXED_COURSE_NAME = "CS 101";
 
@@ -180,18 +307,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    if (!endDate) {
-      return NextResponse.json(
-        { error: "Assignment end date is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!isValidDateString(endDate)) {
-      return NextResponse.json(
-        { error: "Please enter a valid assignment end date." },
-        { status: 400 }
-      );
+    if (fileConfigError) {
+      return NextResponse.json({ error: fileConfigError }, { status: 400 });
     }
 
     if (uploadedStartDate && !isValidDateString(uploadedStartDate)) {
@@ -201,27 +318,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const parsedFiles: Array<{
-      fileName: string;
-      raw: string;
-      parsed: ReturnType<typeof parseTranscript>;
-      logDates: string[];
-      logDerivedStartDate: string;
-      logDerivedEndDate: string;
-      logDerivedAssignmentName: string;
-    }> = [];
+    if (sharedEndDate && !isValidDateString(sharedEndDate)) {
+      return NextResponse.json(
+        { error: "Please enter a valid assignment end date." },
+        { status: 400 }
+      );
+    }
+
+    const preparedUploads: PreparedUpload[] = [];
+    const fileErrors: FileValidationError[] = [];
+    let hasParseError = false;
 
     for (const file of files) {
+      const uploadId = getUploadId(file);
+      const fileConfig = findMatchingFileConfig(file, fileConfigs);
+
       const raw = await extractText(file);
       const parsed = parseTranscript(raw);
+      const fileFingerprint = buildStableFileFingerprint(raw);
 
       if (parsed.sessions.length === 0) {
-        return NextResponse.json(
-          {
-            error: `Could not parse transcript in "${file.name}" — check the file format`,
-          },
-          { status: 422 }
-        );
+        hasParseError = true;
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          error: `Could not parse transcript in "${file.name}" — check the file format.`,
+        });
+        continue;
       }
 
       const extractedLogDates = getSortedUniqueLogDates(parsed.sessions);
@@ -234,160 +357,285 @@ export async function POST(req: NextRequest) {
             ? [fallbackGeneratedDate]
             : [];
 
-      const logDerivedStartDate = logDates[0] ?? "";
-      const logDerivedEndDate = logDates[logDates.length - 1] ?? "";
+      const logDerivedStartDate =
+        logDates[0] ??
+        getEarliestValidDate(
+          parsed.sessions.flatMap((session) =>
+            session.messages.map((msg) => msg.timestamp)
+          )
+        ) ??
+        fallbackGeneratedDate;
+
+      const logDerivedEndDate =
+        logDates[logDates.length - 1] ??
+        getLatestValidDate(
+          parsed.sessions.flatMap((session) =>
+            session.messages.map((msg) => msg.timestamp)
+          )
+        ) ??
+        fallbackGeneratedDate;
+
+      if (logDates.length === 0 && !logDerivedEndDate) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          error:
+            "Could not determine any valid log dates from this uploaded log.",
+        });
+        continue;
+      }
+
+      const firstParsedAssignmentName = parsed.sessions
+        .map((session) => session.assignmentName?.trim())
+        .find(Boolean);
+
       const logDerivedAssignmentName = getAssignmentNameFromLogs(raw).trim();
 
-      parsedFiles.push({
+      const resolvedAssignmentName =
+        fileConfig?.assignmentName ||
+        uploadedAssignmentName ||
+        firstParsedAssignmentName ||
+        logDerivedAssignmentName ||
+        getFileBaseName(file.name);
+
+      const expectedEndDates =
+        logDates.length > 0
+          ? logDates
+          : logDerivedEndDate
+            ? [logDerivedEndDate]
+            : [];
+
+      if (detectDatesOnly) {
+        preparedUploads.push({
+          uploadId,
+          fileName: file.name,
+          fileFingerprint,
+          raw,
+          parsed,
+          logDates,
+          logDerivedStartDate,
+          logDerivedEndDate,
+          logDerivedAssignmentName,
+          resolvedAssignmentName,
+          resolvedStartDate: uploadedStartDate || logDerivedStartDate,
+          resolvedEndDate: logDerivedEndDate,
+        });
+        continue;
+      }
+
+      const enteredEndDate =
+        fileConfig?.endDate || sharedEndDate || logDerivedEndDate;
+
+      if (enteredEndDate && !isValidDateString(enteredEndDate)) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          error: "Please enter a valid assignment end date for this file.",
+        });
+        continue;
+      }
+
+      const normalizedEnteredEndDate = enteredEndDate
+        ? toDateOnly(enteredEndDate)
+        : logDerivedEndDate;
+
+      const isAllowedEndDate =
+        !normalizedEnteredEndDate
+          ? false
+          : logDates.length > 0
+            ? expectedEndDates.includes(normalizedEnteredEndDate)
+            : normalizedEnteredEndDate === logDerivedEndDate;
+
+      if (!isAllowedEndDate) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          expectedEndDate: logDerivedEndDate,
+          expectedEndDates,
+          logDates,
+          error:
+            expectedEndDates.length > 1
+              ? `Incorrect assignment end date. Please enter one of: ${expectedEndDates.join(", ")}.`
+              : `Incorrect assignment end date. Please enter ${logDerivedEndDate}.`,
+        });
+        continue;
+      }
+
+      const resolvedStartDate =
+        fileConfig?.startDate || uploadedStartDate || logDerivedStartDate;
+
+      if (!resolvedStartDate) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          expectedEndDate: logDerivedEndDate,
+          expectedEndDates,
+          logDates,
+          error:
+            "Could not determine an assignment start date from this uploaded log. Please enter a start date manually.",
+        });
+        continue;
+      }
+
+      if (!isValidDateString(resolvedStartDate)) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          error:
+            fileConfig?.startDate || uploadedStartDate
+              ? "Please enter a valid assignment start date."
+              : "The uploaded log contains an invalid start date. Please enter a start date manually.",
+        });
+        continue;
+      }
+
+      const normalizedStartDate = toDateOnly(resolvedStartDate);
+
+      if (!normalizedStartDate) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          error:
+            fileConfig?.startDate || uploadedStartDate
+              ? "Please enter a valid assignment start date."
+              : "The uploaded log contains an invalid start date. Please enter a start date manually.",
+        });
+        continue;
+      }
+
+      if (new Date(normalizedStartDate) > new Date(normalizedEnteredEndDate)) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          expectedEndDate: logDerivedEndDate,
+          expectedEndDates,
+          logDates,
+          error:
+            fileConfig?.startDate || uploadedStartDate
+              ? "End date must be after the start date."
+              : `The end date is earlier than the start date found in the uploaded log (${normalizedStartDate}). Please choose a later end date or enter a start date manually.`,
+        });
+        continue;
+      }
+
+      preparedUploads.push({
+        uploadId,
         fileName: file.name,
+        fileFingerprint,
         raw,
         parsed,
         logDates,
         logDerivedStartDate,
         logDerivedEndDate,
         logDerivedAssignmentName,
+        resolvedAssignmentName,
+        resolvedStartDate: normalizedStartDate,
+        resolvedEndDate: normalizedEnteredEndDate,
       });
     }
 
-    const combinedLogDates = Array.from(
-      new Set(parsedFiles.flatMap((file) => file.logDates).filter(Boolean))
-    ).sort();
+    if (detectDatesOnly) {
+      return NextResponse.json({
+        success: fileErrors.length === 0,
+        files: preparedUploads.map((file) => ({
+          uploadId: file.uploadId,
+          fileName: file.fileName,
+          detectedEndDate: file.logDerivedEndDate,
+          suggestedEndDates: file.logDates.length
+            ? file.logDates
+            : file.logDerivedEndDate
+              ? [file.logDerivedEndDate]
+              : [],
+          detectedStartDate: file.logDerivedStartDate,
+        })),
+        fileErrors,
+      });
+    }
 
-    const combinedLogDerivedStartDate =
-      combinedLogDates[0] ??
-      getEarliestValidDate(
-        parsedFiles.map((file) => toDateOnly(file.parsed.generatedAt))
-      );
-
-    const combinedLogDerivedEndDate =
-      combinedLogDates[combinedLogDates.length - 1] ??
-      getLatestValidDate(
-        parsedFiles.map((file) => toDateOnly(file.parsed.generatedAt))
-      );
-
-    if (combinedLogDates.length === 0 && !combinedLogDerivedEndDate) {
+    if (fileErrors.length > 0) {
       return NextResponse.json(
         {
           error:
-            "Could not determine any valid log dates from the uploaded logs.",
+            fileErrors.length === 1
+              ? fileErrors[0].error || "One uploaded file has invalid data."
+              : "Some uploaded files have invalid dates or could not be parsed.",
+          fileErrors,
         },
-        { status: 400 }
+        { status: hasParseError ? 422 : 400 }
       );
     }
 
-    const normalizedEnteredEndDate = toDateOnly(endDate);
-    const normalizedExpectedEndDate = combinedLogDerivedEndDate;
-
-    const isAllowedEndDate =
-      combinedLogDates.length > 0
-        ? combinedLogDates.includes(normalizedEnteredEndDate)
-        : normalizedEnteredEndDate === normalizedExpectedEndDate;
-
-    if (!isAllowedEndDate) {
+    if (preparedUploads.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            combinedLogDates.length > 1
-              ? `Incorrect assignment end date. Please enter one of: ${combinedLogDates.join(", ")}.`
-              : `Incorrect assignment end date. Please enter ${normalizedExpectedEndDate}.`,
-          expectedEndDate: normalizedExpectedEndDate,
-          expectedEndDates:
-            combinedLogDates.length > 0
-              ? combinedLogDates
-              : normalizedExpectedEndDate
-                ? [normalizedExpectedEndDate]
-                : [],
-          logDates: combinedLogDates,
-        },
+        { error: "No valid files were available to import." },
         { status: 400 }
       );
     }
 
-    const derivedStartDate = uploadedStartDate || combinedLogDerivedStartDate;
+    const existingStableSourceFiles = getExistingStableSourceFiles();
 
-    if (!derivedStartDate) {
-      return NextResponse.json(
-        {
-          error:
-            "Could not determine an assignment start date from the uploaded logs. Please enter a start date manually.",
-        },
-        { status: 400 }
-      );
+    if (existingStableSourceFiles.size > 0) {
+      const disallowedFiles = preparedUploads.filter((file) => {
+        const stableSourceFile = buildStableSourceFile(
+          file.fileName,
+          file.fileFingerprint
+        );
+
+        return !existingStableSourceFiles.has(stableSourceFile);
+      });
+
+      if (disallowedFiles.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "New log files with different content are not allowed after the first import.",
+            fileErrors: disallowedFiles.map((file) => ({
+              uploadId: file.uploadId,
+              fileName: file.fileName,
+              expectedEndDate: file.logDerivedEndDate,
+              expectedEndDates: file.logDates.length
+                ? file.logDates
+                : file.logDerivedEndDate
+                  ? [file.logDerivedEndDate]
+                  : [],
+              logDates: file.logDates,
+              error:
+                "This log file has different content from the logs already stored and cannot be added.",
+            })),
+          },
+          { status: 409 }
+        );
+      }
     }
-
-    if (!isValidDateString(derivedStartDate)) {
-      return NextResponse.json(
-        {
-          error: uploadedStartDate
-            ? "Please enter a valid assignment start date."
-            : "The uploaded logs contain an invalid start date. Please enter a start date manually.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const normalizedStartDate = toDateOnly(derivedStartDate);
-
-    if (!normalizedStartDate) {
-      return NextResponse.json(
-        {
-          error: uploadedStartDate
-            ? "Please enter a valid assignment start date."
-            : "The uploaded logs contain an invalid start date. Please enter a start date manually.",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (new Date(normalizedStartDate) > new Date(normalizedEnteredEndDate)) {
-      return NextResponse.json(
-        {
-          error: uploadedStartDate
-            ? "End date must be after the start date."
-            : `The end date is earlier than the start date found in the uploaded logs (${normalizedStartDate}). Please choose a later end date or enter a start date manually.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    const firstParsedAssignmentName = parsedFiles
-      .flatMap((file) =>
-        file.parsed.sessions.map((session) => session.assignmentName?.trim())
-      )
-      .find(Boolean);
-
-    const firstExtractedAssignmentName = parsedFiles
-      .map((file) => file.logDerivedAssignmentName)
-      .find(Boolean);
-
-    const derivedAssignmentName =
-      uploadedAssignmentName ||
-      firstParsedAssignmentName ||
-      firstExtractedAssignmentName ||
-      (parsedFiles.length === 1
-        ? getFileBaseName(parsedFiles[0].fileName)
-        : "Uploaded Assignment");
 
     let insertedSessions = 0;
     let skippedDuplicateSessions = 0;
     let insertedMessages = 0;
+    const assignmentsUsed = new Set<number>();
 
     runInTransaction(() => {
       const courseId = upsertCourse(
         FIXED_COURSE_NAME,
-        parsedFiles[0]?.parsed.generatedAt ?? undefined
+        preparedUploads[0]?.parsed.generatedAt ?? undefined
       );
 
-      const assignmentId = upsertAssignment(
-        courseId,
-        derivedAssignmentName,
-        undefined,
-        normalizedStartDate,
-        normalizedEnteredEndDate
-      );
+      for (const preparedFile of preparedUploads) {
+        const assignmentId = upsertAssignment(
+          courseId,
+          preparedFile.resolvedAssignmentName,
+          undefined,
+          preparedFile.resolvedStartDate,
+          preparedFile.resolvedEndDate
+        );
 
-      for (const parsedFile of parsedFiles) {
-        for (const session of parsedFile.parsed.sessions) {
+        assignmentsUsed.add(assignmentId);
+
+        const stableSourceFile = buildStableSourceFile(
+          preparedFile.fileName,
+          preparedFile.fileFingerprint
+        );
+
+        for (const session of preparedFile.parsed.sessions) {
           const rawEmail = session.studentEmail?.trim();
 
           if (!rawEmail) {
@@ -412,7 +660,7 @@ export async function POST(req: NextRequest) {
           const importKey = buildSessionImportKey({
             studentAnonymousId: anonymizeId(rawEmail),
             assignmentId,
-            sourceFile: parsedFile.fileName,
+            sourceFile: stableSourceFile,
             startedAt,
             endedAt,
             firstMessage,
@@ -423,7 +671,7 @@ export async function POST(req: NextRequest) {
             studentId,
             assignmentId,
             importKey,
-            sourceFile: parsedFile.fileName,
+            sourceFile: stableSourceFile,
             startedAt,
             endedAt,
           });
@@ -467,21 +715,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       course: FIXED_COURSE_NAME,
-      assignmentName: derivedAssignmentName,
-      startDate: normalizedStartDate,
-      endDate: normalizedEnteredEndDate,
-      expectedEndDate: normalizedExpectedEndDate,
-      expectedEndDates:
-        combinedLogDates.length > 0
-          ? combinedLogDates
-          : normalizedExpectedEndDate
-            ? [normalizedExpectedEndDate]
-            : [],
-      logDates: combinedLogDates,
-      filesProcessed: parsedFiles.length,
+      filesProcessed: preparedUploads.length,
+      assignmentsCreatedOrMatched: assignmentsUsed.size,
       sessionsInserted: insertedSessions,
       duplicateSessionsSkipped: skippedDuplicateSessions,
       messagesInserted: insertedMessages,
+      files: preparedUploads.map((file) => ({
+        uploadId: file.uploadId,
+        fileName: file.fileName,
+        assignmentName: file.resolvedAssignmentName,
+        startDate: file.resolvedStartDate,
+        endDate: file.resolvedEndDate,
+        expectedEndDate: file.logDerivedEndDate,
+        expectedEndDates: file.logDates.length
+          ? file.logDates
+          : file.logDerivedEndDate
+            ? [file.logDerivedEndDate]
+            : [],
+        logDates: file.logDates,
+      })),
     });
   } catch (error) {
     console.error("Upload processing failed:", error);

@@ -1,5 +1,5 @@
 import { Cloud } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Message } from "@/types";
 
 type TopQuestionCardProps = {
@@ -9,6 +9,25 @@ type TopQuestionCardProps = {
 type TopQuestionResult = {
   question: string;
   count: number;
+};
+
+const getAssignmentLabel = (message: Message): string | null => {
+  const msg = message as Record<string, unknown>;
+
+  const possibleValues = [
+    msg.assignmentName,
+    msg.assignmentTitle,
+    msg.assignment,
+    (msg.session as Record<string, unknown> | undefined)?.assignmentName,
+  ];
+
+  for (const value of possibleValues) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
 };
 
 const normalizeKey = (text: string) =>
@@ -93,13 +112,56 @@ const getTopQuestion = (messages: Message[]): TopQuestionResult => {
 };
 
 const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
-  const topQuestion = useMemo(() => getTopQuestion(messages), [messages]);
+  const [selectedAssignment, setSelectedAssignment] = useState("all");
+
+  const assignmentOptions = useMemo(() => {
+    const labels = Array.from(
+      new Set(
+        messages
+          .map((message) => getAssignmentLabel(message))
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+
+    return labels.sort((a, b) => a.localeCompare(b));
+  }, [messages]);
+
+  const filteredMessages = useMemo(() => {
+    if (selectedAssignment === "all") return messages;
+
+    return messages.filter(
+      (message) => getAssignmentLabel(message) === selectedAssignment
+    );
+  }, [messages, selectedAssignment]);
+
+  const topQuestion = useMemo(
+    () => getTopQuestion(filteredMessages),
+    [filteredMessages]
+  );
 
   return (
     <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4 shadow-sm w-full">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900">Top Question</h2>
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Top Question
+            </h2>
+
+            <select
+              value={selectedAssignment}
+              onChange={(e) => setSelectedAssignment(e.target.value)}
+              className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm text-slate-700"
+            >
+              <option value="all">All Assignments</option>
+              {assignmentOptions.map((assignment) => (
+                <option key={assignment} value={assignment}>
+                  {assignment}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <p className="mt-4 text-lg font-medium text-slate-800">
             {topQuestion.question}
           </p>
@@ -108,6 +170,7 @@ const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
             {topQuestion.count}
           </p>
         </div>
+
         <div className="rounded-full bg-white/80 p-3 text-sky-700">
           <Cloud size={24} />
         </div>

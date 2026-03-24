@@ -1,5 +1,5 @@
 import { Car } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Message } from "@/types";
 
 type TodaysTrafficCardProps = {
@@ -95,13 +95,41 @@ const getStudentKey = (message: Message): string | null => {
 };
 
 const TodaysTrafficCard = ({ messages }: TodaysTrafficCardProps) => {
+  const [selectedAssignment, setSelectedAssignment] = useState("all");
+
+  const assignmentOptions = useMemo(() => {
+    const assignmentMap = new Map<string, string>();
+
+    messages.forEach((message) => {
+      const assignment = getAssignmentInfo(message);
+      if (!assignment) return;
+
+      if (!assignmentMap.has(assignment.key)) {
+        assignmentMap.set(assignment.key, assignment.label);
+      }
+    });
+
+    return Array.from(assignmentMap.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [messages]);
+
+  const filteredMessages = useMemo(() => {
+    if (selectedAssignment === "all") return messages;
+
+    return messages.filter((message) => {
+      const assignment = getAssignmentInfo(message);
+      return assignment?.key === selectedAssignment;
+    });
+  }, [messages, selectedAssignment]);
+
   const trafficData = useMemo(() => {
     const assignmentMap = new Map<
       string,
       { label: string; uniqueStudents: Set<string> }
     >();
 
-    messages.forEach((message) => {
+    filteredMessages.forEach((message) => {
       const assignment = getAssignmentInfo(message);
       const studentKey = getStudentKey(message);
 
@@ -117,35 +145,74 @@ const TodaysTrafficCard = ({ messages }: TodaysTrafficCardProps) => {
       assignmentMap.get(assignment.key)!.uniqueStudents.add(studentKey);
     });
 
+    if (selectedAssignment !== "all") {
+      const selectedLabel =
+        assignmentOptions.find((option) => option.key === selectedAssignment)
+          ?.label ?? "this assignment";
+
+      const selectedData = assignmentMap.get(selectedAssignment);
+
+      return {
+        assignmentLabel: selectedLabel,
+        totalTraffic: selectedData ? selectedData.uniqueStudents.size : 0,
+      };
+    }
+
     if (assignmentMap.size === 0) {
       return {
-        assignmentLabel: "this assignment",
+        assignmentLabel: "all assignments",
         totalTraffic: 0,
       };
     }
 
-    const topAssignment = Array.from(assignmentMap.values()).sort(
-      (a, b) => b.uniqueStudents.size - a.uniqueStudents.size
-    )[0];
+    const uniqueStudents = new Set<string>();
+
+    filteredMessages.forEach((message) => {
+      const studentKey = getStudentKey(message);
+      if (studentKey) {
+        uniqueStudents.add(studentKey);
+      }
+    });
 
     return {
-      assignmentLabel: topAssignment.label,
-      totalTraffic: topAssignment.uniqueStudents.size,
+      assignmentLabel: "all assignments",
+      totalTraffic: uniqueStudents.size,
     };
-  }, [messages]);
+  }, [filteredMessages, selectedAssignment, assignmentOptions]);
 
   return (
     <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm w-full">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900">Total Users</h2>
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Total Users
+            </h2>
+
+            <select
+              value={selectedAssignment}
+              onChange={(e) => setSelectedAssignment(e.target.value)}
+              className="rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm text-slate-700"
+            >
+              <option value="all">All Assignments</option>
+              {assignmentOptions.map((assignment) => (
+                <option key={assignment.key} value={assignment.key}>
+                  {assignment.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <p className="mt-6 text-4xl font-bold text-slate-900">
             {trafficData.totalTraffic}
           </p>
           <p className="mt-2 text-base text-slate-700">
-            {/* AI Tutor users for assignment: {trafficData.assignmentLabel} */}
+            {trafficData.totalTraffic > 0
+              ? `Unique AI Tutor users for ${trafficData.assignmentLabel}`
+              : "No AI Tutor users found yet"}
           </p>
         </div>
+
         <div className="rounded-full bg-white/80 p-3 text-orange-700">
           <Car size={24} />
         </div>
