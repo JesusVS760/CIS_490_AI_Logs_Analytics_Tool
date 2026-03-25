@@ -101,7 +101,6 @@ function parseTranscriptTimestamp(value?: string | null): Date | null {
   if (ampm === "PM" && hours !== 12) hours += 12;
 
   const date = new Date(year, month, day, hours, minutes, seconds);
-
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -132,20 +131,12 @@ function isValidDateString(value?: string | null): boolean {
 }
 
 function getEarliestValidDate(values: Array<string | null | undefined>): string {
-  const dates = values
-    .map((value) => toDateOnly(value))
-    .filter(Boolean)
-    .sort();
-
+  const dates = values.map((value) => toDateOnly(value)).filter(Boolean).sort();
   return dates[0] ?? "";
 }
 
 function getLatestValidDate(values: Array<string | null | undefined>): string {
-  const dates = values
-    .map((value) => toDateOnly(value))
-    .filter(Boolean)
-    .sort();
-
+  const dates = values.map((value) => toDateOnly(value)).filter(Boolean).sort();
   return dates[dates.length - 1] ?? "";
 }
 
@@ -197,9 +188,7 @@ function getSortedUniqueLogDates(
   for (const session of sessions) {
     for (const msg of session.messages) {
       const dateOnly = toDateOnly(msg.timestamp);
-      if (dateOnly) {
-        uniqueDates.add(dateOnly);
-      }
+      if (dateOnly) uniqueDates.add(dateOnly);
     }
   }
 
@@ -292,14 +281,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: fileConfigError }, { status: 400 });
     }
 
-    if (uploadedStartDate && !isValidDateString(uploadedStartDate)) {
+    if (!detectDatesOnly && uploadedStartDate && !isValidDateString(uploadedStartDate)) {
       return NextResponse.json(
         { error: "Please enter a valid assignment start date." },
         { status: 400 }
       );
     }
 
-    if (sharedEndDate && !isValidDateString(sharedEndDate)) {
+    if (!detectDatesOnly && sharedEndDate && !isValidDateString(sharedEndDate)) {
       return NextResponse.json(
         { error: "Please enter a valid assignment end date." },
         { status: 400 }
@@ -309,9 +298,7 @@ export async function POST(req: NextRequest) {
     const sharedNormalizedStartDate = uploadedStartDate
       ? toDateOnly(uploadedStartDate)
       : "";
-    const sharedNormalizedEndDate = sharedEndDate
-      ? toDateOnly(sharedEndDate)
-      : "";
+    const sharedNormalizedEndDate = sharedEndDate ? toDateOnly(sharedEndDate) : "";
 
     const preparedUploads: PreparedUpload[] = [];
     const fileErrors: FileValidationError[] = [];
@@ -320,6 +307,24 @@ export async function POST(req: NextRequest) {
     for (const file of files) {
       const uploadId = getUploadId(file);
       const fileConfig = findMatchingFileConfig(file, fileConfigs);
+
+      if (!detectDatesOnly && fileConfig?.startDate && !isValidDateString(fileConfig.startDate)) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          error: "Please enter a valid assignment start date for this file.",
+        });
+        continue;
+      }
+
+      if (!detectDatesOnly && fileConfig?.endDate && !isValidDateString(fileConfig.endDate)) {
+        fileErrors.push({
+          uploadId,
+          fileName: file.name,
+          error: "Please enter a valid assignment end date for this file.",
+        });
+        continue;
+      }
 
       const raw = await extractText(file);
       const parsed = parseTranscript(raw);
@@ -367,8 +372,7 @@ export async function POST(req: NextRequest) {
         fileErrors.push({
           uploadId,
           fileName: file.name,
-          error:
-            "Could not determine any valid log dates from this uploaded log.",
+          error: "Could not determine any valid log dates from this uploaded log.",
         });
         continue;
       }
@@ -380,8 +384,8 @@ export async function POST(req: NextRequest) {
       const logDerivedAssignmentName = getAssignmentNameFromLogs(raw).trim();
 
       const resolvedAssignmentName =
-        uploadedAssignmentName ||
         fileConfig?.assignmentName ||
+        uploadedAssignmentName ||
         firstParsedAssignmentName ||
         logDerivedAssignmentName ||
         getFileBaseName(file.name);
@@ -412,22 +416,14 @@ export async function POST(req: NextRequest) {
           logDerivedEndDate,
           logDerivedAssignmentName,
           resolvedAssignmentName,
-          resolvedStartDate:
-            sharedNormalizedStartDate ||
-            configNormalizedStartDate ||
-            logDerivedStartDate,
-          resolvedEndDate:
-            sharedNormalizedEndDate ||
-            configNormalizedEndDate ||
-            logDerivedEndDate,
+          resolvedStartDate: logDerivedStartDate,
+          resolvedEndDate: logDerivedEndDate,
         });
         continue;
       }
 
       const normalizedEnteredEndDate =
-        sharedNormalizedEndDate ||
-        configNormalizedEndDate ||
-        logDerivedEndDate;
+        configNormalizedEndDate || sharedNormalizedEndDate || logDerivedEndDate;
 
       if (!normalizedEnteredEndDate) {
         fileErrors.push({
@@ -462,9 +458,7 @@ export async function POST(req: NextRequest) {
       }
 
       const normalizedStartDate =
-        sharedNormalizedStartDate ||
-        configNormalizedStartDate ||
-        logDerivedStartDate;
+        configNormalizedStartDate || sharedNormalizedStartDate || logDerivedStartDate;
 
       if (!normalizedStartDate) {
         fileErrors.push({
@@ -484,7 +478,7 @@ export async function POST(req: NextRequest) {
           uploadId,
           fileName: file.name,
           error:
-            sharedNormalizedStartDate || configNormalizedStartDate
+            configNormalizedStartDate || sharedNormalizedStartDate
               ? "Please enter a valid assignment start date."
               : "The uploaded log contains an invalid start date. Please enter a start date manually.",
         });
@@ -499,7 +493,7 @@ export async function POST(req: NextRequest) {
           expectedEndDates,
           logDates,
           error:
-            sharedNormalizedStartDate || configNormalizedStartDate
+            configNormalizedStartDate || sharedNormalizedStartDate
               ? "End date must be after the start date."
               : `The end date is earlier than the start date found in the uploaded log (${normalizedStartDate}). Please choose a later end date or enter a start date manually.`,
         });
@@ -528,6 +522,7 @@ export async function POST(req: NextRequest) {
         files: preparedUploads.map((file) => ({
           uploadId: file.uploadId,
           fileName: file.fileName,
+          assignmentName: file.resolvedAssignmentName,
           detectedEndDate: file.logDerivedEndDate,
           suggestedEndDates: file.logDates.length
             ? file.logDates
@@ -589,10 +584,7 @@ export async function POST(req: NextRequest) {
 
         for (const session of preparedFile.parsed.sessions) {
           const rawEmail = session.studentEmail?.trim();
-
-          if (!rawEmail) {
-            continue;
-          }
+          if (!rawEmail) continue;
 
           const studentId = upsertStudent(rawEmail);
 

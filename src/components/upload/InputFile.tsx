@@ -32,20 +32,9 @@ type FileValidationError = {
 type UploadResponse = {
   success?: boolean;
   filesProcessed?: number;
-  expectedEndDate?: string;
   error?: string;
   fileErrors?: FileValidationError[];
   aiAnalyzerOptIn?: boolean;
-  files?: Array<{
-    uploadId?: string;
-    fileName?: string;
-    detectedEndDate?: string;
-    suggestedEndDates?: string[];
-    detectedStartDate?: string;
-    assignmentName?: string;
-    startDate?: string;
-    endDate?: string;
-  }>;
 };
 
 type AnalyticsBridge = Partial<{
@@ -53,6 +42,16 @@ type AnalyticsBridge = Partial<{
   refreshAnalyticsData: () => Promise<void>;
   setPendingUploadSuccess: (value: boolean) => void;
 }>;
+
+type UploadRow = {
+  uploadId: string;
+  file: File;
+  fileName: string;
+  assignmentName: string;
+  startDate: string;
+  endDate: string;
+  error: string;
+};
 
 function isAcceptedFile(file: File) {
   const fileName = file.name.toLowerCase();
@@ -62,18 +61,44 @@ function isAcceptedFile(file: File) {
   );
 }
 
+function getUploadId(file: File) {
+  return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
 function uniqueStrings(values: Array<string | undefined | null>) {
   return Array.from(new Set(values.filter(Boolean) as string[]));
+}
+
+function buildRowErrorMessage(fileError: FileValidationError) {
+  const fileName = fileError.fileName || "A file";
+  const expectedDate = fileError.expectedEndDate;
+  const expectedDates = fileError.expectedEndDates?.filter(Boolean) || [];
+  const logDates = fileError.logDates?.filter(Boolean) || [];
+
+  if (fileError.error) {
+    return `${fileName}: ${fileError.error}`;
+  }
+
+  if (expectedDates.length > 1) {
+    return `${fileName}: expected one of ${expectedDates.join(", ")}.`;
+  }
+
+  if (expectedDate) {
+    return `${fileName}: expected end date ${expectedDate}.`;
+  }
+
+  if (logDates.length > 1) {
+    return `${fileName}: detected multiple log dates (${logDates.join(", ")}).`;
+  }
+
+  return `${fileName}: invalid log date data.`;
 }
 
 export function InputFile() {
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [assignmentName, setAssignmentName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [endDateError, setEndDateError] = useState("");
+  const [rows, setRows] = useState<UploadRow[]>([]);
+  const [generalError, setGeneralError] = useState("");
   const [isChecked, setIsChecked] = useState(false);
 
   const analytics = useAiAnalytics() as AnalyticsBridge;
@@ -96,8 +121,18 @@ export function InputFile() {
   }, [router]);
 
   const selectedFileCountLabel = useMemo(() => {
-    return `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} selected`;
-  }, [selectedFiles]);
+    return `${rows.length} file${rows.length === 1 ? "" : "s"} selected`;
+  }, [rows.length]);
+
+  const buildFileConfigsPayload = (targetRows: UploadRow[]) => {
+    return targetRows.map((row) => ({
+      uploadId: row.uploadId,
+      fileName: row.fileName,
+      assignmentName: row.assignmentName.trim() || undefined,
+      startDate: row.startDate || undefined,
+      endDate: row.endDate || undefined,
+    }));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -111,19 +146,30 @@ export function InputFile() {
       return;
     }
 
-    setSelectedFiles((prev) => {
+    setRows((prev) => {
       const merged = [...prev];
 
       for (const file of files) {
+        const uploadId = getUploadId(file);
+
         const exists = merged.some(
-          (f) =>
-            f.name === file.name &&
-            f.size === file.size &&
-            f.lastModified === file.lastModified
+          (row) =>
+            row.uploadId === uploadId ||
+            (row.file.name === file.name &&
+              row.file.size === file.size &&
+              row.file.lastModified === file.lastModified)
         );
 
         if (!exists) {
-          merged.push(file);
+          merged.push({
+            uploadId,
+            file,
+            fileName: file.name,
+            assignmentName: "",
+            startDate: "",
+            endDate: "",
+            error: "",
+          });
         }
       }
 
@@ -135,18 +181,32 @@ export function InputFile() {
     }
   };
 
-  const removeFile = (indexToRemove: number) => {
-    setSelectedFiles((prev) =>
-      prev.filter((_, index) => index !== indexToRemove)
+  const removeFile = (uploadIdToRemove: string) => {
+    setRows((prev) => prev.filter((row) => row.uploadId !== uploadIdToRemove));
+  };
+
+  const updateRow = (
+    uploadId: string,
+    field: "assignmentName" | "startDate" | "endDate",
+    value: string
+  ) => {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.uploadId === uploadId
+          ? {
+              ...row,
+              [field]: value,
+              error:
+                field === "startDate" || field === "endDate" ? "" : row.error,
+            }
+          : row
+      )
     );
   };
 
   const resetForm = () => {
-    setAssignmentName("");
-    setStartDate("");
-    setEndDate("");
-    setEndDateError("");
-    setSelectedFiles([]);
+    setRows([]);
+    setGeneralError("");
     setIsChecked(false);
     analytics.setIsAiAccepted?.(false);
 
@@ -155,73 +215,47 @@ export function InputFile() {
     }
   };
 
-  const buildFileErrorMessage = (fileErrors: FileValidationError[]) => {
-    const lines = fileErrors.map((fileError) => {
-      const fileName = fileError.fileName || "A file";
-      const expectedDate = fileError.expectedEndDate;
-      const expectedDates = fileError.expectedEndDates?.filter(Boolean) || [];
-      const logDates = fileError.logDates?.filter(Boolean) || [];
-
-      if (fileError.error) {
-        return `${fileName}: ${fileError.error}`;
-      }
-
-      if (expectedDates.length > 1) {
-        return `${fileName}: expected one of ${expectedDates.join(", ")}.`;
-      }
-
-      if (expectedDate) {
-        return `${fileName}: expected end date ${expectedDate}.`;
-      }
-
-      if (logDates.length > 1) {
-        return `${fileName}: detected multiple log dates (${logDates.join(
-          ", "
-        )}).`;
-      }
-
-      return `${fileName}: invalid log date data.`;
-    });
-
-    return lines.join(" ");
-  };
-
-  const tryAutofillEndDateFromErrors = (fileErrors: FileValidationError[]) => {
-    const singleExpectedDates = uniqueStrings([
-      ...fileErrors.map((fileError) => fileError.expectedEndDate),
-      ...fileErrors.flatMap((fileError) => fileError.expectedEndDates || []),
-    ]);
-
-    if (singleExpectedDates.length === 1) {
-      const suggestedDate = singleExpectedDates[0];
-      setEndDate(suggestedDate);
-      return suggestedDate;
-    }
-
-    return "";
-  };
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (loading) return;
 
-    setEndDateError("");
+    setGeneralError("");
 
-    if (selectedFiles.length === 0) {
+    if (rows.length === 0) {
       toast.error("At least one file is required.");
       return;
     }
 
-    if (!endDate) {
-      setEndDateError("Assignment end date is required.");
-      toast.error("Assignment end date is required.");
-      return;
-    }
+    const clientSideIssues = rows
+      .map((row) => {
+        if (
+          row.startDate &&
+          row.endDate &&
+          new Date(row.startDate) > new Date(row.endDate)
+        ) {
+          return {
+            uploadId: row.uploadId,
+            message: `${row.fileName}: end date must be after the start date.`,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{ uploadId: string; message: string }>;
 
-    if (startDate && new Date(startDate) > new Date(endDate)) {
-      setEndDateError("End date must be after the start date.");
-      toast.error("End date must be after the start date.");
+    if (clientSideIssues.length > 0) {
+      const issueMap = new Map(
+        clientSideIssues.map((item) => [item.uploadId, item.message])
+      );
+
+      setRows((prev) =>
+        prev.map((row) => ({
+          ...row,
+          error: issueMap.get(row.uploadId) || row.error,
+        }))
+      );
+
+      toast.error(clientSideIssues[0].message);
       return;
     }
 
@@ -230,19 +264,14 @@ export function InputFile() {
 
       const formData = new FormData();
 
-      for (const file of selectedFiles) {
-        formData.append("files", file);
+      for (const row of rows) {
+        formData.append("files", row.file);
       }
 
-      if (assignmentName.trim()) {
-        formData.append("assignmentName", assignmentName.trim());
-      }
-
-      if (startDate) {
-        formData.append("startDate", startDate);
-      }
-
-      formData.append("endDate", endDate);
+      formData.append(
+        "fileConfigs",
+        JSON.stringify(buildFileConfigsPayload(rows))
+      );
       formData.append("aiAnalyzerOptIn", String(isChecked));
 
       const response = await axios.post<UploadResponse>("/api/upload", formData, {
@@ -253,7 +282,7 @@ export function InputFile() {
       });
 
       const responseData = response.data;
-      const filesProcessed = responseData.filesProcessed ?? selectedFiles.length;
+      const filesProcessed = responseData.filesProcessed ?? rows.length;
 
       analytics.setIsAiAccepted?.(isChecked);
       analytics.setPendingUploadSuccess?.(true);
@@ -281,42 +310,58 @@ export function InputFile() {
         }
 
         if (responseData?.fileErrors?.length) {
-          const suggestedDate = tryAutofillEndDateFromErrors(
-            responseData.fileErrors
-          );
-          const combinedMessage = buildFileErrorMessage(responseData.fileErrors);
+          const errorMap = new Map<string, FileValidationError>();
 
-          if (suggestedDate) {
-            const message = `${combinedMessage} Suggested date applied: ${suggestedDate}.`;
-            setEndDateError(message);
-            toast.error(message);
-            return;
+          for (const fileError of responseData.fileErrors) {
+            const key = fileError.uploadId || fileError.fileName || "";
+            if (key) errorMap.set(key, fileError);
           }
 
-          setEndDateError(combinedMessage);
-          toast.error(combinedMessage);
-          return;
-        }
+          setRows((prev) =>
+            prev.map((row) => {
+              const fileError =
+                errorMap.get(row.uploadId) || errorMap.get(row.fileName);
 
-        if (responseData?.expectedEndDate) {
-          const suggestedDate = responseData.expectedEndDate;
-          const message = `Incorrect end date. Suggested date: ${suggestedDate}.`;
+              if (!fileError) return row;
 
-          setEndDate(suggestedDate);
-          setEndDateError(message);
-          toast.error(message);
+              const nextExpectedDates = uniqueStrings([
+                fileError.expectedEndDate,
+                ...(fileError.expectedEndDates || []),
+              ]);
+
+              const nextEndDate =
+                nextExpectedDates.length === 1
+                  ? nextExpectedDates[0]
+                  : row.endDate;
+
+              return {
+                ...row,
+                endDate: nextEndDate,
+                error: buildRowErrorMessage(fileError),
+              };
+            })
+          );
+
+          const firstMessage =
+            responseData.fileErrors.length === 1
+              ? `${buildRowErrorMessage(
+                  responseData.fileErrors[0]
+                )} Please enter the correct date based on the uploaded log.`
+              : "Some files have incorrect dates. Please enter the correct dates based on the uploaded logs.";
+
+          setGeneralError(firstMessage);
+          toast.error(firstMessage);
           return;
         }
 
         if (responseData?.error) {
-          if (responseData.error.toLowerCase().includes("end date")) {
-            setEndDateError(responseData.error);
-          }
+          setGeneralError(responseData.error);
           toast.error(responseData.error);
           return;
         }
       }
 
+      setGeneralError("Upload failed.");
       toast.error("Upload failed.");
     } finally {
       setLoading(false);
@@ -334,60 +379,8 @@ export function InputFile() {
   }
 
   return (
-    <div className="w-full max-w-sm space-y-4">
+    <div className="w-full max-w-5xl space-y-4">
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field>
-          <FieldLabel htmlFor="assignmentName">
-            Assignment Name{" "}
-            <span className="text-muted-foreground">(optional)</span>
-          </FieldLabel>
-          <Input
-            id="assignmentName"
-            type="text"
-            placeholder="Leave blank to use log info"
-            value={assignmentName}
-            onChange={(e) => setAssignmentName(e.target.value)}
-          />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="startDate">
-            Assignment Start Date{" "}
-            <span className="text-muted-foreground">(optional)</span>
-          </FieldLabel>
-          <Input
-            id="startDate"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="endDate">Assignment End Date</FieldLabel>
-          <Input
-            id="endDate"
-            type="date"
-            value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value);
-              if (endDateError) setEndDateError("");
-            }}
-            className={
-              endDateError ? "border-red-500 focus-visible:ring-red-500" : ""
-            }
-          />
-          {endDateError && (
-            <FieldDescription className="text-red-500">
-              {endDateError}
-            </FieldDescription>
-          )}
-          <FieldDescription>
-            If you upload files from different assignments with different real
-            due dates in one batch, upload those separately.
-          </FieldDescription>
-        </Field>
-
         <Field>
           <FieldLabel htmlFor="inputFile">Upload Documents</FieldLabel>
           <Input
@@ -400,34 +393,108 @@ export function InputFile() {
             ref={fileInputRef}
           />
           <FieldDescription>
-            Select multiple files at once, or keep adding files in separate
-            picks before uploading.
+            You can upload multiple files at once. Leave start/end dates blank to
+            use the dates found in the uploaded logs. If you type a date and it
+            does not match the log, you will be prompted to enter the correct
+            date from the uploaded log.
           </FieldDescription>
+        </Field>
 
-          {selectedFiles.length > 0 && (
-            <div className="mt-2 rounded-xl border p-3 text-sm">
-              <p className="font-medium">{selectedFileCountLabel}</p>
+        {generalError && (
+          <div className="rounded-xl border border-red-500/50 bg-red-500/5 p-3 text-sm text-red-600">
+            {generalError}
+          </div>
+        )}
 
-              <ul className="mt-2 space-y-2 text-muted-foreground">
-                {selectedFiles.map((file, index) => (
-                  <li
-                    key={`${file.name}-${file.size}-${file.lastModified}`}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <span className="truncate">{file.name}</span>
-                    <button
+        {rows.length > 0 && (
+          <div className="space-y-3 rounded-xl border p-4">
+            <p className="font-medium">{selectedFileCountLabel}</p>
+
+            <div className="space-y-4">
+              {rows.map((row) => (
+                <div
+                  key={row.uploadId}
+                  className="rounded-xl border p-4 space-y-3"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-medium break-words">{row.fileName}</p>
+                    </div>
+
+                    <Button
                       type="button"
-                      onClick={() => removeFile(index)}
-                      className="text-sm text-red-500 hover:underline"
+                      variant="outline"
+                      onClick={() => removeFile(row.uploadId)}
+                      disabled={loading}
                     >
                       Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                    <Field>
+                      <FieldLabel htmlFor={`assignment-${row.uploadId}`}>
+                        Assignment Name
+                      </FieldLabel>
+                      <Input
+                        id={`assignment-${row.uploadId}`}
+                        type="text"
+                        value={row.assignmentName}
+                        placeholder="Optional"
+                        onChange={(e) =>
+                          updateRow(
+                            row.uploadId,
+                            "assignmentName",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </Field>
+
+                    <Field>
+                      <FieldLabel htmlFor={`start-${row.uploadId}`}>
+                        Assignment Start Date
+                      </FieldLabel>
+                      <Input
+                        id={`start-${row.uploadId}`}
+                        type="date"
+                        value={row.startDate}
+                        onChange={(e) =>
+                          updateRow(row.uploadId, "startDate", e.target.value)
+                        }
+                      />
+                    </Field>
+
+                    <Field>
+                      <FieldLabel htmlFor={`end-${row.uploadId}`}>
+                        Assignment End Date
+                      </FieldLabel>
+                      <Input
+                        id={`end-${row.uploadId}`}
+                        type="date"
+                        value={row.endDate}
+                        onChange={(e) =>
+                          updateRow(row.uploadId, "endDate", e.target.value)
+                        }
+                        className={
+                          row.error
+                            ? "border-red-500 focus-visible:ring-red-500"
+                            : ""
+                        }
+                      />
+                    </Field>
+                  </div>
+
+                  {row.error && (
+                    <FieldDescription className="text-red-500">
+                      {row.error}
+                    </FieldDescription>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
-        </Field>
+          </div>
+        )}
 
         <div className="flex flex-row items-center gap-2">
           <Switch
@@ -442,7 +509,7 @@ export function InputFile() {
 
         <Button
           type="submit"
-          disabled={loading || selectedFiles.length === 0 || !endDate}
+          disabled={loading || rows.length === 0}
           className="w-full cursor-pointer"
         >
           {loading ? "Uploading..." : "Upload"}
@@ -451,5 +518,3 @@ export function InputFile() {
     </div>
   );
 }
-
-//check to upload to github, didnt work earlier
