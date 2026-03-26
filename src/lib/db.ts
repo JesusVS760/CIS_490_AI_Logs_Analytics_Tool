@@ -540,5 +540,26 @@ export function getAllAssignments() {
     )
     .all();
 }
+export function getUserCountsPerAssignment() {
+  return db
+    .prepare(
+      `
+      SELECT
+        a.id AS assignmentId,
+        a.name AS assignmentName,
+        COUNT(DISTINCT s.student_id) AS userCount
+      FROM assignments a
+      LEFT JOIN sessions s ON s.assignment_id = a.id
+      GROUP BY a.id, a.name
+      ORDER BY a.created_at ASC, a.id ASC
+      `
+    )
+    .all() as {
+      assignmentId: number;
+      assignmentName: string;
+      userCount: number;
+    }[];
+}
+
 
 export default db;
