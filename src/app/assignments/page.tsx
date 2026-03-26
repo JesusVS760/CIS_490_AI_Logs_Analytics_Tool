@@ -1,7 +1,7 @@
 import React from "react";
 import AssignmentsUsersChart from "../../components/assignments/AssignmentsUsersChart";
 
-console.log("AssignmentsUsersGraph:", AssignmentsUsersChart);
+
 
 const AssignmentsPage = () => {
   return (
