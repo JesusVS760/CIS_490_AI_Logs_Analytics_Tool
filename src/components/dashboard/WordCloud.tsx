@@ -58,7 +58,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
     };
 
     loadFrequencies();
-  }, [messages]);
+  }, [messages, isAiAccepted]);
 
   const maxCount = Math.max(...words.map((w) => w.value), 1);
 
