@@ -19,6 +19,7 @@ export interface ParsedTranscript {
 }
 
 export type Message = {
+  id: string;
   content: string;
   role?: "student" | "ai_tutor";
   timestamp?: string;

@@ -126,7 +126,7 @@ export default function UniqueStudentTotalMsgCard({
   );
 
   return (
-    <section className="rounded-lg border bg-white p-3 shadow-sm">
+    <section className="rounded-lg border bg-white p-6 shadow-sm">
       <div className="mb-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -179,7 +179,8 @@ export default function UniqueStudentTotalMsgCard({
             <div className="min-w-[500px]">
               <div className="flex h-[210px] items-end gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                 {chartData.map((item) => {
-                  const heightPercent = (item.totalMessages / maxMessages) * 100;
+                  const heightPercent =
+                    (item.totalMessages / maxMessages) * 100;
 
                   return (
                     <div

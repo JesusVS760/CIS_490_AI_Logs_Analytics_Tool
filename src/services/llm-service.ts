@@ -16,12 +16,23 @@ export const llmService = {
       });
 
       const text = response.choices[0].message.content;
+      console.log("RAW LLM TEXT:", text);
 
       if (!text) {
-        throw new Error("LLM returned empty response");
+        console.log("error");
+        return;
       }
+      const cleaned = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
 
-      return JSON.parse(text);
+      try {
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.error("Bad LLM output:", text);
+        return {}; // fallback
+      }
     } catch (error) {
       console.error("LLM error:", error);
       throw error;

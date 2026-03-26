@@ -1,10 +1,3 @@
-//the allowment to choose date of assignment is best ulitized in this section(s) as well as the API
-//and database
-// Added assignment name, startDate and endDate to the upload form and API.
-// This allows us to better organize the data and also to utilize the date of assignment for analytics purposes.
-// The predetermined course is used to simplify the process for the user, as they don't have to select a course when uploading a file.
-// The automatic migration ensures that older databases that don't have a start_date column can still function properly without any issues.
-
 "use client";
 
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -208,11 +201,7 @@ export function InputFile() {
     setRows([]);
     setGeneralError("");
     setIsChecked(false);
-    analytics.setIsAiAccepted?.(false);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -274,12 +263,16 @@ export function InputFile() {
       );
       formData.append("aiAnalyzerOptIn", String(isChecked));
 
-      const response = await axios.post<UploadResponse>("/api/upload", formData, {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post<UploadResponse>(
+        "/api/upload",
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       const responseData = response.data;
       const filesProcessed = responseData.filesProcessed ?? rows.length;
@@ -292,7 +285,9 @@ export function InputFile() {
       }
 
       toast.success(
-        `${filesProcessed} log${filesProcessed === 1 ? "" : "s"} uploaded successfully ✅`
+        `${filesProcessed} log${
+          filesProcessed === 1 ? "" : "s"
+        } uploaded successfully ✅`
       );
 
       resetForm();
@@ -393,9 +388,9 @@ export function InputFile() {
             ref={fileInputRef}
           />
           <FieldDescription>
-            You can upload multiple files at once. Leave start/end dates blank to
-            use the dates found in the uploaded logs. If you type a date and it
-            does not match the log, you will be prompted to enter the correct
+            You can upload multiple files at once. Leave start/end dates blank
+            to use the dates found in the uploaded logs. If you type a date and
+            it does not match the log, you will be prompted to enter the correct
             date from the uploaded log.
           </FieldDescription>
         </Field>

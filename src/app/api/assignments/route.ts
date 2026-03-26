@@ -8,7 +8,7 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json(
       { error: "failed to fetch assignments" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

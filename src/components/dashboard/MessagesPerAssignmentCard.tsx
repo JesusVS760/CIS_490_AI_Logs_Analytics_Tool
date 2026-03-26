@@ -51,7 +51,8 @@ const MessagesPerAssignmentCard = ({
     const counts = new Map<string, number>();
 
     messages.forEach((message) => {
-      const assignmentLabel = getAssignmentLabel(message) ?? "Unknown Assignment";
+      const assignmentLabel =
+        getAssignmentLabel(message) ?? "Unknown Assignment";
       counts.set(assignmentLabel, (counts.get(assignmentLabel) ?? 0) + 1);
     });
 
