@@ -26,8 +26,6 @@ type ParsedTranscript = ReturnType<typeof parseTranscript>;
 type FileConfig = {
   uploadId?: string;
   fileName?: string;
-  assignmentName?: string;
-  startDate?: string;
   endDate?: string;
 };
 
@@ -79,6 +77,13 @@ function buildStableSourceFile(fileName: string, fingerprint: string): string {
   return `${fileName}__${fingerprint}`;
 }
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function parseTranscriptTimestamp(value?: string | null): Date | null {
   if (!value) return null;
 
@@ -104,40 +109,61 @@ function parseTranscriptTimestamp(value?: string | null): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function parseAnyDate(value?: string | null): Date | null {
+function parseDateStringAsLocalDate(value?: string | null): Date | null {
   if (!value) return null;
 
-  const transcriptDate = parseTranscriptTimestamp(value);
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const transcriptDate = parseTranscriptTimestamp(trimmed);
   if (transcriptDate) return transcriptDate;
 
-  const nativeDate = new Date(value);
+  const isoDateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateOnlyMatch) {
+    const [, yyyy, mm, dd] = isoDateOnlyMatch;
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+  }
+
+  const usDateOnlyMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (usDateOnlyMatch) {
+    const [, mm, dd, yyyy] = usDateOnlyMatch;
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+  }
+
+  const nativeDate = new Date(trimmed);
   return Number.isNaN(nativeDate.getTime()) ? null : nativeDate;
 }
 
 function toDateOnly(value?: string | null): string {
-  const date = parseAnyDate(value);
-  if (!date) return "";
-  return date.toISOString().slice(0, 10);
+  if (!value) return "";
+
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  const isoMatch = trimmed.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const usMatch = trimmed.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
+  if (usMatch) {
+    return `${usMatch[3]}-${usMatch[1]}-${usMatch[2]}`;
+  }
+
+  const parsed = parseDateStringAsLocalDate(trimmed);
+  if (!parsed) return "";
+
+  return formatLocalDate(parsed);
 }
 
 function toIsoTimestamp(value?: string | null): string | null {
-  const date = parseAnyDate(value);
+  const date = parseDateStringAsLocalDate(value);
   if (!date) return null;
   return date.toISOString();
 }
 
 function isValidDateString(value?: string | null): boolean {
-  return Boolean(parseAnyDate(value));
-}
-
-function getEarliestValidDate(values: Array<string | null | undefined>): string {
-  const dates = values.map((value) => toDateOnly(value)).filter(Boolean).sort();
-  return dates[0] ?? "";
-}
-
-function getLatestValidDate(values: Array<string | null | undefined>): string {
-  const dates = values.map((value) => toDateOnly(value)).filter(Boolean).sort();
-  return dates[dates.length - 1] ?? "";
+  return Boolean(toDateOnly(value));
 }
 
 function getAssignmentNameFromLogs(raw: string): string {
@@ -224,12 +250,6 @@ function parseFileConfigs(formData: FormData): {
         typeof item?.uploadId === "string" ? item.uploadId.trim() : undefined,
       fileName:
         typeof item?.fileName === "string" ? item.fileName.trim() : undefined,
-      assignmentName:
-        typeof item?.assignmentName === "string"
-          ? item.assignmentName.trim()
-          : undefined,
-      startDate:
-        typeof item?.startDate === "string" ? item.startDate.trim() : undefined,
       endDate:
         typeof item?.endDate === "string" ? item.endDate.trim() : undefined,
     }));
@@ -260,14 +280,6 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
 
     const files = getUploadedFiles(formData);
-    const uploadedAssignmentName = String(
-      formData.get("assignmentName") ?? ""
-    ).trim();
-    const uploadedStartDate = String(formData.get("startDate") ?? "").trim();
-    const sharedEndDate = String(formData.get("endDate") ?? "").trim();
-    const detectDatesOnly =
-      String(formData.get("detectDatesOnly") ?? "").trim() === "true";
-
     const { configs: fileConfigs, error: fileConfigError } =
       parseFileConfigs(formData);
 
@@ -281,25 +293,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: fileConfigError }, { status: 400 });
     }
 
-    if (!detectDatesOnly && uploadedStartDate && !isValidDateString(uploadedStartDate)) {
-      return NextResponse.json(
-        { error: "Please enter a valid assignment start date." },
-        { status: 400 }
-      );
-    }
-
-    if (!detectDatesOnly && sharedEndDate && !isValidDateString(sharedEndDate)) {
-      return NextResponse.json(
-        { error: "Please enter a valid assignment end date." },
-        { status: 400 }
-      );
-    }
-
-    const sharedNormalizedStartDate = uploadedStartDate
-      ? toDateOnly(uploadedStartDate)
-      : "";
-    const sharedNormalizedEndDate = sharedEndDate ? toDateOnly(sharedEndDate) : "";
-
     const preparedUploads: PreparedUpload[] = [];
     const fileErrors: FileValidationError[] = [];
     let hasParseError = false;
@@ -308,16 +301,7 @@ export async function POST(req: NextRequest) {
       const uploadId = getUploadId(file);
       const fileConfig = findMatchingFileConfig(file, fileConfigs);
 
-      if (!detectDatesOnly && fileConfig?.startDate && !isValidDateString(fileConfig.startDate)) {
-        fileErrors.push({
-          uploadId,
-          fileName: file.name,
-          error: "Please enter a valid assignment start date for this file.",
-        });
-        continue;
-      }
-
-      if (!detectDatesOnly && fileConfig?.endDate && !isValidDateString(fileConfig.endDate)) {
+      if (fileConfig?.endDate && !isValidDateString(fileConfig.endDate)) {
         fileErrors.push({
           uploadId,
           fileName: file.name,
@@ -351,24 +335,16 @@ export async function POST(req: NextRequest) {
             : [];
 
       const logDerivedStartDate =
-        logDates[0] ??
-        getEarliestValidDate(
-          parsed.sessions.flatMap((session) =>
-            session.messages.map((msg) => msg.timestamp)
-          )
-        ) ??
-        fallbackGeneratedDate;
+        logDates[0] ||
+        fallbackGeneratedDate ||
+        "";
 
       const logDerivedEndDate =
-        logDates[logDates.length - 1] ??
-        getLatestValidDate(
-          parsed.sessions.flatMap((session) =>
-            session.messages.map((msg) => msg.timestamp)
-          )
-        ) ??
-        fallbackGeneratedDate;
+        logDates[logDates.length - 1] ||
+        fallbackGeneratedDate ||
+        "";
 
-      if (logDates.length === 0 && !logDerivedEndDate) {
+      if (!logDerivedEndDate) {
         fileErrors.push({
           uploadId,
           fileName: file.name,
@@ -384,8 +360,6 @@ export async function POST(req: NextRequest) {
       const logDerivedAssignmentName = getAssignmentNameFromLogs(raw).trim();
 
       const resolvedAssignmentName =
-        fileConfig?.assignmentName ||
-        uploadedAssignmentName ||
         firstParsedAssignmentName ||
         logDerivedAssignmentName ||
         getFileBaseName(file.name);
@@ -393,52 +367,17 @@ export async function POST(req: NextRequest) {
       const expectedEndDates =
         logDates.length > 0
           ? logDates
-          : logDerivedEndDate
-            ? [logDerivedEndDate]
-            : [];
+          : [logDerivedEndDate];
 
-      const configNormalizedStartDate = fileConfig?.startDate
-        ? toDateOnly(fileConfig.startDate)
-        : "";
       const configNormalizedEndDate = fileConfig?.endDate
         ? toDateOnly(fileConfig.endDate)
         : "";
 
-      if (detectDatesOnly) {
-        preparedUploads.push({
-          uploadId,
-          fileName: file.name,
-          fileFingerprint,
-          raw,
-          parsed,
-          logDates,
-          logDerivedStartDate,
-          logDerivedEndDate,
-          logDerivedAssignmentName,
-          resolvedAssignmentName,
-          resolvedStartDate: logDerivedStartDate,
-          resolvedEndDate: logDerivedEndDate,
-        });
-        continue;
-      }
-
       const normalizedEnteredEndDate =
-        configNormalizedEndDate || sharedNormalizedEndDate || logDerivedEndDate;
-
-      if (!normalizedEnteredEndDate) {
-        fileErrors.push({
-          uploadId,
-          fileName: file.name,
-          expectedEndDate: logDerivedEndDate,
-          expectedEndDates,
-          logDates,
-          error: "Please enter a valid assignment end date for this file.",
-        });
-        continue;
-      }
+        configNormalizedEndDate || logDerivedEndDate;
 
       const isAllowedEndDate =
-        logDates.length > 0
+        expectedEndDates.length > 0
           ? expectedEndDates.includes(normalizedEnteredEndDate)
           : normalizedEnteredEndDate === logDerivedEndDate;
 
@@ -457,48 +396,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const normalizedStartDate =
-        configNormalizedStartDate || sharedNormalizedStartDate || logDerivedStartDate;
-
-      if (!normalizedStartDate) {
-        fileErrors.push({
-          uploadId,
-          fileName: file.name,
-          expectedEndDate: logDerivedEndDate,
-          expectedEndDates,
-          logDates,
-          error:
-            "Could not determine an assignment start date from this uploaded log. Please enter a start date manually.",
-        });
-        continue;
-      }
-
-      if (!isValidDateString(normalizedStartDate)) {
-        fileErrors.push({
-          uploadId,
-          fileName: file.name,
-          error:
-            configNormalizedStartDate || sharedNormalizedStartDate
-              ? "Please enter a valid assignment start date."
-              : "The uploaded log contains an invalid start date. Please enter a start date manually.",
-        });
-        continue;
-      }
-
-      if (new Date(normalizedStartDate) > new Date(normalizedEnteredEndDate)) {
-        fileErrors.push({
-          uploadId,
-          fileName: file.name,
-          expectedEndDate: logDerivedEndDate,
-          expectedEndDates,
-          logDates,
-          error:
-            configNormalizedStartDate || sharedNormalizedStartDate
-              ? "End date must be after the start date."
-              : `The end date is earlier than the start date found in the uploaded log (${normalizedStartDate}). Please choose a later end date or enter a start date manually.`,
-        });
-        continue;
-      }
+      const resolvedStartDate = logDerivedStartDate || normalizedEnteredEndDate;
 
       preparedUploads.push({
         uploadId,
@@ -511,27 +409,8 @@ export async function POST(req: NextRequest) {
         logDerivedEndDate,
         logDerivedAssignmentName,
         resolvedAssignmentName,
-        resolvedStartDate: normalizedStartDate,
+        resolvedStartDate,
         resolvedEndDate: normalizedEnteredEndDate,
-      });
-    }
-
-    if (detectDatesOnly) {
-      return NextResponse.json({
-        success: fileErrors.length === 0,
-        files: preparedUploads.map((file) => ({
-          uploadId: file.uploadId,
-          fileName: file.fileName,
-          assignmentName: file.resolvedAssignmentName,
-          detectedEndDate: file.logDerivedEndDate,
-          suggestedEndDates: file.logDates.length
-            ? file.logDates
-            : file.logDerivedEndDate
-              ? [file.logDerivedEndDate]
-              : [],
-          detectedStartDate: file.logDerivedStartDate,
-        })),
-        fileErrors,
       });
     }
 
@@ -571,7 +450,7 @@ export async function POST(req: NextRequest) {
           courseId,
           preparedFile.resolvedAssignmentName,
           undefined,
-          preparedFile.resolvedStartDate,
+          preparedFile.resolvedStartDate || undefined,
           preparedFile.resolvedEndDate
         );
 

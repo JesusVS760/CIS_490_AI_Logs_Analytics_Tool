@@ -4,7 +4,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { LineChart, Settings, CircleUserIcon } from "lucide-react";
+import {
+  LineChart,
+  Settings,
+  CircleUserIcon,
+  LogOut,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Notifications from "./Notifications";
 import SearchBar from "./SearchBar";
 
@@ -160,6 +166,13 @@ export default function Navbar() {
 
             <Settings className="h-4 w-4" />
           </Link>
+
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/logout">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Link>
+          </Button>
         </section>
       </div>
     </header>
