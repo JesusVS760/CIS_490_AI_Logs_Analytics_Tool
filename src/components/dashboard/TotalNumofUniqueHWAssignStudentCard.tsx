@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Message } from "@/types";
+import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
 type TotalNumofUniqueHWAssignStudentCardProps = {
   messages: Message[];
@@ -73,52 +74,19 @@ function getAssignmentLabel(message: Message): string {
   );
 }
 
-function getLogLabel(message: Message): string {
-  const m = message as Record<string, unknown>;
-
-  return (
-    getNestedString(m, [
-      ["fileName"],
-      ["sourceFileName"],
-      ["transcriptFileName"],
-      ["uploadFileName"],
-      ["logFileName"],
-      ["assignmentName"],
-      ["assignment", "name"],
-      ["session", "fileName"],
-      ["session", "sourceFileName"],
-      ["session", "assignmentName"],
-      ["metadata", "fileName"],
-      ["metadata", "sourceFileName"],
-      ["metadata", "assignmentName"],
-      ["uploadId"],
-      ["session", "uploadId"],
-      ["metadata", "uploadId"],
-    ]) ?? "Unknown Log"
-  );
-}
-
 export default function TotalNumofUniqueHWAssignStudentCard({
   messages,
 }: TotalNumofUniqueHWAssignStudentCardProps) {
-  const [selectedLog, setSelectedLog] = useState("ALL");
+  const { selectedAssignment } = useDashboardAssignmentFilter();
 
-  // Build log filter options
-  const logOptions = useMemo(() => {
-    const uniqueLogs = Array.from(
-      new Set(messages.map((message) => getLogLabel(message)))
-    ).sort((a, b) => a.localeCompare(b));
-
-    return ["ALL", ...uniqueLogs];
-  }, [messages]);
-
-  // Filter messages by selected log
   const filteredMessages = useMemo(() => {
-    if (selectedLog === "ALL") return messages;
-    return messages.filter((message) => getLogLabel(message) === selectedLog);
-  }, [messages, selectedLog]);
+    if (selectedAssignment === "all") return messages;
 
-  // Count unique assignments per student
+    return messages.filter(
+      (message) => getAssignmentLabel(message) === selectedAssignment
+    );
+  }, [messages, selectedAssignment]);
+
   const chartData = useMemo(() => {
     const studentAssignments = new Map<string, Set<string>>();
 
@@ -157,36 +125,18 @@ export default function TotalNumofUniqueHWAssignStudentCard({
               Based on uploaded transcript log data.
             </p>
             <p className="mt-1 text-[11px] text-slate-500">
-              Labels are shortened anonymous ids like Student abc12345.
+              Viewing:{" "}
+              {selectedAssignment === "all"
+                ? "All Assignments"
+                : selectedAssignment}
             </p>
-          </div>
-
-          <div className="w-full md:w-[260px]">
-            <label
-              htmlFor="hw-log-filter"
-              className="mb-1 block text-[11px] font-medium text-slate-700"
-            >
-              Select log source
-            </label>
-            <select
-              id="hw-log-filter"
-              value={selectedLog}
-              onChange={(e) => setSelectedLog(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500"
-            >
-              {logOptions.map((log) => (
-                <option key={log} value={log}>
-                  {log === "ALL" ? "All Logs" : log}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </div>
 
       {chartData.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">
-          No assignment data available for the selected log.
+          No assignment data available for the selected assignment.
         </div>
       ) : (
         <div className="space-y-2">

@@ -11,6 +11,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
 type AiAnalyticsContextType = {
   isAiAccepted: boolean;
@@ -38,6 +39,31 @@ export const AiAnalyticsContext = createContext<AiAnalyticsContextType>({
 
 export const useAiAnalytics = () => useContext(AiAnalyticsContext);
 
+const getAssignmentLabel = (message: Record<string, unknown>): string | null => {
+  const possibleValues = [
+    message.assignmentName,
+    message.assignmentTitle,
+    message.assignment,
+    message.title,
+    message.taskName,
+    (message.assignment as Record<string, unknown> | undefined)?.name,
+    (message.session as Record<string, unknown> | undefined)?.assignmentName,
+    (
+      (message.session as Record<string, unknown> | undefined)?.assignment as
+        | Record<string, unknown>
+        | undefined
+    )?.name,
+  ];
+
+  for (const value of possibleValues) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+};
+
 export default function DashboardPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
@@ -45,6 +71,8 @@ export default function DashboardPage() {
   const [isAiAccepted, setIsAiAccepted] = useState<boolean>(false);
   const [pendingUploadSuccess, setPendingUploadSuccess] =
     useState<boolean>(false);
+
+  const { setAssignmentOptions } = useDashboardAssignmentFilter();
 
   const refreshAnalyticsData = useCallback(async () => {
     try {
@@ -82,6 +110,24 @@ export default function DashboardPage() {
   useEffect(() => {
     refreshAnalyticsData();
   }, [refreshAnalyticsData]);
+
+  useEffect(() => {
+    const options = Array.from(
+      new Set(
+        messages
+          .map((message) =>
+            getAssignmentLabel(message as Record<string, unknown>)
+          )
+          .filter((value): value is string => Boolean(value))
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    setAssignmentOptions(options);
+
+    return () => {
+      setAssignmentOptions([]);
+    };
+  }, [messages, setAssignmentOptions]);
 
   const hasSessions = sessions.length > 0;
 

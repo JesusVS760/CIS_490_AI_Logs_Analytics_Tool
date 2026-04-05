@@ -12,6 +12,7 @@ import {
   Legend,
 } from "chart.js";
 import { MessageSquareText } from "lucide-react";
+import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -35,6 +36,24 @@ function pickFirstId(
   }
   return null;
 }
+
+const getAssignmentLabel = (message: Message): string | null => {
+  const msg = message as any;
+
+  return (
+    pickFirstId(msg, [
+      ["assignmentName"],
+      ["assignmentTitle"],
+      ["assignment"],
+      ["title"],
+      ["taskName"],
+      ["assignment", "name"],
+      ["session", "assignmentName"],
+      ["session", "assignment", "name"],
+      ["metadata", "assignmentName"],
+    ]) ?? null
+  );
+};
 
 const getStudentKey = (message: Message): string | null => {
   const msg = message as any;
@@ -69,7 +88,7 @@ const getStudentKey = (message: Message): string | null => {
 const getStudentLabel = (message: Message, fallbackKey: string): string => {
   const msg = message as any;
 
-  const label =
+  return (
     pickFirstId(msg, [
       ["studentName"],
       ["student_name"],
@@ -87,9 +106,8 @@ const getStudentLabel = (message: Message, fallbackKey: string): string => {
       ["student", "email"],
       ["sender", "name"],
       ["sender", "email"],
-    ]) ?? fallbackKey;
-
-  return label;
+    ]) ?? fallbackKey
+  );
 };
 
 const getConversationKey = (message: Message): string | null => {
@@ -127,15 +145,21 @@ const getConversationKey = (message: Message): string | null => {
   );
 };
 
-type StudentOption = { key: string; label: string };
+type StudentOption = {
+  key: string;
+  label: string;
+};
 
 function buildStudentOptions(messages: Message[]): StudentOption[] {
   const map = new Map<string, string>();
 
-  for (const m of messages) {
-    const key = getStudentKey(m);
+  for (const message of messages) {
+    const key = getStudentKey(message);
     if (!key) continue;
-    if (!map.has(key)) map.set(key, getStudentLabel(m, key));
+
+    if (!map.has(key)) {
+      map.set(key, getStudentLabel(message, key));
+    }
   }
 
   return Array.from(map.entries())
@@ -143,49 +167,48 @@ function buildStudentOptions(messages: Message[]): StudentOption[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-/**
- * IMPORTANT FIX:
- * If a message has no conversation id, we still count it by creating a unique
- * "fallback conversation" key for that message.
- *
- * That way, Total Messages always contribute to the chart.
- */
-function buildConversationCounts(messages: Message[], studentKey: string) {
-  const convoCount = new Map<string, number>();
+function buildConversationCounts(
+  messages: Message[],
+  selectedStudentKey: string
+) {
+  const conversationCounts = new Map<string, number>();
 
-  messages.forEach((m, idx) => {
-    if (studentKey !== "all") {
-      const sk = getStudentKey(m);
-      if (!sk || sk !== studentKey) return;
+  messages.forEach((message, index) => {
+    if (selectedStudentKey !== "all") {
+      const studentKey = getStudentKey(message);
+      if (studentKey !== selectedStudentKey) {
+        return;
+      }
     }
 
-    const rawConvo = getConversationKey(m);
+    const rawConversationKey = getConversationKey(message);
+    const conversationKey = rawConversationKey
+      ? rawConversationKey.trim().toLowerCase()
+      : `__fallback_conversation_${index}`;
 
-    // Fallback: treat each ungrouped message as its own conversation
-    const convoKey = rawConvo
-      ? rawConvo.trim().toLowerCase()
-      : `__fallback_conversation_${idx}`;
-
-    convoCount.set(convoKey, (convoCount.get(convoKey) ?? 0) + 1);
+    conversationCounts.set(
+      conversationKey,
+      (conversationCounts.get(conversationKey) ?? 0) + 1
+    );
   });
 
-  return Array.from(convoCount.values());
+  return Array.from(conversationCounts.values());
 }
 
 function bucketizeConversationCounts(counts: number[]) {
   const buckets: Record<string, number> = {
-    "0–5": 0,
-    "5–15": 0,
-    "15–30": 0,
-    "30–60": 0,
+    "0-5": 0,
+    "6-15": 0,
+    "16-30": 0,
+    "31-60": 0,
     "60+": 0,
   };
 
-  for (const n of counts) {
-    if (n <= 5) buckets["0–5"] += 1;
-    else if (n <= 15) buckets["5–15"] += 1;
-    else if (n <= 30) buckets["15–30"] += 1;
-    else if (n <= 60) buckets["30–60"] += 1;
+  for (const count of counts) {
+    if (count <= 5) buckets["0-5"] += 1;
+    else if (count <= 15) buckets["6-15"] += 1;
+    else if (count <= 30) buckets["16-30"] += 1;
+    else if (count <= 60) buckets["31-60"] += 1;
     else buckets["60+"] += 1;
   }
 
@@ -198,16 +221,22 @@ const MessagesPerConversation = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { selectedAssignment } = useDashboardAssignmentFilter();
+
   useEffect(() => {
     const loadMessages = async () => {
       try {
         setLoading(true);
+        setError(null);
+
         const res = await fetch("/api/messages");
         if (!res.ok) throw new Error("Failed to fetch messages");
+
         const data = await res.json();
-        setMessages(data);
+        setMessages(Array.isArray(data) ? data : []);
       } catch {
         setError("Could not load messages");
+        setMessages([]);
       } finally {
         setLoading(false);
       }
@@ -216,14 +245,32 @@ const MessagesPerConversation = () => {
     loadMessages();
   }, []);
 
+  const assignmentFilteredMessages = useMemo(() => {
+    if (selectedAssignment === "all") return messages;
+
+    return messages.filter(
+      (message) => getAssignmentLabel(message) === selectedAssignment
+    );
+  }, [messages, selectedAssignment]);
+
   const studentOptions = useMemo(
-    () => buildStudentOptions(messages),
-    [messages]
+    () => buildStudentOptions(assignmentFilteredMessages),
+    [assignmentFilteredMessages]
   );
 
+  useEffect(() => {
+    if (
+      selectedStudentKey !== "all" &&
+      !studentOptions.some((option) => option.key === selectedStudentKey)
+    ) {
+      setSelectedStudentKey("all");
+    }
+  }, [selectedStudentKey, studentOptions]);
+
   const conversationCounts = useMemo(
-    () => buildConversationCounts(messages, selectedStudentKey),
-    [messages, selectedStudentKey]
+    () =>
+      buildConversationCounts(assignmentFilteredMessages, selectedStudentKey),
+    [assignmentFilteredMessages, selectedStudentKey]
   );
 
   const buckets = useMemo(
@@ -254,23 +301,39 @@ const MessagesPerConversation = () => {
   }, [buckets]);
 
   const totalConversations = conversationCounts.length;
+  const selectedStudentLabel =
+    selectedStudentKey === "all"
+      ? "All Students"
+      : studentOptions.find((option) => option.key === selectedStudentKey)
+          ?.label ?? "Selected Student";
 
   return (
     <div className="rounded-2xl border border-gray-100 p-6 shadow-sm w-full bg-white dark:bg-zinc-900">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 font-bold text-lg">
-          Messages Per Conversation <MessageSquareText size={18} />
-        </h1>
+        <div>
+          <h1 className="flex items-center gap-2 font-bold text-lg">
+            Messages Per Conversation <MessageSquareText size={18} />
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Assignment:{" "}
+            {selectedAssignment === "all"
+              ? "All Assignments"
+              : selectedAssignment}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Student: {selectedStudentLabel}
+          </p>
+        </div>
 
         <select
           value={selectedStudentKey}
           onChange={(e) => setSelectedStudentKey(e.target.value)}
           className="rounded-xl border px-4 py-2 text-sm bg-transparent"
         >
-          <option value="all">All students</option>
-          {studentOptions.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.label}
+          <option value="all">All Students</option>
+          {studentOptions.map((student) => (
+            <option key={student.key} value={student.key}>
+              {student.label}
             </option>
           ))}
         </select>
@@ -282,12 +345,8 @@ const MessagesPerConversation = () => {
       {!loading && !error && (
         <>
           <div className="mb-4 text-sm text-muted-foreground">
-            <div>Total Messages: {messages.length}</div>
-            <div>
-              Total Conversations{" "}
-              {selectedStudentKey === "all" ? "" : "(filtered)"}:{" "}
-              {totalConversations}
-            </div>
+            <div>Total Messages: {assignmentFilteredMessages.length}</div>
+            <div>Total Conversations: {totalConversations}</div>
           </div>
 
           <Bar

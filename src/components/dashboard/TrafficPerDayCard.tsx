@@ -1,6 +1,5 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
-
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   LineElement,
@@ -13,6 +12,7 @@ import {
 import { Line } from "react-chartjs-2";
 import { Session } from "@/types";
 import { LineChart } from "lucide-react";
+import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
 ChartJS.register(
   LineElement,
@@ -23,41 +23,97 @@ ChartJS.register(
   Legend
 );
 
+type Assignment = {
+  id: number;
+  name: string;
+};
+
+type SessionWithAssignment = Session & {
+  assignment_id?: number;
+  assignmentId?: number;
+};
+
 const TrafficPerDayCard = () => {
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<SessionWithAssignment[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+
+  const { selectedAssignment } = useDashboardAssignmentFilter();
 
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await axios.get("/api/sessions");
-        console.log(data);
+        const [sessionsRes, assignmentsRes] = await Promise.all([
+          axios.get("/api/sessions"),
+          axios.get("/api/assignments"),
+        ]);
 
-        // Keep only first AI-Tutor message as startedAt
-        const processed: Session[] = data.map((s: Session) => {
-          const firstAI = s.messages.find(
-            (m) => m.role === "ai_tutor" && m.timestamp
-          );
-          return { ...s, startedAt: firstAI?.timestamp ?? null };
-        });
+        const processed: SessionWithAssignment[] = sessionsRes.data.map(
+          (session: SessionWithAssignment) => {
+            const messages = Array.isArray(session.messages)
+              ? session.messages
+              : [];
+            const firstAI = messages.find(
+              (message) => message.role === "ai_tutor" && message.timestamp
+            );
 
-        setSessions(processed);
+            return {
+              ...session,
+              startedAt: firstAI?.timestamp ?? null,
+            };
+          }
+        );
+
+        setSessions(Array.isArray(processed) ? processed : []);
+        setAssignments(
+          Array.isArray(assignmentsRes.data) ? assignmentsRes.data : []
+        );
       } catch (error) {
-        console.error(error);
+        console.error("Failed to load traffic-per-day analytics:", error);
+        setSessions([]);
+        setAssignments([]);
       }
     };
-    fetchSessions();
+
+    fetchData();
   }, []);
+
+  const assignmentNameById = useMemo(() => {
+    const map = new Map<number, string>();
+
+    assignments.forEach((assignment) => {
+      map.set(assignment.id, assignment.name);
+    });
+
+    return map;
+  }, [assignments]);
+
+  const filteredSessions = useMemo(() => {
+    if (selectedAssignment === "all") return sessions;
+
+    return sessions.filter((session) => {
+      const assignmentId = Number(
+        session.assignmentId ?? session.assignment_id
+      );
+
+      if (Number.isNaN(assignmentId)) return false;
+
+      return assignmentNameById.get(assignmentId) === selectedAssignment;
+    });
+  }, [selectedAssignment, sessions, assignmentNameById]);
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
-  // Count sessions where AI-Tutor first message happened on that day
-  const countsPerDay = days.map(
-    (day) =>
-      sessions.filter((s) => {
-        if (!s.startedAt) return false;
-        const date = new Date(s.startedAt);
-        return date.getDate() === day;
-      }).length
+  const countsPerDay = useMemo(
+    () =>
+      days.map(
+        (day) =>
+          filteredSessions.filter((session) => {
+            if (!session.startedAt) return false;
+            const date = new Date(session.startedAt);
+            return !Number.isNaN(date.getTime()) && date.getDate() === day;
+          }).length
+      ),
+    [days, filteredSessions]
   );
 
   const data = {
@@ -76,9 +132,18 @@ const TrafficPerDayCard = () => {
 
   return (
     <div className="rounded-2xl border border-gray-200 p-6 shadow-md bg-white dark:bg-zinc-900 w-full">
-      <h1 className="flex items-center gap-2 font-bold text-lg">
-        AI Tutor Traffic Per Day <LineChart size={18} />
-      </h1>
+      <div className="mb-4">
+        <h1 className="flex items-center gap-2 font-bold text-lg">
+          AI Tutor Traffic Per Day <LineChart size={18} />
+        </h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Viewing:{" "}
+          {selectedAssignment === "all"
+            ? "All Assignments"
+            : selectedAssignment}
+        </p>
+      </div>
+
       <Line
         data={data}
         options={{
@@ -93,7 +158,7 @@ const TrafficPerDayCard = () => {
             },
           },
         }}
-      />{" "}
+      />
     </div>
   );
 };

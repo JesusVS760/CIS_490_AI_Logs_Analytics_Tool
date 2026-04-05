@@ -1,9 +1,8 @@
-//studentAnonymousId as a fallback
-//shortened long anonymous ids to labels like Student abc12345
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Message } from "@/types";
+import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
 type UniqueStudentTotalMsgCardProps = {
   messages: Message[];
@@ -60,49 +59,33 @@ function getStudentLabel(message: Message): string {
   return value;
 }
 
-function getLogLabel(message: Message): string {
+function getAssignmentLabel(message: Message): string {
   const m = message as Record<string, unknown>;
 
-  const value =
+  return (
     getNestedString(m, [
-      ["fileName"],
-      ["sourceFileName"],
-      ["transcriptFileName"],
-      ["uploadFileName"],
-      ["logFileName"],
       ["assignmentName"],
       ["assignment", "name"],
-      ["session", "fileName"],
-      ["session", "sourceFileName"],
       ["session", "assignmentName"],
-      ["metadata", "fileName"],
-      ["metadata", "sourceFileName"],
       ["metadata", "assignmentName"],
-      ["uploadId"],
-      ["session", "uploadId"],
-      ["metadata", "uploadId"],
-    ]) ?? "Unknown Log";
-
-  return value;
+      ["hwName"],
+      ["homeworkName"],
+    ]) ?? "Unknown Assignment"
+  );
 }
 
 export default function UniqueStudentTotalMsgCard({
   messages,
 }: UniqueStudentTotalMsgCardProps) {
-  const [selectedLog, setSelectedLog] = useState("ALL");
-
-  const logOptions = useMemo(() => {
-    const uniqueLogs = Array.from(
-      new Set(messages.map((message) => getLogLabel(message)))
-    ).sort((a, b) => a.localeCompare(b));
-
-    return ["ALL", ...uniqueLogs];
-  }, [messages]);
+  const { selectedAssignment } = useDashboardAssignmentFilter();
 
   const filteredMessages = useMemo(() => {
-    if (selectedLog === "ALL") return messages;
-    return messages.filter((message) => getLogLabel(message) === selectedLog);
-  }, [messages, selectedLog]);
+    if (selectedAssignment === "all") return messages;
+
+    return messages.filter(
+      (message) => getAssignmentLabel(message) === selectedAssignment
+    );
+  }, [messages, selectedAssignment]);
 
   const chartData = useMemo(() => {
     const counts = new Map<string, number>();
@@ -137,36 +120,18 @@ export default function UniqueStudentTotalMsgCard({
               Based on uploaded transcript log data.
             </p>
             <p className="mt-1 text-[11px] text-slate-500">
-              Labels are shortened anonymous ids like Student abc12345.
+              Viewing:{" "}
+              {selectedAssignment === "all"
+                ? "All Assignments"
+                : selectedAssignment}
             </p>
-          </div>
-
-          <div className="w-full md:w-[260px]">
-            <label
-              htmlFor="log-filter"
-              className="mb-1 block text-[11px] font-medium text-slate-700"
-            >
-              Select log source
-            </label>
-            <select
-              id="log-filter"
-              value={selectedLog}
-              onChange={(e) => setSelectedLog(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500"
-            >
-              {logOptions.map((log) => (
-                <option key={log} value={log}>
-                  {log === "ALL" ? "All Logs" : log}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </div>
 
       {chartData.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">
-          No student message data available for the selected log.
+          No student message data available for the selected assignment.
         </div>
       ) : (
         <div className="space-y-2">

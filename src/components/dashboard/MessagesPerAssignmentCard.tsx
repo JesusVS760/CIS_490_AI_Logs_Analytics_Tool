@@ -1,4 +1,6 @@
-import React, { useMemo } from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   BarElement,
@@ -9,13 +11,10 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import { BarChart3 } from "lucide-react";
+import axios from "axios";
 import { Message } from "@/types";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
-
-type MessagesPerAssignmentCardProps = {
-  messages: Message[];
-};
 
 const getAssignmentLabel = (message: Message): string | null => {
   const msg = message as Record<string, unknown>;
@@ -44,9 +43,34 @@ const getAssignmentLabel = (message: Message): string | null => {
   return null;
 };
 
-const MessagesPerAssignmentCard = ({
-  messages,
-}: MessagesPerAssignmentCardProps) => {
+const MessagesPerAssignmentCard = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await axios.get("/api/messages", {
+          withCredentials: true,
+          params: { t: Date.now() },
+        });
+
+        setMessages(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        setError("Could not load assignment message data");
+        setMessages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMessages();
+  }, []);
+
   const assignmentData = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -56,65 +80,98 @@ const MessagesPerAssignmentCard = ({
       counts.set(assignmentLabel, (counts.get(assignmentLabel) ?? 0) + 1);
     });
 
-    const sorted = Array.from(counts.entries())
+    return Array.from(counts.entries())
       .map(([label, count]) => ({ label, count }))
       .sort((a, b) => b.count - a.count);
-
-    return {
-      labels: sorted.map((item) => item.label),
-      counts: sorted.map((item) => item.count),
-    };
   }, [messages]);
 
-  const data = {
-    labels: assignmentData.labels,
-    datasets: [
-      {
-        label: "# of Messages",
-        data: assignmentData.counts,
-        backgroundColor: "rgba(59, 130, 246, 0.75)",
-        borderColor: "rgb(37, 99, 235)",
-        borderWidth: 1,
-        borderRadius: 8,
-      },
-    ],
-  };
+  const chartData = useMemo(() => {
+    return {
+      labels: assignmentData.map((item) => item.label),
+      datasets: [
+        {
+          label: "Number of Messages",
+          data: assignmentData.map((item) => item.count),
+          backgroundColor: [
+            "#FF6384",
+            "#36A2EB",
+            "#FFCE56",
+            "#4BC0C0",
+            "#9966FF",
+            "#FF9F40",
+            "#8DD17E",
+            "#C9CBCF",
+          ],
+        },
+      ],
+    };
+  }, [assignmentData]);
+
+  const totalAssignments = assignmentData.length;
+  const totalMessagesAcrossAssignments = assignmentData.reduce(
+    (sum, item) => sum + item.count,
+    0
+  );
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md w-full">
-      <h1 className="mb-4 flex items-center gap-2 text-lg font-bold">
-        Messages Per Assignment <BarChart3 size={18} />
-      </h1>
+    <div className="w-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:bg-zinc-900">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="flex items-center gap-2 text-lg font-bold">
+          Messages Per Homework <BarChart3 size={18} />
+        </h1>
+      </div>
 
-      <Bar
-        data={data}
-        options={{
-          responsive: true,
-          plugins: {
-            legend: {
-              display: true,
-            },
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                precision: 0,
-              },
-              title: {
-                display: true,
-                text: "Messages",
-              },
-            },
-            x: {
-              title: {
-                display: true,
-                text: "Assignment",
-              },
-            },
-          },
-        }}
-      />
+      {loading && <p>Loading assignment message data...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+
+      {!loading && !error && (
+        <>
+          <div className="mb-4 text-sm text-muted-foreground">
+            <div>Total Homework: {totalAssignments}</div>
+            <div>
+              Total Messages Counted Across Homework:{" "}
+              {totalMessagesAcrossAssignments}
+            </div>
+          </div>
+
+          {assignmentData.length === 0 ? (
+            <p>No assignment message data available.</p>
+          ) : (
+            <Bar
+              data={chartData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => `Messages: ${context.parsed.y}`,
+                    },
+                  },
+                },
+                scales: {
+                  x: {
+                    title: {
+                      display: true,
+                      text: "Homework",
+                    },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      precision: 0,
+                    },
+                    title: {
+                      display: true,
+                      text: "Number of Messages",
+                    },
+                  },
+                },
+              }}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 };

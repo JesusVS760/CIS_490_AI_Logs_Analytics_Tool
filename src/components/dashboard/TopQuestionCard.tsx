@@ -1,6 +1,7 @@
 import { Cloud } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Message } from "@/types";
+import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
 type TopQuestionCardProps = {
   messages: Message[];
@@ -19,6 +20,7 @@ const getAssignmentLabel = (message: Message): string | null => {
     msg.assignmentTitle,
     msg.assignment,
     (msg.session as Record<string, unknown> | undefined)?.assignmentName,
+    (msg.assignment as Record<string, unknown> | undefined)?.name,
   ];
 
   for (const value of possibleValues) {
@@ -30,15 +32,7 @@ const getAssignmentLabel = (message: Message): string | null => {
   return null;
 };
 
-const normalizeKey = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/^[\s>*-]+/, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const cleanQuestionForDisplay = (text: string) =>
+const cleanText = (text: string) =>
   text
     .replace(/^[\s>*-]+/, "")
     .replace(/^\d+[\).\s-]+/, "")
@@ -49,82 +43,76 @@ const extractQuestionCandidates = (content: string): string[] => {
   const matches = content.match(/[^?\n]*\?/g) ?? [];
 
   return matches
-    .map((question) => cleanQuestionForDisplay(question))
+    .map((question) => cleanText(question))
     .filter((question) => question.length >= 6);
+};
+
+const getFallbackCandidates = (content: string): string[] => {
+  const cleaned = cleanText(content);
+
+  if (!cleaned || cleaned.length < 6) {
+    return [];
+  }
+
+  return [cleaned];
+};
+
+const pickTopText = (items: string[]) => {
+  const counts = new Map<string, number>();
+  const firstSeenOrder: string[] = [];
+
+  items.forEach((item) => {
+    if (!counts.has(item)) {
+      counts.set(item, 1);
+      firstSeenOrder.push(item);
+    } else {
+      counts.set(item, (counts.get(item) ?? 0) + 1);
+    }
+  });
+
+  const ranked = Array.from(counts.entries()).sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return firstSeenOrder.indexOf(a[0]) - firstSeenOrder.indexOf(b[0]);
+  });
+
+  return ranked[0];
 };
 
 const getTopQuestion = (messages: Message[]): TopQuestionResult => {
   const studentMessages = messages.filter(
-    (message) => message.role === "student"
+    (message) =>
+      message.role === "student" &&
+      typeof message.content === "string" &&
+      message.content.trim().length > 0
   );
-  const sourceMessages =
-    studentMessages.length > 0 ? studentMessages : messages;
 
-  const counts = new Map<string, { count: number; display: string }>();
-  const orderedQuestions: string[] = [];
+  const questionCandidates: string[] = [];
 
-  sourceMessages.forEach((message) => {
-    if (!message?.content?.trim()) return;
-
-    const candidates = extractQuestionCandidates(message.content);
-
-    candidates.forEach((candidate) => {
-      const key = normalizeKey(candidate);
-      if (!key) return;
-
-      const existing = counts.get(key);
-
-      if (existing) {
-        existing.count += 1;
-
-        if (candidate.length < existing.display.length) {
-          existing.display = candidate;
-        }
-      } else {
-        counts.set(key, { count: 1, display: candidate });
-        orderedQuestions.push(candidate);
-      }
-    });
+  studentMessages.forEach((message) => {
+    questionCandidates.push(...extractQuestionCandidates(message.content));
   });
 
-  if (counts.size === 0) {
-    return { question: "No questions found yet.", count: 0 };
+  if (questionCandidates.length > 0) {
+    const [question, count] = pickTopText(questionCandidates);
+    return { question, count };
   }
 
-  const ranked = Array.from(counts.values()).sort((a, b) => {
-    if (b.count !== a.count) return b.count - a.count;
-    return a.display.localeCompare(b.display);
+  const fallbackCandidates: string[] = [];
+
+  studentMessages.forEach((message) => {
+    fallbackCandidates.push(...getFallbackCandidates(message.content));
   });
 
-  const top = ranked[0];
-
-  if (top.count <= 1) {
-    return {
-      question: orderedQuestions[0] ?? "No questions found yet.",
-      count: 1,
-    };
+  if (fallbackCandidates.length > 0) {
+    const [question, count] = pickTopText(fallbackCandidates);
+    return { question, count };
   }
 
-  return {
-    question: top.display,
-    count: top.count,
-  };
+  return { question: "No student message data available.", count: 0 };
 };
 
 const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
-  const [selectedAssignment, setSelectedAssignment] = useState("all");
-
-  const assignmentOptions = useMemo(() => {
-    const labels = Array.from(
-      new Set(
-        messages
-          .map((message) => getAssignmentLabel(message))
-          .filter((value): value is string => Boolean(value))
-      )
-    );
-
-    return labels.sort((a, b) => a.localeCompare(b));
-  }, [messages]);
+  const { selectedAssignment } = useDashboardAssignmentFilter();
 
   const filteredMessages = useMemo(() => {
     if (selectedAssignment === "all") return messages;
@@ -144,22 +132,17 @@ const TopQuestionCard = ({ messages }: TopQuestionCardProps) => {
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-start justify-between gap-3">
-            <h2 className="text-xl font-semibold text-slate-900">
-              Top Question
-            </h2>
-
-            <select
-              value={selectedAssignment}
-              onChange={(e) => setSelectedAssignment(e.target.value)}
-              className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm text-slate-700"
-            >
-              <option value="all">All Assignments</option>
-              {assignmentOptions.map((assignment) => (
-                <option key={assignment} value={assignment}>
-                  {assignment}
-                </option>
-              ))}
-            </select>
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Top Question
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Viewing:{" "}
+                {selectedAssignment === "all"
+                  ? "All Assignments"
+                  : selectedAssignment}
+              </p>
+            </div>
           </div>
 
           <p className="mt-4 text-lg font-medium text-slate-800">

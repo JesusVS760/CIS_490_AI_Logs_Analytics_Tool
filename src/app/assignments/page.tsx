@@ -1,6 +1,6 @@
 import React from "react";
 import AssignmentsUsersChart from "../../components/assignments/AssignmentsUsersChart";
-
+import MessagesPerAssignmentCard from "../../components/dashboard/MessagesPerAssignmentCard";
 
 
 const AssignmentsPage = () => {
@@ -8,6 +8,7 @@ const AssignmentsPage = () => {
     <div>
       <h1>Assignments</h1>
       <AssignmentsUsersChart />
+      <MessagesPerAssignmentCard />
     </div>
   );
 };

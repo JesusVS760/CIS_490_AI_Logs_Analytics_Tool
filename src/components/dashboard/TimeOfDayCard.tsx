@@ -12,6 +12,7 @@ import {
 import { Line } from "react-chartjs-2";
 import { LineChart } from "lucide-react";
 import { Session } from "@/types";
+import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
 ChartJS.register(
   LineElement,
@@ -36,7 +37,8 @@ type SessionWithAssignment = Session & {
 const TimeOfDayCard = () => {
   const [sessions, setSessions] = useState<SessionWithAssignment[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [selectedAssignment, setSelectedAssignment] = useState("all");
+
+  const { selectedAssignment } = useDashboardAssignmentFilter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,44 +64,43 @@ const TimeOfDayCard = () => {
           }
         );
 
-        setSessions(processed);
-        setAssignments(assignmentsRes.data);
+        setSessions(Array.isArray(processed) ? processed : []);
+        setAssignments(
+          Array.isArray(assignmentsRes.data) ? assignmentsRes.data : []
+        );
       } catch (error) {
         console.error("Failed to load time-of-day analytics:", error);
+        setSessions([]);
+        setAssignments([]);
       }
     };
 
     fetchData();
   }, []);
 
-  const assignmentOptions = useMemo(() => {
-    const idsInSessions = new Set<number>();
+  const assignmentNameById = useMemo(() => {
+    const map = new Map<number, string>();
 
-    sessions.forEach((session) => {
-      const assignmentId = Number(
-        session.assignmentId ?? session.assignment_id
-      );
-
-      if (!Number.isNaN(assignmentId)) {
-        idsInSessions.add(assignmentId);
-      }
+    assignments.forEach((assignment) => {
+      map.set(assignment.id, assignment.name);
     });
 
-    return assignments
-      .filter((assignment) => idsInSessions.has(assignment.id))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [assignments, sessions]);
+    return map;
+  }, [assignments]);
 
   const filteredSessions = useMemo(() => {
     if (selectedAssignment === "all") return sessions;
 
     return sessions.filter((session) => {
-      const assignmentId = String(
+      const assignmentId = Number(
         session.assignmentId ?? session.assignment_id
       );
-      return assignmentId === selectedAssignment;
+
+      if (Number.isNaN(assignmentId)) return false;
+
+      return assignmentNameById.get(assignmentId) === selectedAssignment;
     });
-  }, [selectedAssignment, sessions]);
+  }, [selectedAssignment, sessions, assignmentNameById]);
 
   const hourLabels = Array.from({ length: 24 }, (_, hour) => {
     const suffix = hour < 12 ? "AM" : "PM";
@@ -122,13 +123,6 @@ const TimeOfDayCard = () => {
 
     return counts;
   }, [filteredSessions]);
-
-  const selectedAssignmentLabel =
-    selectedAssignment === "all"
-      ? "All Assignments"
-      : assignmentOptions.find(
-          (assignment) => String(assignment.id) === selectedAssignment
-        )?.name ?? `Assignment ${selectedAssignment}`;
 
   const chartData = {
     labels: hourLabels,
@@ -154,22 +148,12 @@ const TimeOfDayCard = () => {
             AI Tutor Traffic By Hour <LineChart />
           </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Viewing: {selectedAssignmentLabel}
+            Viewing:{" "}
+            {selectedAssignment === "all"
+              ? "All Assignments"
+              : selectedAssignment}
           </p>
         </div>
-
-        <select
-          value={selectedAssignment}
-          onChange={(e) => setSelectedAssignment(e.target.value)}
-          className="rounded-xl border px-4 py-2 text-sm bg-transparent"
-        >
-          <option value="all">All Assignments</option>
-          {assignmentOptions.map((assignment) => (
-            <option key={assignment.id} value={String(assignment.id)}>
-              {assignment.name}
-            </option>
-          ))}
-        </select>
       </div>
 
       <Line
