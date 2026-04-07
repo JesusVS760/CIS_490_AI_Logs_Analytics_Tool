@@ -19,7 +19,7 @@ export default function LogoutPage() {
     try {
       setLoading(true);
 
-      await axios.post("/api/logout", {}, { withCredentials: true });
+      await axios.post("/api/auth/logout", {}, { withCredentials: true }); // ← fixed path
 
       localStorage.removeItem("dashboardUser");
 
@@ -78,5 +78,3 @@ export default function LogoutPage() {
     </div>
   );
 }
-
-//needed change to comment on github

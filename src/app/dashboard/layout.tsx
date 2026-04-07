@@ -1,7 +1,11 @@
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default async function Home() {
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get("session_token");
 
@@ -9,5 +13,5 @@ export default async function Home() {
     redirect("/login");
   }
 
-  redirect("/dashboard");
+  return <>{children}</>;
 }
