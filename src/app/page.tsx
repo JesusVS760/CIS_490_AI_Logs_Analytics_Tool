@@ -11,3 +11,5 @@ export default async function Home() {
 
   redirect("/dashboard");
 }
+
+//check to commit to github 
