@@ -78,6 +78,7 @@ export default function DashboardPage() {
   const refreshAnalyticsData = useCallback(async () => {
     try {
       setLoadingAnalytics(true);
+      setAssignmentOptions([]);
 
       const [sessionsResponse, messagesResponse] = await Promise.all([
         axios.get("/api/sessions", {
@@ -106,31 +107,27 @@ export default function DashboardPage() {
     } finally {
       setLoadingAnalytics(false);
     }
-  }, []);
+  }, [setAssignmentOptions]);
 
   useEffect(() => {
     refreshAnalyticsData();
   }, [refreshAnalyticsData]);
 
   useEffect(() => {
-  if (messages.length === 0) return;
+    if (messages.length === 0) return;
 
-  console.log("Sample message:", messages[0]); // <-- add this
+    const options = Array.from(
+      new Set(
+        messages
+          .map((message) =>
+            getAssignmentLabel(message as Record<string, unknown>)
+          )
+          .filter((value): value is string => Boolean(value))
+      )
+    ).sort((a, b) => a.localeCompare(b));
 
-  const options = Array.from(
-    new Set(
-      messages
-        .map((message) =>
-          getAssignmentLabel(message as Record<string, unknown>)
-        )
-        .filter((value): value is string => Boolean(value))
-    )
-  ).sort((a, b) => a.localeCompare(b));
-
-  console.log("Assignment options found:", options); // <-- and this
-
-  setAssignmentOptions(options);
-}, [messages, setAssignmentOptions]);
+    setAssignmentOptions(options);
+  }, [messages, setAssignmentOptions]);
 
   const hasSessions = sessions.length > 0;
 
