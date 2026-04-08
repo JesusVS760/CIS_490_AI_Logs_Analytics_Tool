@@ -49,13 +49,14 @@ export function AppSidebar() {
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
   const pathname = usePathname();
-  const showDashboardFilter = pathname === "/";
 
   const {
     selectedAssignment,
     setSelectedAssignment,
     assignmentOptions,
   } = useDashboardAssignmentFilter();
+
+  const showDashboardFilter = pathname === "/dashboard" && assignmentOptions.length > 0;
 
   useEffect(() => {
     let isMounted = true;
@@ -204,7 +205,6 @@ export function AppSidebar() {
                   value={selectedAssignment}
                   onChange={(e) => setSelectedAssignment(e.target.value)}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 dark:border-slate-700 dark:bg-zinc-900 dark:text-white"
-                  disabled={assignmentOptions.length === 0}
                 >
                   <option value="all">All Assignments</option>
                   {assignmentOptions.map((assignment) => (

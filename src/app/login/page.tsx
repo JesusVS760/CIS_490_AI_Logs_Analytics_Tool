@@ -197,6 +197,16 @@ export default function LoginPage() {
             {statusMessage}
           </p>
         ) : null}
+
+        <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-600">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="font-semibold text-slate-900 underline-offset-4 hover:underline dark:text-slate-900"
+          >
+            Register
+          </Link>
+        </p>
       </section>
     </>
   );

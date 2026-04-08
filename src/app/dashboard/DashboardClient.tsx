@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TranscriptUpload from "@/components/upload/TranscriptUpload";
 import axios from "axios";
@@ -13,7 +11,6 @@ import {
   useMemo,
   useState,
 } from "react";
-
 
 import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
@@ -116,22 +113,24 @@ export default function DashboardPage() {
   }, [refreshAnalyticsData]);
 
   useEffect(() => {
-    const options = Array.from(
-      new Set(
-        messages
-          .map((message) =>
-            getAssignmentLabel(message as Record<string, unknown>)
-          )
-          .filter((value): value is string => Boolean(value))
-      )
-    ).sort((a, b) => a.localeCompare(b));
+  if (messages.length === 0) return;
 
-    setAssignmentOptions(options);
+  console.log("Sample message:", messages[0]); // <-- add this
 
-    return () => {
-      setAssignmentOptions([]);
-    };
-  }, [messages, setAssignmentOptions]);
+  const options = Array.from(
+    new Set(
+      messages
+        .map((message) =>
+          getAssignmentLabel(message as Record<string, unknown>)
+        )
+        .filter((value): value is string => Boolean(value))
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  console.log("Assignment options found:", options); // <-- and this
+
+  setAssignmentOptions(options);
+}, [messages, setAssignmentOptions]);
 
   const hasSessions = sessions.length > 0;
 
