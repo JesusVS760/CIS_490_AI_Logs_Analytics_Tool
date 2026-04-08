@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import path from "path";
+import { promises as fs } from "fs";
 import db from "@/lib/db";
-import { verifyAuth } from "@/lib/auth";
+import { verifyAuth, deleteSessionToken } from "@/lib/auth";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -10,20 +12,50 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    db.prepare(
-      `
-      DELETE FROM instructors
-      WHERE id = ?
-      `
-    ).run(auth.instructorId);
+    // Clean up profile picture file if it exists
+    if (
+      auth.profilePic &&
+      auth.profilePic.startsWith("/uploads/profile-pics/")
+    ) {
+      const oldFilePath = path.join(process.cwd(), "public", auth.profilePic);
+      try {
+        await fs.unlink(oldFilePath);
+      } catch {}
+    }
 
-    const response = NextResponse.json({ success: true });
+    // Clear the session token
+    const token = req.cookies.get("session_token")?.value;
+    if (token) deleteSessionToken(token);
 
-    // Clear the session cookie so the client is logged out
-    response.cookies.set("token", "", {
+    // Wipe all uploaded data from the database.
+    // Order: leaf tables → parent tables (respects foreign keys).
+    db.prepare("DELETE FROM terminal_snapshots").run();
+    db.prepare("DELETE FROM code_snapshots").run();
+    db.prepare("DELETE FROM messages").run();
+    db.prepare("DELETE FROM sessions").run();
+    db.prepare("DELETE FROM students").run();
+    db.prepare("DELETE FROM assignments").run();
+    db.prepare("DELETE FROM courses").run();
+
+    // Delete auth sessions for this instructor
+    db.prepare("DELETE FROM instructor_sessions WHERE instructor_id = ?").run(
+      auth.instructorId
+    );
+
+    // Delete the instructor account
+    db.prepare("DELETE FROM instructors WHERE id = ?").run(auth.instructorId);
+
+    const response = NextResponse.json({
+      success: true,
+      message: "Account deleted successfully",
+    });
+
+    response.cookies.set("session_token", "", {
       httpOnly: true,
-      expires: new Date(0),
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       path: "/",
+      maxAge: 0,
     });
 
     return response;
@@ -35,5 +67,3 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
-
-//test commit to github nnnnn
