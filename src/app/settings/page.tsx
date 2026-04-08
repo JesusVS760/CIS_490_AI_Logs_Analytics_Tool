@@ -223,10 +223,23 @@ export default function SettingClient() {
       localStorage.removeItem("dashboardUser");
       localStorage.removeItem("dashboardTheme");
 
-      toast.success("Account deleted ✅");
       router.push("/login");
     } catch (error) {
-      toast.error("Deletion failed ❌");
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message;
+        console.error(
+          "Delete account error:",
+          error.response?.status,
+          message
+        );
+        toast.error(`Deletion failed: ${message} ❌`);
+      } else {
+        console.error("Delete account unknown error:", error);
+        toast.error("Deletion failed ❌");
+      }
     } finally {
       setDeletingAccount(false);
     }
@@ -328,6 +341,7 @@ export default function SettingClient() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
+            {/* Left column — Profile Overview */}
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <h2 className="text-xl font-semibold">Profile Overview</h2>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -401,7 +415,9 @@ export default function SettingClient() {
               </div>
             </div>
 
+            {/* Right column — Settings panels */}
             <div className="space-y-6 lg:col-span-2">
+              {/* Appearance */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
                   {modeDark ? (
@@ -437,6 +453,7 @@ export default function SettingClient() {
                 </div>
               </div>
 
+              {/* Username */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -478,6 +495,7 @@ export default function SettingClient() {
                 </div>
               </div>
 
+              {/* Password */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
                   <KeyRound className="h-5 w-5" />
@@ -512,7 +530,9 @@ export default function SettingClient() {
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
                       className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showPassword ? (
                         <EyeOff className="h-5 w-5" />
@@ -535,6 +555,7 @@ export default function SettingClient() {
                 </div>
               </div>
 
+              {/* Danger Zone */}
               <div className="rounded-2xl border border-red-300 bg-white p-6 shadow-sm dark:border-red-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                   <ShieldAlert className="h-5 w-5" />
