@@ -7,10 +7,12 @@ export default async function AssignmentsPage() {
   await requireAuthPage();
 
   return (
-    <div>
-      <h1>Assignments</h1>
-      <AssignmentsUsersChart />
-      <MessagesPerAssignmentCard />
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <h1 className="text-2xl font-bold">Assignments</h1>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <AssignmentsUsersChart />
+        <MessagesPerAssignmentCard />
+      </div>
     </div>
   );
 }
