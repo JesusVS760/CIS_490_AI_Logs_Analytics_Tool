@@ -14,7 +14,7 @@ import {
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useAiAnalytics } from "@/app/dashboard/page";
+import { useAiAnalytics } from "@/app/dashboard/DashboardClient";
 import { Switch } from "../ui/switch";
 
 const ACCEPTED_TYPES = ["text/plain", "application/pdf"];

@@ -13,7 +13,7 @@ import MessagesPerConversation from "./MessagesPerConversation";
 import TrafficPerDayCard from "./TrafficPerDayCard";
 import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
 import TotalNumofUniqueHWAssignStudentCard from "./TotalNumofUniqueHWAssignStudentCard";
-import { useAiAnalytics } from "@/app/dashboard/page";
+import { useAiAnalytics } from "@/app/dashboard/DashboardClient";
 
 const AnalyticsDashboard = () => {
   const { messages, loadingAnalytics, pendingUploadSuccess, hasSessions } =

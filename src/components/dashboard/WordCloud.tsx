@@ -1,4 +1,4 @@
-import { useAiAnalytics } from "@/app/dashboard/page";
+import { useAiAnalytics } from "@/app/dashboard/DashboardClient";
 import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 import { countTracker } from "@/lib/CountTracker";
 import { randomColor } from "@/lib/utils";

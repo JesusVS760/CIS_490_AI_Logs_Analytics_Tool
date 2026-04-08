@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { promises as fs } from "fs";
 import db from "@/lib/db";
-import { verifyAuth } from "@/lib/auth";
+import { verifyAuth, deleteSessionToken } from "@/lib/auth";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -21,6 +21,9 @@ export async function DELETE(req: NextRequest) {
         await fs.unlink(oldFilePath);
       } catch {}
     }
+
+    const token = req.cookies.get("session_token")?.value;
+    if (token) deleteSessionToken(token);
 
     db.prepare(
       `
