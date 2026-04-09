@@ -12,8 +12,8 @@ import TimeOfDayCard from "./TimeOfDayCard";
 import MessagesPerConversation from "./MessagesPerConversation";
 import TrafficPerDayCard from "./TrafficPerDayCard";
 import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
-import TotalNumofUniqueHWAssignStudentCard from "./TotalNumofUniqueHWAssignStudentCard";
 import { useAiAnalytics } from "@/app/dashboard/DashboardClient";
+import UniqueAssignmentsPerStudentCard from "./UniqueAssignmentsPerStudentCard";
 
 const AnalyticsDashboard = () => {
   const { messages, loadingAnalytics, pendingUploadSuccess, hasSessions } =
@@ -63,7 +63,7 @@ const AnalyticsDashboard = () => {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <UniqueStudentTotalMsgCard messages={messages} />
-        <TotalNumofUniqueHWAssignStudentCard messages={messages} />
+        <UniqueAssignmentsPerStudentCard messages={messages} />
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">

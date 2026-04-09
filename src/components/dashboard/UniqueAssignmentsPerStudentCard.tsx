@@ -4,86 +4,18 @@ import React, { useMemo } from "react";
 import { Message } from "@/types";
 import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
-type TotalNumofUniqueHWAssignStudentCardProps = {
-  messages: Message[];
-};
-
-function getNestedString(
-  obj: Record<string, unknown>,
-  paths: string[][]
-): string | null {
-  for (const path of paths) {
-    let current: unknown = obj;
-
-    for (const key of path) {
-      if (!current || typeof current !== "object") {
-        current = null;
-        break;
-      }
-      current = (current as Record<string, unknown>)[key];
-    }
-
-    if (typeof current === "string" && current.trim()) {
-      return current.trim();
-    }
-  }
-
-  return null;
-}
-
-function getStudentLabel(message: Message): string {
-  const m = message as Record<string, unknown>;
-
-  const value =
-    getNestedString(m, [
-      ["studentName"],
-      ["studentEmail"],
-      ["studentAnonymousId"],
-      ["student", "name"],
-      ["student", "email"],
-      ["student", "anonymousId"],
-      ["user", "name"],
-      ["user", "email"],
-    ]) ?? "";
-
-  if (!value) return "Unknown Student";
-
-  if (value.includes("@")) {
-    return value.split("@")[0];
-  }
-
-  if (value.length > 12) {
-    return `Student ${value.slice(0, 8)}`;
-  }
-
-  return value;
-}
-
-function getAssignmentLabel(message: Message): string {
-  const m = message as Record<string, unknown>;
-
-  return (
-    getNestedString(m, [
-      ["assignmentName"],
-      ["assignment", "name"],
-      ["session", "assignmentName"],
-      ["metadata", "assignmentName"],
-      ["hwName"],
-      ["homeworkName"],
-    ]) ?? "Unknown Assignment"
-  );
-}
-
-export default function TotalNumofUniqueHWAssignStudentCard({
+export default function UniqueAssignmentsPerStudentCard({
   messages,
-}: TotalNumofUniqueHWAssignStudentCardProps) {
+}: {
+  messages: Message[];
+}) {
   const { selectedAssignment } = useDashboardAssignmentFilter();
 
   const filteredMessages = useMemo(() => {
     if (selectedAssignment === "all") return messages;
 
     return messages.filter(
-      (message) => getAssignmentLabel(message) === selectedAssignment
+      (message) => message.assignmentName === selectedAssignment
     );
   }, [messages, selectedAssignment]);
 
@@ -91,16 +23,14 @@ export default function TotalNumofUniqueHWAssignStudentCard({
     const studentAssignments = new Map<string, Set<string>>();
 
     for (const message of filteredMessages) {
-      const student = getStudentLabel(message);
-      const assignment = getAssignmentLabel(message);
+      const student = String(message.studentId);
+      const assignment = message.assignmentName;
 
       if (!studentAssignments.has(student)) {
         studentAssignments.set(student, new Set());
       }
 
-      if (assignment !== "Unknown Assignment") {
-        studentAssignments.get(student)!.add(assignment);
-      }
+      studentAssignments.get(student)!.add(assignment);
     }
 
     return Array.from(studentAssignments.entries())
@@ -175,7 +105,7 @@ export default function TotalNumofUniqueHWAssignStudentCard({
                       </div>
 
                       <span className="mt-2 w-full break-words text-center text-[10px] text-slate-600">
-                        {item.student}
+                        Student: {item.student}
                       </span>
                     </div>
                   );

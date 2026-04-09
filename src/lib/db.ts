@@ -176,9 +176,9 @@ if (!assignmentColumns.some((col) => col.name === "due_date")) {
   db.exec("ALTER TABLE assignments ADD COLUMN due_date DATETIME");
 }
 
-const sessionColumns = db
-  .prepare("PRAGMA table_info(sessions)")
-  .all() as { name: string }[];
+const sessionColumns = db.prepare("PRAGMA table_info(sessions)").all() as {
+  name: string;
+}[];
 
 if (!sessionColumns.some((col) => col.name === "import_key")) {
   db.exec("ALTER TABLE sessions ADD COLUMN import_key TEXT");
@@ -254,9 +254,9 @@ export function upsertCourse(name: string, generatedAt?: string): number {
     `
   ).run(name, normalizeTimestamp(generatedAt) ?? null);
 
-  const row = db
-    .prepare("SELECT id FROM courses WHERE name = ?")
-    .get(name) as { id: number };
+  const row = db.prepare("SELECT id FROM courses WHERE name = ?").get(name) as {
+    id: number;
+  };
 
   return row.id;
 }
@@ -555,11 +555,10 @@ export function getUserCountsPerAssignment() {
       `
     )
     .all() as {
-      assignmentId: number;
-      assignmentName: string;
-      userCount: number;
-    }[];
+    assignmentId: number;
+    assignmentName: string;
+    userCount: number;
+  }[];
 }
-
 
 export default db;

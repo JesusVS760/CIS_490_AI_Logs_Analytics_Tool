@@ -18,12 +18,27 @@ export interface ParsedTranscript {
   sessions: ParsedSession[];
 }
 
-export type Message = {
+export type SessionMessage = {
   id: string;
   content: string;
   role?: "student" | "ai_tutor";
   timestamp?: string;
 };
+export type Message = {
+  id: string;
+  content: string;
+  role?: "student" | "ai_tutor";
+  timestamp?: string;
+  sessionId: number;
+  assignmentId: number;
+  assignmentName: string;
+  assignmentDueDate: string;
+  assignmentStartDate: string;
+  studentId: number;
+  workedDate: string;
+};
+
+// COME BACK TO
 
 export type Session = {
   id: number;
@@ -35,4 +50,12 @@ export type Session = {
   messages: { role: string; timestamp: string; content?: string }[];
 };
 
-type wordCloud = Record<string, number>;
+export type Sessions = {
+  assignmentDueDate: string;
+  assignmentId: number;
+  assignmentName: string;
+  assignmentStartDate: string;
+  createdAt: string;
+  endedAt: string | null;
+  messages: Message[];
+};

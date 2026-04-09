@@ -4,95 +4,25 @@ import React, { useMemo } from "react";
 import { Message } from "@/types";
 import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 
-type UniqueStudentTotalMsgCardProps = {
-  messages: Message[];
-};
-
-function getNestedString(
-  obj: Record<string, unknown>,
-  paths: string[][]
-): string | null {
-  for (const path of paths) {
-    let current: unknown = obj;
-
-    for (const key of path) {
-      if (!current || typeof current !== "object") {
-        current = null;
-        break;
-      }
-      current = (current as Record<string, unknown>)[key];
-    }
-
-    if (typeof current === "string" && current.trim()) {
-      return current.trim();
-    }
-  }
-
-  return null;
-}
-
-function getStudentLabel(message: Message): string {
-  const m = message as Record<string, unknown>;
-
-  const value =
-    getNestedString(m, [
-      ["studentName"],
-      ["studentEmail"],
-      ["studentAnonymousId"],
-      ["student", "name"],
-      ["student", "email"],
-      ["student", "anonymousId"],
-      ["user", "name"],
-      ["user", "email"],
-    ]) ?? "";
-
-  if (!value) return "Unknown Student";
-
-  if (value.includes("@")) {
-    return value.split("@")[0];
-  }
-
-  if (value.length > 12) {
-    return `Student ${value.slice(0, 8)}`;
-  }
-
-  return value;
-}
-
-function getAssignmentLabel(message: Message): string {
-  const m = message as Record<string, unknown>;
-
-  return (
-    getNestedString(m, [
-      ["assignmentName"],
-      ["assignment", "name"],
-      ["session", "assignmentName"],
-      ["metadata", "assignmentName"],
-      ["hwName"],
-      ["homeworkName"],
-    ]) ?? "Unknown Assignment"
-  );
-}
-
 export default function UniqueStudentTotalMsgCard({
   messages,
-}: UniqueStudentTotalMsgCardProps) {
+}: {
+  messages: Message[];
+}) {
   const { selectedAssignment } = useDashboardAssignmentFilter();
 
   const filteredMessages = useMemo(() => {
     if (selectedAssignment === "all") return messages;
 
-    return messages.filter(
-      (message) => getAssignmentLabel(message) === selectedAssignment
-    );
+    return messages.filter((m) => m.assignmentName === selectedAssignment);
   }, [messages, selectedAssignment]);
 
   const chartData = useMemo(() => {
     const counts = new Map<string, number>();
 
-    for (const message of filteredMessages) {
-      const student = getStudentLabel(message);
-      counts.set(student, (counts.get(student) || 0) + 1);
+    for (const m of filteredMessages) {
+      const student = String(m.studentId);
+      counts.set(student, (counts.get(student) ?? 0) + 1);
     }
 
     return Array.from(counts.entries())
@@ -114,7 +44,7 @@ export default function UniqueStudentTotalMsgCard({
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 className="flex items-center gap-2 font-bold text-lg">
-              Messages per Student
+              Messages Per Student
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Based on uploaded transcript log data.
@@ -159,13 +89,15 @@ export default function UniqueStudentTotalMsgCard({
                       <div className="flex h-[145px] items-end">
                         <div
                           className="w-8 rounded-t-md bg-slate-800 transition-all duration-300"
-                          style={{ height: `${Math.max(heightPercent, 6)}%` }}
+                          style={{
+                            height: `${Math.max(heightPercent, 6)}%`,
+                          }}
                           title={`${item.student}: ${item.totalMessages} messages`}
                         />
                       </div>
 
                       <span className="mt-2 w-full break-words text-center text-[10px] text-slate-600">
-                        {item.student}
+                        Student: {item.student}
                       </span>
                     </div>
                   );

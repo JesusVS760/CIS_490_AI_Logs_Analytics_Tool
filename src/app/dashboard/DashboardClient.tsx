@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
+import { Message } from "@/types";
 
 type AiAnalyticsContextType = {
   isAiAccepted: boolean;
@@ -40,34 +41,9 @@ export const AiAnalyticsContext = createContext<AiAnalyticsContextType>({
 
 export const useAiAnalytics = () => useContext(AiAnalyticsContext);
 
-const getAssignmentLabel = (message: Record<string, unknown>): string | null => {
-  const possibleValues = [
-    message.assignmentName,
-    message.assignmentTitle,
-    message.assignment,
-    message.title,
-    message.taskName,
-    (message.assignment as Record<string, unknown> | undefined)?.name,
-    (message.session as Record<string, unknown> | undefined)?.assignmentName,
-    (
-      (message.session as Record<string, unknown> | undefined)?.assignment as
-        | Record<string, unknown>
-        | undefined
-    )?.name,
-  ];
-
-  for (const value of possibleValues) {
-    if (typeof value === "string" && value.trim()) {
-      return value.trim();
-    }
-  }
-
-  return null;
-};
-
 export default function DashboardPage() {
   const [sessions, setSessions] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [isAiAccepted, setIsAiAccepted] = useState<boolean>(false);
   const [pendingUploadSuccess, setPendingUploadSuccess] =
@@ -100,6 +76,7 @@ export default function DashboardPage() {
 
       setSessions(nextSessions);
       setMessages(nextMessages);
+      console.log(nextSessions);
     } catch (error) {
       console.error("failed to refresh analytics data", error);
       setSessions([]);
@@ -119,9 +96,7 @@ export default function DashboardPage() {
     const options = Array.from(
       new Set(
         messages
-          .map((message) =>
-            getAssignmentLabel(message as Record<string, unknown>)
-          )
+          .map((message) => message.assignmentName)
           .filter((value): value is string => Boolean(value))
       )
     ).sort((a, b) => a.localeCompare(b));
@@ -160,7 +135,7 @@ export default function DashboardPage() {
         {loadingAnalytics ? (
           <div className="flex justify-center items-center min-h-screen">
             <div className="text-sm text-muted-foreground">
-              Loading dashboard...
+              Loading your personalized dashboard ⏳
             </div>
           </div>
         ) : hasSessions ? (
