@@ -11,7 +11,9 @@ const instructorColumns = db
   .all() as { name: string }[];
 
 if (!instructorColumns.some((col) => col.name === "is_verified")) {
-  db.exec("ALTER TABLE instructors ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0");
+  db.exec(
+    "ALTER TABLE instructors ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0",
+  );
 }
 
 if (!instructorColumns.some((col) => col.name === "verification_code")) {
@@ -56,7 +58,9 @@ async function sendVerificationEmail(email: string, code: string) {
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const email = String(formData.get("email") || "").trim().toLowerCase();
+    const email = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase();
     const password = String(formData.get("password") || "");
     const name = String(formData.get("name") || "").trim();
     const normalizedEmail = email.toLowerCase().trim();

@@ -1,7 +1,7 @@
 "use client";
 
 import { TimerIcon } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -43,11 +43,9 @@ const ChatDuration = () => {
           axios.get("/api/assignments"),
         ]);
 
-        setSessions(
-          Array.isArray(sessionsRes.data) ? sessionsRes.data : []
-        );
+        setSessions(Array.isArray(sessionsRes.data) ? sessionsRes.data : []);
         setAssignments(
-          Array.isArray(assignmentsRes.data) ? assignmentsRes.data : []
+          Array.isArray(assignmentsRes.data) ? assignmentsRes.data : [],
         );
       } catch (error) {
         console.error("Failed to load chat duration analytics:", error);
@@ -74,7 +72,7 @@ const ChatDuration = () => {
 
     return sessions.filter((session) => {
       const assignmentId = Number(
-        session.assignmentId ?? session.assignment_id
+        session.assignmentId ?? session.assignment_id,
       );
 
       if (Number.isNaN(assignmentId)) return false;
@@ -104,7 +102,14 @@ const ChatDuration = () => {
       if (Number.isNaN(start) || Number.isNaN(end)) return;
 
       const minutes = (end - start) / (1000 * 60);
-      if (minutes < 0) return;
+      if (minutes < 0 || minutes > 180) return; // cap at 3 hours — handles abandoned sessions
+
+      console.log({
+        id: session.id,
+        minutes,
+        startedAt: session.startedAt,
+        endedAt: session.endedAt,
+      });
 
       totalMinutes += minutes;
       validSessions++;
@@ -118,7 +123,7 @@ const ChatDuration = () => {
 
     return {
       sessionsLength: filteredSessions.length,
-      averageTime: validSessions > 0 ? totalMinutes / validSessions / 60 : 0,
+      averageTime: validSessions > 0 ? totalMinutes / validSessions : 0,
       chartData: {
         labels: Object.keys(buckets),
         datasets: [
@@ -155,7 +160,7 @@ const ChatDuration = () => {
       <div className="mt-auto">
         <div className="mb-4 text-sm text-muted-foreground">
           <div>Total Sessions: {sessionsLength}</div>
-          <div>Average Time: {averageTime.toFixed(2)} hrs</div>
+          <div>Average Time: {averageTime.toFixed(2)} Minutes</div>
         </div>
 
         <Bar
