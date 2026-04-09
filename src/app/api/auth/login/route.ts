@@ -8,9 +8,9 @@ ensureInstructorsTable();
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const email = formData.get("email") as string | null;
-    const password = formData.get("password") as string | null;
+    const body = await req.json();
+    const email = body.email as string | null;
+    const password = body.password as string | null;
 
     if (!email || !password) {
       return NextResponse.json(
