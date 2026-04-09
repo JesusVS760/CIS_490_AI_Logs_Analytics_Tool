@@ -109,17 +109,17 @@ export default function UniqueStudentTotalMsgCard({
   );
 
   return (
-    <section className="rounded-lg border bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-gray-100 p-6 shadow-sm w-full bg-white dark:bg-zinc-900">
       <div className="mb-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">
+            <h2 className="flex items-center gap-2 font-bold text-lg">
               Messages per Student
             </h2>
-            <p className="mt-1 text-[11px] text-slate-600">
+            <p className="mt-1 text-sm text-muted-foreground">
               Based on uploaded transcript log data.
             </p>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               Viewing:{" "}
               {selectedAssignment === "all"
                 ? "All Assignments"
@@ -135,7 +135,7 @@ export default function UniqueStudentTotalMsgCard({
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-end justify-between text-[10px] font-medium text-slate-500">
+          <div className="flex items-end justify-between mt-1 text-md text-foreground">
             <span>Students</span>
             <span>Total Messages</span>
           </div>
