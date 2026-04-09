@@ -202,6 +202,19 @@ export default function LoginPage() {
         // Error/status feedback text
         <p className="mt-4 text-center text-sm text-red-700">{statusMessage}</p>
       ) : null}
+
+      {/* Register link */}
+      <p className="mt-4 text-center text-sm text-slate-600">
+               Don&apos;t have an account?{" "}
+         <Link
+        href="/register"
+    className="font-medium text-slate-700 underline-offset-4 hover:underline"
+     >
+     Register
+  </Link>
+</p>
+
+
     </section>
   );
 }
