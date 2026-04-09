@@ -16,33 +16,6 @@ import { Message } from "@/types";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-const getAssignmentLabel = (message: Message): string | null => {
-  const msg = message as Record<string, unknown>;
-
-  const possibleValues = [
-    msg.assignmentName,
-    msg.assignmentTitle,
-    msg.assignment,
-    msg.title,
-    msg.taskName,
-    (msg.assignment as Record<string, unknown> | undefined)?.name,
-    (msg.session as Record<string, unknown> | undefined)?.assignmentName,
-    (
-      (msg.session as Record<string, unknown> | undefined)?.assignment as
-        | Record<string, unknown>
-        | undefined
-    )?.name,
-  ];
-
-  for (const value of possibleValues) {
-    if (typeof value === "string" && value.trim()) {
-      return value.trim();
-    }
-  }
-
-  return null;
-};
-
 const MessagesPerAssignmentCard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,8 +48,7 @@ const MessagesPerAssignmentCard = () => {
     const counts = new Map<string, number>();
 
     messages.forEach((message) => {
-      const assignmentLabel =
-        getAssignmentLabel(message) ?? "Unknown Assignment";
+      const assignmentLabel = message.assignmentName;
       counts.set(assignmentLabel, (counts.get(assignmentLabel) ?? 0) + 1);
     });
 
@@ -110,7 +82,7 @@ const MessagesPerAssignmentCard = () => {
   const totalAssignments = assignmentData.length;
   const totalMessagesAcrossAssignments = assignmentData.reduce(
     (sum, item) => sum + item.count,
-    0,
+    0
   );
 
   return (
