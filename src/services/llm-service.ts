@@ -16,7 +16,7 @@ export const llmService = {
       });
 
       const text = response.choices[0].message.content;
-      console.log("RAW LLM TEXT:", text);
+      // console.log("RAW LLM TEXT:", text);
 
       if (!text) {
         console.log("error");

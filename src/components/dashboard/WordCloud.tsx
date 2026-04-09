@@ -99,7 +99,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
           value: typeof value === "number" ? value : Number(value) || 0,
         }))
         .sort((a, b) => b.value - a.value)
-        .slice(0, 10);
+        .slice(0, 8);
 
       setWords(wordArray);
     };
@@ -108,6 +108,32 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
   }, [filteredMessages, isAiAccepted]);
 
   const maxCount = Math.max(...words.map((word) => word.value), 1);
+  const minCount = Math.min(...words.map((word) => word.value), 0);
+
+  const COLORS = [
+    "#534AB7",
+    "#0F6E56",
+    "#185FA5",
+    "#993556",
+    "#D85A30",
+    "#3B6D11",
+    "#BA7517",
+    "#A32D2D",
+    "#1D9E75",
+    "#7F77DD",
+  ];
+
+  const getSize = (value: number) => {
+    const normalized = (value - minCount) / Math.max(maxCount - minCount, 1);
+    return 52 + normalized * 64; // range: 52px to 116px
+  };
+
+  const getFontSize = (value: number, text: string) => {
+    const size = getSize(value);
+    const bySize = size / 3.2;
+    const byLength = size / (text.length * 0.65);
+    return Math.max(Math.min(bySize, byLength), 11); // never below 11px
+  };
 
   return (
     <div className="rounded-2xl border border-gray-100 p-6 shadow-sm w-full bg-white dark:bg-zinc-900">
@@ -132,41 +158,57 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
           No phrase data available for the selected assignment.
         </div>
       ) : (
-        <div className="flex flex-wrap justify-center gap-2">
-          {words.map((word, index) => {
-            const size = 40 + (word.value / maxCount) * 60;
-            const fontSize = Math.min(
-              size / 2.8,
-              size / (word.text.length * 0.6),
-            );
-            const offsetX = (Math.random() - 1) * 12;
-            const offsetY = (Math.random() - 1) * 12;
+        <>
+          <div className="flex flex-wrap justify-center items-center gap-3 py-2">
+            {words.map((word, index) => {
+              const size = getSize(word.value);
+              const fontSize = getFontSize(word.value, word.text);
+              const bg = COLORS[index % COLORS.length];
 
-            return (
-              <span
-                key={index}
-                style={{
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: `${fontSize}px`,
-                  fontWeight: "bold",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.6)",
-                  color: "white",
-                  backgroundColor: randomColor(),
-                  borderRadius: "50%",
-                  margin: "6px",
-                  whiteSpace: "nowrap",
-                  transform: `translate(${offsetX}px, ${offsetY}px)`,
-                }}
-              >
-                {word.text}
-              </span>
-            );
-          })}
-        </div>
+              return (
+                <div
+                  key={index}
+                  style={{
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    backgroundColor: bg,
+                    borderRadius: "50%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "8px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      fontWeight: 600,
+                      color: "white",
+                      textAlign: "center",
+                      lineHeight: 1.2,
+                      wordBreak: "break-word",
+                      overflow: "hidden",
+                      maxWidth: "90%",
+                    }}
+                  >
+                    {word.text}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: "rgba(255,255,255,0.7)",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {word.value}×
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

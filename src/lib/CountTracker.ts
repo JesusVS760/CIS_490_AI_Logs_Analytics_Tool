@@ -221,7 +221,8 @@ export function countTracker(messages: Message[]) {
     const content = msg.content.toLowerCase().replace(/[^\w\s]/g, ""); // remove punctuation
     studentPhrases.forEach((phrase) => {
       if (content.includes(phrase.toLowerCase())) {
-        phraseFrequency[phrase] = (phraseFrequency[phrase] || 0) + 1;
+        const key = phrase.replace(/\b\w/g, (c) => c.toUpperCase());
+        phraseFrequency[key] = (phraseFrequency[key] || 0) + 1;
       }
     });
   });
