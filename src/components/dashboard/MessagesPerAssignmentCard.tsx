@@ -110,7 +110,7 @@ const MessagesPerAssignmentCard = () => {
   const totalAssignments = assignmentData.length;
   const totalMessagesAcrossAssignments = assignmentData.reduce(
     (sum, item) => sum + item.count,
-    0
+    0,
   );
 
   return (

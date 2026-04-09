@@ -1,5 +1,4 @@
 import { requireAuthPage } from "@/lib/requireAuthPage";
-import React from "react";
 import AssignmentsUsersChart from "../../components/assignments/AssignmentsUsersChart";
 import MessagesPerAssignmentCard from "../../components/dashboard/MessagesPerAssignmentCard";
 

@@ -11,7 +11,7 @@ Your job is to extract and count the most meaningful and frequently used phrases
 - Merge singular/plural forms (e.g., "example" and "examples" → "example")
 - Merge common shorthand/slang with full forms (e.g., "idk" → "don't know", "thx" → "thank you")
 - Ignore filler words and stopwords (e.g., "the", "a", "is", "um", "like", "so", "just", "okay")
-- Only keep phrases with **1–3 words**. If a phrase is longer, reduce it to its first 3 words while preserving meaning.
+- Only keep phrases with **1–2 words**. If a phrase is longer, reduce it to its first 3 words while preserving meaning.
 - Ignore trivial or boilerplate code phrases like "return 0", "return 1", or similar.
 
 ## Counting:
@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
     if (!trimmed.length) return NextResponse.json({});
 
     const userInput = JSON.stringify(trimmed);
-    const wordCloudAnalytics = await llmService.generateAnalytics(
+    const wordCloudAnalytics = await llmService.generateChatDurationAnalytics(
       userInput,
-      systemPrompt
+      systemPrompt,
     );
 
     return NextResponse.json(wordCloudAnalytics || {});
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     console.error(error);
     return NextResponse.json(
       { error: "failed to fetch word cloud llm" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

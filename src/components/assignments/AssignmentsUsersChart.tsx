@@ -31,7 +31,7 @@ const AssignmentsUsersChart = () => {
         setLoading(true);
         setError(null);
 
-        const res = await fetch("/api/assignment-users");
+        const res = await fetch("/api/assignments/countPerAssignment");
         if (!res.ok) {
           throw new Error("Failed to fetch assignment user counts");
         }
@@ -73,7 +73,7 @@ const AssignmentsUsersChart = () => {
   const totalAssignments = data.length;
   const totalUsersAcrossAssignments = data.reduce(
     (sum, item) => sum + item.userCount,
-    0
+    0,
   );
 
   return (
@@ -91,7 +91,9 @@ const AssignmentsUsersChart = () => {
         <>
           <div className="mb-4 text-sm text-muted-foreground">
             <div>Total Homework: {totalAssignments}</div>
-            <div>Total Users Counted Across Homework: {totalUsersAcrossAssignments}</div>
+            <div>
+              Total Users Counted Across Homework: {totalUsersAcrossAssignments}
+            </div>
           </div>
 
           {data.length === 0 ? (

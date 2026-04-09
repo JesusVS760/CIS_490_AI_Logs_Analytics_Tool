@@ -1,7 +1,7 @@
 import { openai } from "@/lib/openai";
 
 export const llmService = {
-  async generateAnalytics(userInput: string, systemPrompt: string) {
+  async generateChatDurationAnalytics(userInput: string, systemPrompt: string) {
     if (!userInput || typeof userInput !== "string") {
       throw new Error("userInput must be a non-empty string");
     }

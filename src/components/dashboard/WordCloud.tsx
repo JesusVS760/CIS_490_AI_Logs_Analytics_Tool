@@ -52,7 +52,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
     if (selectedAssignment === "all") return messages;
 
     return messages.filter(
-      (message) => getAssignmentLabel(message) === selectedAssignment
+      (message) => getAssignmentLabel(message) === selectedAssignment,
     );
   }, [messages, selectedAssignment]);
 
@@ -137,7 +137,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
             const size = 40 + (word.value / maxCount) * 60;
             const fontSize = Math.min(
               size / 2.8,
-              size / (word.text.length * 0.6)
+              size / (word.text.length * 0.6),
             );
             const offsetX = (Math.random() - 1) * 12;
             const offsetY = (Math.random() - 1) * 12;

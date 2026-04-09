@@ -22,9 +22,7 @@ const AnalyticsDashboard = () => {
   if (loadingAnalytics) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="text-sm text-muted-foreground">
-          Loading analytics...
-        </div>
+        <div className="text-sm text-muted-foreground">AI Analyzing 💻...</div>
       </div>
     );
   }

@@ -8,9 +8,7 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json(
       { error: "failed to fetch assignment user counts" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-///NEED TO PUSH TO GITHUB TO MAIN TEST

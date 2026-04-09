@@ -16,24 +16,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const themeScript = `
-    (function () {
-      try {
-        var savedTheme = localStorage.getItem("dashboardTheme");
-        if (savedTheme === "dark") {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
-      } catch (e) {}
-    })();
-  `;
-
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body className="h-full bg-white text-black transition-colors duration-300 dark:bg-gray-900 dark:text-white">
         <ThemeProvider>
           <DashboardAssignmentFilterProvider>
