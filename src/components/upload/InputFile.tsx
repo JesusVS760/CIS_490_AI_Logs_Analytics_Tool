@@ -153,6 +153,32 @@ export function InputFile() {
     return `${rows.length} file${rows.length === 1 ? "" : "s"} selected`;
   }, [rows.length]);
 
+
+  //Returns true if any row has both a detected date and a user-typed date that differ
+  //exactly the same condition the red badge uses
+  //useMemo is wrapped so it only recomputes when rows changes, not on every render
+ // A row is invalid if the user hasn't entered a date yet, or the entered
+  // date doesn't match the date detected from the log. Both cases block
+  // submission.
+  // blank is also flagged anmd catches empty strins 
+  const hasInvalidDate = useMemo(() => {
+    return rows.some(
+      (row) => !row.endDate || row.endDate !== row.detectedEndDate
+    );
+  }, [rows]);
+
+  // Whenever rows are added that don't yet have a detected date, quietly
+  // ask the backend to detect one so we can show the correct date to the
+  // user right away.
+  useEffect(() => {
+    const hasUndetectedRow = rows.some((row) => !row.detectedEndDate);
+    if (!hasUndetectedRow) return;
+    if (loading || detectingDates) return;
+
+    handleAutofillEndDates({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows.length]);
+
   const buildFileConfigsPayload = (targetRows: UploadRow[]) => {
     return targetRows.map((row) => ({
       uploadId: row.uploadId,
@@ -213,7 +239,11 @@ export function InputFile() {
     setRows((prev) => prev.filter((row) => row.uploadId !== uploadIdToRemove));
   };
 
-  const updateEndDate = (uploadId: string, value: string) => {
+ 
+
+
+// add blur handler 
+const updateEndDate = (uploadId: string, value: string) => {
     setRows((prev) =>
       prev.map((row) =>
         row.uploadId === uploadId
@@ -226,6 +256,7 @@ export function InputFile() {
       )
     );
   };
+  
 
   const resetForm = () => {
     setRows([]);
@@ -234,11 +265,14 @@ export function InputFile() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleAutofillEndDates = async () => {
+  //Function reused for auto-detection on file add, without toasts 
+  const handleAutofillEndDates = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+
     if (loading || detectingDates) return;
 
     if (rows.length === 0) {
-      toast.error("Add at least one file first.");
+      if (!silent) toast.error("Add at least one file first.");
       return;
     }
 
@@ -298,19 +332,22 @@ export function InputFile() {
 
           return {
             ...row,
-            endDate: fileResult.detectedEndDate || row.endDate,
+            // Intentionally NOT setting endDate — user must type it themselves.
+            // We only store detectedEndDate so the badge can show the suggestion.
             detectedEndDate:
               fileResult.detectedEndDate || row.detectedEndDate || "",
             error: fileResult.error ? buildDetectErrorMessage(fileResult) : "",
           };
         })
       );
-
+      //Sucess and error toasts 
       if (detectedCount > 0) {
-        toast.success(
-          `Autofilled end date${detectedCount === 1 ? "" : "s"} for ${detectedCount} file${detectedCount === 1 ? "" : "s"} ✅`
-        );
-      } else {
+        if (!silent) {
+          toast.success(
+            `Autofilled end date${detectedCount === 1 ? "" : "s"} for ${detectedCount} file${detectedCount === 1 ? "" : "s"} ✅`
+          );
+        }
+      } else if (!silent) {
         toast.error("Could not detect end dates from the uploaded logs.");
       }
     } catch (err: unknown) {
@@ -330,12 +367,15 @@ export function InputFile() {
         }
       }
 
-      setGeneralError("Could not autofill end dates.");
-      toast.error("Could not autofill end dates.");
+      if (!silent) {
+        setGeneralError("Could not autofill end dates.");
+        toast.error("Could not autofill end dates.");
+      }
     } finally {
       setDetectingDates(false);
     }
   };
+// Handles upload, builds multipart/form-data request, and posts to /api/upload.
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -404,8 +444,8 @@ export function InputFile() {
           router.replace("/login?redirect=/upload");
           return;
         }
-
-        if (responseData?.fileErrors?.length) {
+        //Rewritten to submit the error handler to auto-correct 
+       if (responseData?.fileErrors?.length) {
           const errorMap = new Map<string, FileValidationError>();
 
           for (const fileError of responseData.fileErrors) {
@@ -417,26 +457,24 @@ export function InputFile() {
             }
           }
 
-          setRows((prev) =>
+          
+
+         setRows((prev) =>
             prev.map((row) => {
               const fileError =
                 errorMap.get(row.uploadId) || errorMap.get(row.fileName);
 
               if (!fileError) return row;
 
+              // Capture the suggested date(s) for the badge, but do NOT
+              // overwrite what the user typed — they're in control.
               const nextExpectedDates = uniqueStrings([
                 fileError.expectedEndDate,
                 ...(fileError.expectedEndDates || []),
               ]);
 
-              const nextEndDate =
-                nextExpectedDates.length === 1
-                  ? nextExpectedDates[0]
-                  : row.endDate;
-
               return {
                 ...row,
-                endDate: nextEndDate,
                 detectedEndDate:
                   nextExpectedDates.length === 1
                     ? nextExpectedDates[0]
@@ -448,10 +486,8 @@ export function InputFile() {
 
           const firstMessage =
             responseData.fileErrors.length === 1
-              ? `${buildRowErrorMessage(
-                  responseData.fileErrors[0]
-                )} You can use Autofill End Dates or enter the correct date manually.`
-              : "Some files have incorrect dates. Use Autofill End Dates or enter the correct dates manually.";
+              ? buildRowErrorMessage(responseData.fileErrors[0])
+              : "Some files have incorrect dates. Check the suggested dates and try again.";
 
           setGeneralError(firstMessage);
           toast.error(firstMessage);
@@ -481,7 +517,7 @@ export function InputFile() {
       </div>
     );
   }
-
+//* added in onBlur={() => handleEndDateBlur(row.uploadId) to trigger updateEndDate
   return (
     <div className="w-full max-w-5xl space-y-4">
       <form onSubmit={onSubmit} className="space-y-4">
@@ -496,10 +532,10 @@ export function InputFile() {
             onChange={handleFileChange}
             ref={fileInputRef}
           />
-  <FieldDescription>
-  You can upload multiple files at once. Leave the end date blank to use
-  the date found in the uploaded log. If you type a date and it does not
-  match the log, you will be prompted to enter the correct date.
+<FieldDescription>
+  You can upload multiple files at once. The correct end date is detected
+  from each log and shown in a badge — enter that date in the field below
+  to enable upload.
 </FieldDescription>
         </Field>
 
@@ -511,18 +547,7 @@ export function InputFile() {
 
         {rows.length > 0 && (
           <div className="space-y-3 rounded-xl border p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="font-medium">{selectedFileCountLabel}</p>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAutofillEndDates}
-                disabled={loading || detectingDates || rows.length === 0}
-              >
-                {detectingDates ? "Detecting..." : "Autofill End Dates"}
-              </Button>
-            </div>
+            <p className="font-medium">{selectedFileCountLabel}</p>
 
             <div className="space-y-4">
               {rows.map((row) => (
@@ -531,15 +556,24 @@ export function InputFile() {
                   className="space-y-3 rounded-xl border p-4"
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
+                      <div className="min-w-0">
                       <p className="break-words font-medium">{row.fileName}</p>
-                      {row.detectedEndDate && (
+                      {row.detectedEndDate ? (
+                        row.endDate && row.endDate !== row.detectedEndDate ? (
+                          <p className="mt-1 inline-block rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-sm font-medium text-red-700 dark:text-red-400">
+                            ✗ Date doesn&apos;t match log. Suggested: {row.detectedEndDate}
+                          </p>
+                        ) : (
+                          <p className="mt-1 inline-block rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-sm font-medium text-green-700 dark:text-green-400">
+                            ✓ Correct end date: {row.detectedEndDate}
+                          </p>
+                        )
+                      ) : detectingDates ? (
                         <p className="text-sm text-muted-foreground">
-                          Detected from log: {row.detectedEndDate}
+                          Detecting end date from log...
                         </p>
-                      )}
+                      ) : null}
                     </div>
-
                     <Button
                       type="button"
                       variant="outline"
@@ -554,7 +588,7 @@ export function InputFile() {
                     <FieldLabel htmlFor={`end-${row.uploadId}`}>
                       Assignment End Date
                     </FieldLabel>
-                    <Input
+                     <Input
                       id={`end-${row.uploadId}`}
                       type="date"
                       value={row.endDate}
@@ -565,8 +599,8 @@ export function InputFile() {
                           : ""
                       }
                     />
-                    <FieldDescription>
-                      Optional. Leave blank to use the end date found in the log.
+                   <FieldDescription>
+                      Required. Enter the date shown in the badge above.
                     </FieldDescription>
                   </Field>
 
@@ -594,10 +628,16 @@ export function InputFile() {
 
         <Button
           type="submit"
-          disabled={loading || detectingDates || rows.length === 0}
+          disabled={
+            loading || detectingDates || rows.length === 0 || hasInvalidDate
+          }
           className="w-full cursor-pointer"
         >
-          {loading ? "Uploading..." : "Upload"}
+          {loading
+            ? "Uploading..."
+            : hasInvalidDate
+              ? "Enter the end date shown in the badge to upload"
+              : "Upload"}
         </Button>
       </form>
     </div>
