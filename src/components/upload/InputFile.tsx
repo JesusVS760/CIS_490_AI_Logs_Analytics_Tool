@@ -36,11 +36,12 @@ type UploadResponse = {
   fileErrors?: FileValidationError[];
   aiAnalyzerOptIn?: boolean;
 };
-
+//added detectedEndDates?: string[];.
 type DetectDatesFileResult = {
   uploadId?: string;
   fileName?: string;
   detectedEndDate?: string;
+  detectedEndDates?: string[];
   logDates?: string[];
   error?: string;
 };
@@ -61,11 +62,21 @@ type UploadRow = {
   uploadId: string;
   file: File;
   fileName: string;
-  endDate: string;
-  detectedEndDate: string;
+  endDates: string[];
+  detectedEndDates: string[];
   error: string;
 };
 
+// A row is valid when the user has filled every slot with a date
+// that belongs to this log's detected set, with no duplicates.
+// A row is valid when the user has entered a single date that exists
+// in this log's detected set.
+function isRowValid(row: UploadRow): boolean {
+  if (row.detectedEndDates.length === 0) return false;
+  const entered = row.endDates[0];
+  if (!entered) return false;
+  return row.detectedEndDates.includes(entered);
+}
 function isAcceptedFile(file: File) {
   const fileName = file.name.toLowerCase();
   return (
@@ -162,16 +173,14 @@ export function InputFile() {
   // submission.
   // blank is also flagged anmd catches empty strins 
   const hasInvalidDate = useMemo(() => {
-    return rows.some(
-      (row) => !row.endDate || row.endDate !== row.detectedEndDate
-    );
+    return rows.some((row) => !isRowValid(row));
   }, [rows]);
 
   // Whenever rows are added that don't yet have a detected date, quietly
   // ask the backend to detect one so we can show the correct date to the
   // user right away.
   useEffect(() => {
-    const hasUndetectedRow = rows.some((row) => !row.detectedEndDate);
+    const hasUndetectedRow = rows.some((row) => row.detectedEndDates.length === 0);
     if (!hasUndetectedRow) return;
     if (loading || detectingDates) return;
 
@@ -179,11 +188,11 @@ export function InputFile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.length]);
 
-  const buildFileConfigsPayload = (targetRows: UploadRow[]) => {
+ const buildFileConfigsPayload = (targetRows: UploadRow[]) => {
     return targetRows.map((row) => ({
       uploadId: row.uploadId,
       fileName: row.fileName,
-      endDate: row.endDate.trim() || undefined,
+      endDates: row.endDates.map((d) => d.trim()).filter(Boolean),
     }));
   };
 
@@ -220,8 +229,8 @@ export function InputFile() {
             uploadId,
             file,
             fileName: file.name,
-            endDate: "",
-            detectedEndDate: "",
+            endDates: [],
+            detectedEndDates: [],
             error: "",
           });
         }
@@ -243,17 +252,14 @@ export function InputFile() {
 
 
 // add blur handler 
-const updateEndDate = (uploadId: string, value: string) => {
+const updateEndDateAt = (uploadId: string, index: number, value: string) => {
     setRows((prev) =>
-      prev.map((row) =>
-        row.uploadId === uploadId
-          ? {
-              ...row,
-              endDate: value,
-              error: "",
-            }
-          : row
-      )
+      prev.map((row) => {
+        if (row.uploadId !== uploadId) return row;
+        const nextEndDates = [...row.endDates];
+        nextEndDates[index] = value;
+        return { ...row, endDates: nextEndDates, error: "" };
+      })
     );
   };
   
@@ -319,8 +325,17 @@ const updateEndDate = (uploadId: string, value: string) => {
         }
       }
 
+      // Prefer detectedEndDates array; fall back to logDates, then
+      // wrap the single detectedEndDate for backward compat.
+      const extractDates = (fr: DetectDatesFileResult): string[] => {
+        if (fr.detectedEndDates?.length) return uniqueStrings(fr.detectedEndDates);
+        if (fr.logDates?.length) return uniqueStrings(fr.logDates);
+        if (fr.detectedEndDate) return [fr.detectedEndDate];
+        return [];
+      };
+
       const detectedCount = detectedFiles.filter(
-        (file) => !!file.detectedEndDate
+        (file) => extractDates(file).length > 0
       ).length;
 
       setRows((prev) =>
@@ -330,16 +345,23 @@ const updateEndDate = (uploadId: string, value: string) => {
 
           if (!fileResult) return row;
 
+          const newDetected = extractDates(fileResult);
+
+          // Create empty input slots matching the number of detected dates.
+          // If slot count is unchanged and user already typed values, keep them.
+        // One input slot — the user picks which detected date to use.
+          const nextEndDates =
+            row.endDates.length === 1 ? row.endDates : [""];;
+
           return {
             ...row,
-            // Intentionally NOT setting endDate — user must type it themselves.
-            // We only store detectedEndDate so the badge can show the suggestion.
-            detectedEndDate:
-              fileResult.detectedEndDate || row.detectedEndDate || "",
+            detectedEndDates: newDetected.length > 0 ? newDetected : row.detectedEndDates,
+            endDates: nextEndDates,
             error: fileResult.error ? buildDetectErrorMessage(fileResult) : "",
           };
         })
       );
+
       //Sucess and error toasts 
       if (detectedCount > 0) {
         if (!silent) {
@@ -459,15 +481,13 @@ const updateEndDate = (uploadId: string, value: string) => {
 
           
 
-         setRows((prev) =>
+        setRows((prev) =>
             prev.map((row) => {
               const fileError =
                 errorMap.get(row.uploadId) || errorMap.get(row.fileName);
 
               if (!fileError) return row;
 
-              // Capture the suggested date(s) for the badge, but do NOT
-              // overwrite what the user typed — they're in control.
               const nextExpectedDates = uniqueStrings([
                 fileError.expectedEndDate,
                 ...(fileError.expectedEndDates || []),
@@ -475,10 +495,12 @@ const updateEndDate = (uploadId: string, value: string) => {
 
               return {
                 ...row,
-                detectedEndDate:
-                  nextExpectedDates.length === 1
-                    ? nextExpectedDates[0]
-                    : row.detectedEndDate,
+                detectedEndDates:
+                  nextExpectedDates.length > 0
+                    ? nextExpectedDates
+                    : row.detectedEndDates,
+               endDates:
+                  row.endDates.length === 1 ? row.endDates : [""],
                 error: buildRowErrorMessage(fileError),
               };
             })
@@ -556,21 +578,21 @@ const updateEndDate = (uploadId: string, value: string) => {
                   className="space-y-3 rounded-xl border p-4"
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
+                    <div className="min-w-0">
                       <p className="break-words font-medium">{row.fileName}</p>
-                      {row.detectedEndDate ? (
-                        row.endDate && row.endDate !== row.detectedEndDate ? (
-                          <p className="mt-1 inline-block rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-sm font-medium text-red-700 dark:text-red-400">
-                            ✗ Date doesn&apos;t match log. Suggested: {row.detectedEndDate}
+                      {row.detectedEndDates.length > 0 ? (
+                        isRowValid(row) ? (
+                          <p className="mt-1 inline-block rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-sm font-medium text-green-700 dark:text-green-400">
+                            ✓ Correct end date{row.detectedEndDates.length === 1 ? "" : "s"}: {row.detectedEndDates.join(", ")}
                           </p>
                         ) : (
-                          <p className="mt-1 inline-block rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-sm font-medium text-green-700 dark:text-green-400">
-                            ✓ Correct end date: {row.detectedEndDate}
+                          <p className="mt-1 inline-block rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-sm font-medium text-red-700 dark:text-red-400">
+                            ✗ Required end date{row.detectedEndDates.length === 1 ? "" : "s"} for this log: {row.detectedEndDates.join(", ")}
                           </p>
                         )
                       ) : detectingDates ? (
                         <p className="text-sm text-muted-foreground">
-                          Detecting end date from log...
+                          Detecting end dates from log...
                         </p>
                       ) : null}
                     </div>
@@ -584,25 +606,31 @@ const updateEndDate = (uploadId: string, value: string) => {
                     </Button>
                   </div>
 
-                  <Field>
-                    <FieldLabel htmlFor={`end-${row.uploadId}`}>
-                      Assignment End Date
-                    </FieldLabel>
-                     <Input
-                      id={`end-${row.uploadId}`}
-                      type="date"
-                      value={row.endDate}
-                      onChange={(e) => updateEndDate(row.uploadId, e.target.value)}
-                      className={
-                        row.error
-                          ? "border-red-500 focus-visible:ring-red-500"
-                          : ""
-                      }
-                    />
-                   <FieldDescription>
-                      Required. Enter the date shown in the badge above.
-                    </FieldDescription>
-                  </Field>
+                 {row.detectedEndDates.length > 0 && (
+                    <Field>
+                      <FieldLabel htmlFor={`end-${row.uploadId}-0`}>
+                        Assignment End Date
+                      </FieldLabel>
+                      <Input
+                        id={`end-${row.uploadId}-0`}
+                        type="date"
+                        value={row.endDates[0] ?? ""}
+                        onChange={(e) =>
+                          updateEndDateAt(row.uploadId, 0, e.target.value)
+                        }
+                        className={
+                          row.endDates[0] && !row.detectedEndDates.includes(row.endDates[0])
+                            ? "border-red-500/60 focus-visible:ring-red-500"
+                            : ""
+                        }
+                      />
+                      <FieldDescription>
+                        {row.detectedEndDates.length > 1
+                          ? "Required. Enter one of the dates shown in the badge above."
+                          : "Required. Enter the date shown in the badge above."}
+                      </FieldDescription>
+                    </Field>
+                  )}
 
                   {row.error && (
                     <FieldDescription className="text-red-500">
