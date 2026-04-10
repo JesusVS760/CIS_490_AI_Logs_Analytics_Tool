@@ -55,6 +55,21 @@ async function sendVerificationEmail(email: string, code: string) {
   });
 }
 
+async function createAndSendVerificationCode(email: string) {
+  const code = generateVerificationCode();
+  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  db.prepare(
+    `
+    UPDATE instructors
+    SET verification_code = ?, verification_expires = ?, is_verified = 0
+    WHERE email = ?
+    `,
+  ).run(code, expires, email);
+
+  await sendVerificationEmail(email, code);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -102,16 +117,38 @@ export async function POST(req: NextRequest) {
       const result = db
         .prepare(
           `
-          INSERT INTO instructors (name, email, password_hash, auth_provider, has_local_password)
-          VALUES (?, ?, ?, 'local', 1)
+          INSERT INTO instructors (
+            name,
+            email,
+            password_hash,
+            auth_provider,
+            has_local_password,
+            is_verified
+          )
+          VALUES (?, ?, ?, 'local', 1, 0)
           `,
         )
         .run(name, normalizedEmail, passwordHash);
+
+      try {
+        await createAndSendVerificationCode(normalizedEmail);
+      } catch (mailError) {
+        console.error("Initial verification email failed:", mailError);
+
+        return NextResponse.json(
+          {
+            error:
+              "Account created, but verification email could not be sent. Please use Resend Code.",
+          },
+          { status: 500 },
+        );
+      }
 
       return NextResponse.json(
         {
           success: true,
           user: { id: result.lastInsertRowid, email: normalizedEmail, name },
+          message: "Account created. Verification code sent.",
         },
         { status: 201 },
       );
@@ -130,15 +167,35 @@ export async function POST(req: NextRequest) {
     db.prepare(
       `
       UPDATE instructors
-      SET name = ?, password_hash = ?, has_local_password = 1, auth_provider = ?
+      SET
+        name = ?,
+        password_hash = ?,
+        has_local_password = 1,
+        auth_provider = ?,
+        is_verified = 0
       WHERE id = ?
       `,
     ).run(name, passwordHash, nextProvider, existing.id);
+
+    try {
+      await createAndSendVerificationCode(normalizedEmail);
+    } catch (mailError) {
+      console.error("Initial verification email failed:", mailError);
+
+      return NextResponse.json(
+        {
+          error:
+            "Account updated, but verification email could not be sent. Please use Resend Code.",
+        },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json(
       {
         success: true,
         user: { id: existing.id, email: normalizedEmail, name },
+        message: "Account created. Verification code sent.",
       },
       { status: 200 },
     );
