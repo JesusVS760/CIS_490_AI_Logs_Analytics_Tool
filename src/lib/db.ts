@@ -274,7 +274,11 @@ export function upsertStudent(rawEmail: string): number {
 
   return row.id;
 }
-
+//when the user enters a wrong end date, it doesn't find the existing assignment —
+//  it creates a brand new assignment row. 
+// The DELETE FROM sessions then clears sessions for that new (empty) assignment, 
+// while the original assignment's data stays untouched.
+//  Both assignments now coexist, and the dashboard sums their data together.
 export function upsertAssignment(
   courseId: number,
   name: string,
