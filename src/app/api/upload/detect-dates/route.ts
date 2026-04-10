@@ -110,51 +110,25 @@ function toDateOnly(value: string): string | null {
 
   return formatLocalDate(parsed);
 }
+//walkForDates was completely deleted replaced with getSortedUniqueLogDates
+//getLogdates was deleted, replaced with getSortedUniqueLogDates 
+//getSortedUniqueLogDates Recursively scans the entire raw text and
+//entire parsed object for anything that looks like a date
+function getSortedUniqueLogDates(
+  sessions: Array<{
+    messages: Array<{ timestamp?: string | null }>;
+  }>
+): string[] {
+  const uniqueDates = new Set<string>();
 
-function walkForDates(input: unknown, bucket: Set<string>) {
-  if (input == null) return;
-
-  if (typeof input === "string") {
-    const usMatches =
-      input.match(
-        /\b\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2}:\d{2}\s*[AP]M)?\b/g
-      ) || [];
-
-    for (const match of usMatches) {
-      const date = toDateOnly(match);
-      if (date) bucket.add(date);
-    }
-
-    const isoMatches = input.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
-    for (const match of isoMatches) {
-      const date = toDateOnly(match);
-      if (date) bucket.add(date);
-    }
-
-    return;
-  }
-
-  if (Array.isArray(input)) {
-    for (const item of input) {
-      walkForDates(item, bucket);
-    }
-    return;
-  }
-
-  if (typeof input === "object") {
-    for (const value of Object.values(input as Record<string, unknown>)) {
-      walkForDates(value, bucket);
+  for (const session of sessions) {
+    for (const msg of session.messages) {
+      const dateOnly = toDateOnly(msg.timestamp ?? "");
+      if (dateOnly) uniqueDates.add(dateOnly);
     }
   }
-}
 
-function collectLogDates(raw: string, parsed: unknown): string[] {
-  const bucket = new Set<string>();
-
-  walkForDates(raw, bucket);
-  walkForDates(parsed, bucket);
-
-  return Array.from(bucket).sort((a, b) => a.localeCompare(b));
+  return Array.from(uniqueDates).sort();
 }
 
 export async function POST(req: NextRequest) {
@@ -195,7 +169,8 @@ export async function POST(req: NextRequest) {
       try {
         const raw = await extractText(file);
         const parsed = parseTranscript(raw);
-        const logDates = collectLogDates(raw, parsed);
+        //deleted const logDates = collectLogDates(raw, parsed);
+        const logDates = getSortedUniqueLogDates(parsed.sessions);
         const detectedEndDate =
           logDates.length > 0 ? logDates[logDates.length - 1] : undefined;
 

@@ -203,13 +203,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_assignments_course_name_lookup
   ON assignments(course_id, name);
 
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_course_name_dates_unique
-  ON assignments(
-    course_id,
-    name,
-    COALESCE(start_date, ''),
-    COALESCE(due_date, '')
-  );
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_course_name_unique
+  ON assignments(course_id, name);
+  
 
   CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_import_key_unique
   ON sessions(import_key);
@@ -289,45 +285,36 @@ export function upsertAssignment(
   const normalizedStartDate = normalizeDateOnly(startDate);
   const normalizedDueDate = normalizeDateOnly(dueDate);
 
+  // Match by course + name ONLY — dates don't create separate assignments
   const existing = db
     .prepare(
-      `
-      SELECT id
-      FROM assignments
-      WHERE course_id = ?
-        AND name = ?
-        AND COALESCE(start_date, '') = COALESCE(?, '')
-        AND COALESCE(due_date, '') = COALESCE(?, '')
-      LIMIT 1
-      `
+      `SELECT id FROM assignments WHERE course_id = ? AND name = ? LIMIT 1`
     )
-    .get(
-      courseId,
-      name,
-      normalizedStartDate ?? null,
-      normalizedDueDate ?? null
-    ) as { id: number } | undefined;
+    .get(courseId, name) as { id: number } | undefined;
 
   if (existing) {
-    if (description && description.trim()) {
-      db.prepare(
-        `
-        UPDATE assignments
-        SET description = COALESCE(?, description)
-        WHERE id = ?
-        `
-      ).run(description.trim(), existing.id);
-    }
+    db.prepare(
+      `
+      UPDATE assignments
+      SET start_date = COALESCE(?, start_date),
+          due_date = COALESCE(?, due_date),
+          description = COALESCE(?, description)
+      WHERE id = ?
+      `
+    ).run(
+      normalizedStartDate ?? null,
+      normalizedDueDate ?? null,
+      description?.trim() || null,
+      existing.id
+    );
 
     return existing.id;
   }
 
   const result = db
     .prepare(
-      `
-      INSERT INTO assignments (course_id, name, description, start_date, due_date)
-      VALUES (?, ?, ?, ?, ?)
-      `
+      `INSERT INTO assignments (course_id, name, description, start_date, due_date)
+       VALUES (?, ?, ?, ?, ?)`
     )
     .run(
       courseId,

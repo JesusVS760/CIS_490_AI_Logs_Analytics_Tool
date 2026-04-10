@@ -2,7 +2,7 @@
 //and database\
 //Code Changed to allow and to recieve file, assignmentName, 
 //startDate and endDate from the upload form and API.
-
+import db from "@/lib/db";
 
 import {
   anonymizeId,
@@ -375,11 +375,10 @@ export async function POST(req: NextRequest) {
 
       const normalizedEnteredEndDate =
         configNormalizedEndDate || logDerivedEndDate;
-
-      const isAllowedEndDate =
-        expectedEndDates.length > 0
-          ? expectedEndDates.includes(normalizedEnteredEndDate)
-          : normalizedEnteredEndDate === logDerivedEndDate;
+ 
+        //validation logic shouldn't force the end date to match a message timestamp. 
+        //It should just accept any valid date the user enters.
+      const isAllowedEndDate = Boolean(normalizedEnteredEndDate);
 
       if (!isAllowedEndDate) {
         fileErrors.push({
@@ -439,11 +438,14 @@ export async function POST(req: NextRequest) {
     let insertedMessages = 0;
     const assignmentsUsed = new Set<number>();
 
+    //a set to is used to track assignments that have been already cleared 
     runInTransaction(() => {
       const courseId = upsertCourse(
         FIXED_COURSE_NAME,
         preparedUploads[0]?.parsed.generatedAt ?? undefined
       );
+
+      const clearedAssignments = new Set<number>();
 
       for (const preparedFile of preparedUploads) {
         const assignmentId = upsertAssignment(
@@ -455,6 +457,15 @@ export async function POST(req: NextRequest) {
         );
 
         assignmentsUsed.add(assignmentId);
+
+        if (!clearedAssignments.has(assignmentId)) {
+          db.prepare("DELETE FROM sessions WHERE assignment_id = ?").run(assignmentId);
+          clearedAssignments.add(assignmentId);
+        }
+
+        // Clear old sessions (and their messages via CASCADE) for this assignment
+        // so re-uploading replaces data instead of accumulating it
+        //db.prepare("DELETE FROM sessions WHERE assignment_id = ?").run(assignmentId);
 
         const stableSourceFile = buildStableSourceFile(
           preparedFile.fileName,
