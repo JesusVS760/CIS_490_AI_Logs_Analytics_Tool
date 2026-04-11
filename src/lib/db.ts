@@ -199,6 +199,11 @@ const studentsCols = db.prepare("PRAGMA table_info(students)").all() as { name: 
 const assignmentsCols = db.prepare("PRAGMA table_info(assignments)").all() as { name: string }[];
 const sessionsColsForTenancy = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
 
+
+// Add instructor_id to each ownership table if it's missing.
+// ON DELETE CASCADE means: when an instructor account is deleted, every
+// row they owned across these tables is wiped automatically. This pairs
+// with the cascade-delete fix we did earlier in the delete-account route.
 if (!coursesCols.some((c) => c.name === "instructor_id")) {
   db.exec(`ALTER TABLE courses ADD COLUMN instructor_id INTEGER REFERENCES instructors(id) ON DELETE CASCADE`);
 }
@@ -275,6 +280,14 @@ export function buildSessionImportKey(input: {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
+/**
+ * Inserts a course for an instructor, or returns the existing one.
+ *
+ * Uniqueness is per (instructor_id, name) — two instructors can both have
+ * a course called "CS 101" without colliding. The ON CONFLICT clause's
+ * target MUST match the unique index target, otherwise SQLite will reject
+ * the insert.
+ */
 export function upsertCourse(
   instructorId: number,
   name: string,
@@ -295,6 +308,15 @@ export function upsertCourse(
 
   return row.id;
 }
+
+/**
+ * Inserts a student for an instructor, or returns the existing one.
+ *
+ * Students are identified by an anonymized hash of their email
+ * (anonymizeId) so the raw email is never stored. The same student email
+ * across two different instructors produces two separate student rows,
+ * because uniqueness is (instructor_id, anonymous_id).
+ */
 
 export function upsertStudent(instructorId: number, rawEmail: string): number {
   const anonymousId = anonymizeId(rawEmail);
@@ -375,6 +397,18 @@ export function upsertAssignment(
 
   return result.lastInsertRowid as number;
 }
+
+/**
+ * Inserts an assignment for an instructor, or updates the existing one.
+ *
+ * Match key is (instructor_id, course_id, name) — note that dates are NOT
+ * part of the match. This was an earlier bug fix: previously, mistyping
+ * an end date on re-upload would create a brand-new assignment row instead
+ * of updating the existing one, leading to ghost duplicates in the dashboard.
+ *
+ * Updates use COALESCE so that passing null/undefined for a field leaves
+ * the existing value untouched rather than blanking it out.
+ */
 
 export function createOrGetSession(params: {
   instructorId: number;
@@ -525,6 +559,15 @@ export function getSessionsByInstructor(instructorId: number): (Session & {
   });
 }
 
+/**
+ * Returns every message from every session owned by this instructor,
+ * flattened into a single list with student/assignment metadata joined in.
+ *
+ * Messages don't have their own instructor_id column — isolation comes
+ * from the JOIN to sessions plus the WHERE s.instructor_id = ? clause.
+ * If you remove that WHERE, you reintroduce the data-leak bug.
+ */
+
 export function getMessagesByInstructor(instructorId: number) {
   const rows = db
     .prepare(
@@ -554,6 +597,11 @@ export function getMessagesByInstructor(instructorId: number) {
   return rows.map((row) => ({ ...row, workedDate: toDateOnly(row.timestamp) }));
 }
 
+/**
+ * Lists every assignment owned by this instructor, newest first.
+ * Powers the assignments page and any dropdowns that filter by assignment.
+ */
+
 export function getAssignmentsByInstructor(instructorId: number) {
   return db
     .prepare(
@@ -573,6 +621,16 @@ export function getAssignmentsByInstructor(instructorId: number) {
     )
     .all(instructorId);
 }
+
+/**
+ * For each of this instructor's assignments, counts how many distinct
+ * students have at least one session on it. Powers AssignmentsUsersChart.
+ *
+ * COUNT(DISTINCT s.student_id) handles the case where the same student
+ * uploaded multiple sessions for the same assignment — they only count once.
+ * The LEFT JOIN ensures assignments with zero sessions still appear with
+ * a userCount of 0 instead of being dropped from the result.
+ */
 
 export function getUserCountsPerAssignmentByInstructor(instructorId: number) {
   return db
