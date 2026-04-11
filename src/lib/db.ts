@@ -96,10 +96,10 @@ db.exec(`
     generated_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
-
-  CREATE TABLE IF NOT EXISTS students (
+    
+   CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    anonymous_id TEXT NOT NULL UNIQUE,
+    anonymous_id TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -188,6 +188,33 @@ if (!sessionColumns.some((col) => col.name === "source_file")) {
   db.exec("ALTER TABLE sessions ADD COLUMN source_file TEXT");
 }
 
+// --- Multi-tenancy: add instructor_id to ownership tables ---
+// Each instructor's data must be isolated. We add an instructor_id column
+// to courses, students, assignments, and sessions so every row is tagged
+// with its owner. Messages and snapshots inherit ownership through their
+// session_id, so they don't need their own column.
+
+const coursesCols = db.prepare("PRAGMA table_info(courses)").all() as { name: string }[];
+const studentsCols = db.prepare("PRAGMA table_info(students)").all() as { name: string }[];
+const assignmentsCols = db.prepare("PRAGMA table_info(assignments)").all() as { name: string }[];
+const sessionsColsForTenancy = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
+
+if (!coursesCols.some((c) => c.name === "instructor_id")) {
+  db.exec(`ALTER TABLE courses ADD COLUMN instructor_id INTEGER REFERENCES instructors(id) ON DELETE CASCADE`);
+}
+if (!studentsCols.some((c) => c.name === "instructor_id")) {
+  db.exec(`ALTER TABLE students ADD COLUMN instructor_id INTEGER REFERENCES instructors(id) ON DELETE CASCADE`);
+}
+if (!assignmentsCols.some((c) => c.name === "instructor_id")) {
+  db.exec(`ALTER TABLE assignments ADD COLUMN instructor_id INTEGER REFERENCES instructors(id) ON DELETE CASCADE`);
+}
+if (!sessionsColsForTenancy.some((c) => c.name === "instructor_id")) {
+  db.exec(`ALTER TABLE sessions ADD COLUMN instructor_id INTEGER REFERENCES instructors(id) ON DELETE CASCADE`);
+}
+
+// Old UNIQUE(name) had a bug where it would merge data across accounts.
+// New per-instructor unique indexes fix this so each instructor has their own classes.
+
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_instructors_email_unique
   ON instructors(email);
@@ -195,20 +222,24 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_instructor_sessions_token_unique
   ON instructor_sessions(token);
 
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_name_unique
-  ON courses(name);
+  -- Course names are now unique PER INSTRUCTOR, not globally.
+  DROP INDEX IF EXISTS idx_courses_name_unique;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_instructor_name_unique
+    ON courses(instructor_id, name);
 
+  -- Assignment names are unique per (instructor, course, name).
   DROP INDEX IF EXISTS idx_assignments_course_name_unique;
-
   CREATE INDEX IF NOT EXISTS idx_assignments_course_name_lookup
-  ON assignments(course_id, name);
+    ON assignments(course_id, name);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_instructor_course_name_unique
+    ON assignments(instructor_id, course_id, name);
 
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_course_name_unique
-  ON assignments(course_id, name);
-  
+  -- Students are now unique per instructor.
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_students_instructor_anon_unique
+    ON students(instructor_id, anonymous_id);
 
   CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_import_key_unique
-  ON sessions(import_key);
+    ON sessions(import_key);
 `);
 
 export function anonymizeId(email: string): string {
@@ -217,8 +248,11 @@ export function anonymizeId(email: string): string {
     .update(email.toLowerCase().trim())
     .digest("hex");
 }
-
+//While import_key is still globally unique, if two accounts uploads the same file
+//old hash will produce the same keu and one would get skupped as a duplicate
+//instructorId, allows the hash input of imports to be separate 
 export function buildSessionImportKey(input: {
+  instructorId: number;
   studentAnonymousId: string;
   assignmentId: number;
   sourceFile: string;
@@ -228,6 +262,7 @@ export function buildSessionImportKey(input: {
   lastMessage?: string | null;
 }): string {
   const raw = [
+    String(input.instructorId),
     input.studentAnonymousId,
     String(input.assignmentId),
     input.sourceFile,
@@ -240,46 +275,55 @@ export function buildSessionImportKey(input: {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
-export function upsertCourse(name: string, generatedAt?: string): number {
+export function upsertCourse(
+  instructorId: number,
+  name: string,
+  generatedAt?: string
+): number {
   db.prepare(
     `
-    INSERT INTO courses (name, generated_at)
-    VALUES (?, ?)
-    ON CONFLICT(name) DO UPDATE SET
+    INSERT INTO courses (instructor_id, name, generated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(instructor_id, name) DO UPDATE SET
       generated_at = COALESCE(excluded.generated_at, courses.generated_at)
     `
-  ).run(name, normalizeTimestamp(generatedAt) ?? null);
+  ).run(instructorId, name, normalizeTimestamp(generatedAt) ?? null);
 
-  const row = db.prepare("SELECT id FROM courses WHERE name = ?").get(name) as {
-    id: number;
-  };
+  const row = db
+    .prepare("SELECT id FROM courses WHERE instructor_id = ? AND name = ?")
+    .get(instructorId, name) as { id: number };
 
   return row.id;
 }
 
-export function upsertStudent(rawEmail: string): number {
+export function upsertStudent(instructorId: number, rawEmail: string): number {
   const anonymousId = anonymizeId(rawEmail);
 
   db.prepare(
     `
-    INSERT INTO students (anonymous_id)
-    VALUES (?)
-    ON CONFLICT(anonymous_id) DO NOTHING
+    INSERT INTO students (instructor_id, anonymous_id)
+    VALUES (?, ?)
+    ON CONFLICT(instructor_id, anonymous_id) DO NOTHING
     `
-  ).run(anonymousId);
+  ).run(instructorId, anonymousId);
 
   const row = db
-    .prepare("SELECT id FROM students WHERE anonymous_id = ?")
-    .get(anonymousId) as { id: number };
+    .prepare(
+      "SELECT id FROM students WHERE instructor_id = ? AND anonymous_id = ?"
+    )
+    .get(instructorId, anonymousId) as { id: number };
 
   return row.id;
 }
-//when the user enters a wrong end date, it doesn't find the existing assignment —
-//  it creates a brand new assignment row. 
-// The DELETE FROM sessions then clears sessions for that new (empty) assignment, 
+//(when the user enters a wrong end date, it doesn't find the existing assignment —
+//  it creates a brand new assignment row. ) First Comment of bug fix
+// (The DELETE FROM sessions then clears sessions for that new (empty) assignment, 
 // while the original assignment's data stays untouched.
-//  Both assignments now coexist, and the dashboard sums their data together.
+//  Both assignments now coexist, and the dashboard sums their data together.) Second comment of bug fix
+
+
 export function upsertAssignment(
+  instructorId: number,
   courseId: number,
   name: string,
   description?: string,
@@ -289,12 +333,12 @@ export function upsertAssignment(
   const normalizedStartDate = normalizeDateOnly(startDate);
   const normalizedDueDate = normalizeDateOnly(dueDate);
 
-  // Match by course + name ONLY — dates don't create separate assignments
   const existing = db
     .prepare(
-      `SELECT id FROM assignments WHERE course_id = ? AND name = ? LIMIT 1`
+      `SELECT id FROM assignments
+       WHERE instructor_id = ? AND course_id = ? AND name = ? LIMIT 1`
     )
-    .get(courseId, name) as { id: number } | undefined;
+    .get(instructorId, courseId, name) as { id: number } | undefined;
 
   if (existing) {
     db.prepare(
@@ -317,10 +361,11 @@ export function upsertAssignment(
 
   const result = db
     .prepare(
-      `INSERT INTO assignments (course_id, name, description, start_date, due_date)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO assignments (instructor_id, course_id, name, description, start_date, due_date)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
     .run(
+      instructorId,
       courseId,
       name,
       description?.trim() || null,
@@ -332,6 +377,7 @@ export function upsertAssignment(
 }
 
 export function createOrGetSession(params: {
+  instructorId: number;
   studentId: number;
   assignmentId: number;
   importKey: string;
@@ -342,6 +388,7 @@ export function createOrGetSession(params: {
   const insert = db.prepare(
     `
     INSERT OR IGNORE INTO sessions (
+      instructor_id,
       student_id,
       assignment_id,
       import_key,
@@ -349,11 +396,12 @@ export function createOrGetSession(params: {
       started_at,
       ended_at
     )
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     `
   );
 
   const result = insert.run(
+    params.instructorId,
     params.studentId,
     params.assignmentId,
     params.importKey,
@@ -419,7 +467,9 @@ export const runInTransaction = db.transaction((fn: () => void) => {
   fn();
 });
 
-export function getAllSessions(): (Session & {
+//getAllSessionsByInstructor deleted, as this forces Typescriptt to error on every old caller, gives a 
+//checklist of every place that needs to be updated
+export function getSessionsByInstructor(instructorId: number): (Session & {
   messages: any[];
   workedDates: string[];
   assignmentName?: string | null;
@@ -441,10 +491,11 @@ export function getAllSessions(): (Session & {
         a.due_date AS assignmentDueDate
       FROM sessions s
       LEFT JOIN assignments a ON s.assignment_id = a.id
+      WHERE s.instructor_id = ?
       ORDER BY COALESCE(s.started_at, s.created_at) ASC, s.id ASC
       `
     )
-    .all() as (Session & {
+    .all(instructorId) as (Session & {
     assignmentName?: string | null;
     assignmentStartDate?: string | null;
     assignmentDueDate?: string | null;
@@ -454,11 +505,7 @@ export function getAllSessions(): (Session & {
     const messages = db
       .prepare(
         `
-        SELECT
-          id,
-          role,
-          content,
-          timestamp
+        SELECT id, role, content, timestamp
         FROM messages
         WHERE session_id = ?
         ORDER BY COALESCE(timestamp, created_at) ASC, id ASC
@@ -474,15 +521,11 @@ export function getAllSessions(): (Session & {
       )
     ).sort();
 
-    return {
-      ...session,
-      messages,
-      workedDates,
-    };
+    return { ...session, messages, workedDates };
   });
 }
 
-export function getAllMessages() {
+export function getMessagesByInstructor(instructorId: number) {
   const rows = db
     .prepare(
       `
@@ -502,18 +545,16 @@ export function getAllMessages() {
       JOIN sessions s ON m.session_id = s.id
       JOIN students st ON s.student_id = st.id
       JOIN assignments a ON s.assignment_id = a.id
+      WHERE s.instructor_id = ?
       ORDER BY COALESCE(m.timestamp, m.created_at) ASC, m.id ASC
       `
     )
-    .all() as any[];
+    .all(instructorId) as any[];
 
-  return rows.map((row) => ({
-    ...row,
-    workedDate: toDateOnly(row.timestamp),
-  }));
+  return rows.map((row) => ({ ...row, workedDate: toDateOnly(row.timestamp) }));
 }
 
-export function getAllAssignments() {
+export function getAssignmentsByInstructor(instructorId: number) {
   return db
     .prepare(
       `
@@ -526,12 +567,14 @@ export function getAllAssignments() {
         due_date AS dueDate,
         created_at AS createdAt
       FROM assignments
+      WHERE instructor_id = ?
       ORDER BY created_at DESC, id DESC
       `
     )
-    .all();
+    .all(instructorId);
 }
-export function getUserCountsPerAssignment() {
+
+export function getUserCountsPerAssignmentByInstructor(instructorId: number) {
   return db
     .prepare(
       `
@@ -541,11 +584,12 @@ export function getUserCountsPerAssignment() {
         COUNT(DISTINCT s.student_id) AS userCount
       FROM assignments a
       LEFT JOIN sessions s ON s.assignment_id = a.id
+      WHERE a.instructor_id = ?
       GROUP BY a.id, a.name
       ORDER BY a.created_at ASC, a.id ASC
       `
     )
-    .all() as {
+    .all(instructorId) as {
     assignmentId: number;
     assignmentName: string;
     userCount: number;

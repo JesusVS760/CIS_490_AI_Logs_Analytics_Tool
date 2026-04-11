@@ -1,13 +1,23 @@
-import { getUserCountsPerAssignment } from "@/lib/db";
-import { NextResponse } from "next/server";
+//deleted getUserCountsPerAssignment
 
-export async function GET() {
+import { NextRequest, NextResponse } from "next/server";
+import { getAssignmentsByInstructor } from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
+
+export async function GET(req: NextRequest) {
   try {
-    const data = getUserCountsPerAssignment();
-    return NextResponse.json(data);
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+    const instructor = authResult;
+
+    const assignments = getAssignmentsByInstructor(instructor.instructorId);
+    return NextResponse.json(assignments);
   } catch (error) {
+    console.error("ACTUAL ERROR:", error);
     return NextResponse.json(
-      { error: "failed to fetch assignment user counts" },
+      { error: "failed to fetch assignments" },
       { status: 500 },
     );
   }

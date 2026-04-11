@@ -1,12 +1,21 @@
-import { getAllMessages } from "@/lib/db";
-import { NextResponse } from "next/server";
+//deleted getAllMessages 
+
+import { NextRequest, NextResponse } from "next/server";
+import { getMessagesByInstructor } from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const messages = await getAllMessages();
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+    const instructor = authResult;
+
+    const messages = getMessagesByInstructor(instructor.instructorId);
 
     return NextResponse.json(messages, {
       headers: {
@@ -17,11 +26,10 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("MESSAGES ROUTE ERROR:", error);
-
+    console.error("ACTUAL ERROR:", error);
     return NextResponse.json(
       { error: "Failed to fetch messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

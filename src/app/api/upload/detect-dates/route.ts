@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractText as extractPdfText } from "unpdf";
 import { parseTranscript } from "@/lib/parseTranscript";
 
+
 type FileConfig = {
   uploadId?: string;
   fileName?: string;

@@ -3,6 +3,8 @@
 //Code Changed to allow and to recieve file, assignmentName, 
 //startDate and endDate from the upload form and API.
 import db from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
+
 
 import {
   anonymizeId,
@@ -277,6 +279,14 @@ function findMatchingFileConfig(
 
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate first. If the user isn't logged in, requireAuth returns
+    // a 401 NextResponse — we just hand that back to the client.
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+    const instructor = authResult; // { instructorId, email, name, ... }
+
     const formData = await req.formData();
 
     const files = getUploadedFiles(formData);
@@ -441,20 +451,22 @@ export async function POST(req: NextRequest) {
     //a set to is used to track assignments that have been already cleared 
     runInTransaction(() => {
       const courseId = upsertCourse(
-        FIXED_COURSE_NAME,
-        preparedUploads[0]?.parsed.generatedAt ?? undefined
-      );
+    instructor.instructorId,
+   FIXED_COURSE_NAME,
+    preparedUploads[0]?.parsed.generatedAt ?? undefined
+  );
 
       const clearedAssignments = new Set<number>();
 
       for (const preparedFile of preparedUploads) {
         const assignmentId = upsertAssignment(
-          courseId,
-          preparedFile.resolvedAssignmentName,
-          undefined,
-          preparedFile.resolvedStartDate || undefined,
-          preparedFile.resolvedEndDate
-        );
+        instructor.instructorId,
+         courseId,
+         preparedFile.resolvedAssignmentName,
+         undefined,
+         preparedFile.resolvedStartDate || undefined,
+         preparedFile.resolvedEndDate
+      );
 
         assignmentsUsed.add(assignmentId);
 
@@ -476,7 +488,7 @@ export async function POST(req: NextRequest) {
           const rawEmail = session.studentEmail?.trim();
           if (!rawEmail) continue;
 
-          const studentId = upsertStudent(rawEmail);
+          const studentId = upsertStudent(instructor.instructorId, rawEmail);
 
           const normalizedMessageTimestamps = session.messages
             .map((msg) => toIsoTimestamp(msg.timestamp))
@@ -493,22 +505,25 @@ export async function POST(req: NextRequest) {
             session.messages[session.messages.length - 1]?.content ?? "";
 
           const importKey = buildSessionImportKey({
+             instructorId: instructor.instructorId,
             studentAnonymousId: anonymizeId(rawEmail),
-            assignmentId,
-            sourceFile: stableSourceFile,
-            startedAt,
-            endedAt,
-            firstMessage,
-            lastMessage,
-          });
+             assignmentId,
+             sourceFile: stableSourceFile,
+             startedAt,
+             endedAt,
+             firstMessage,
+             lastMessage,
+            });
 
-          const sessionResult = createOrGetSession({
-            studentId,
-            assignmentId,
-            importKey,
-            sourceFile: stableSourceFile,
-            startedAt,
-            endedAt,
+          const sessionResult = createOrGetSession
+          ({
+             instructorId: instructor.instructorId,
+             studentId,
+             assignmentId,
+             importKey,
+             sourceFile: stableSourceFile,
+              startedAt,
+              endedAt,
           });
 
           if (!sessionResult.inserted) {
