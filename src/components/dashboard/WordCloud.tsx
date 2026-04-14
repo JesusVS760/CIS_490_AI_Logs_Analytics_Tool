@@ -52,7 +52,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
     if (selectedAssignment === "all") return messages;
 
     return messages.filter(
-      (message) => getAssignmentLabel(message) === selectedAssignment,
+      (message) => getAssignmentLabel(message) === selectedAssignment
     );
   }, [messages, selectedAssignment]);
 
@@ -151,7 +151,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
 
       {loading ? (
         <div className="flex items-center justify-center gap-3 animate-pulse">
-          <h1 className="font-bold text-xl">Loading...</h1>
+          <h1 className="font-bold text-xl">AI Analytics incoming 💻...</h1>
         </div>
       ) : words.length === 0 ? (
         <div className="text-sm text-slate-500">
