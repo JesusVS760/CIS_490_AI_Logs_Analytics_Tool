@@ -178,7 +178,7 @@ export default function LoginPage() {
 
           {/* Link to reset-account route */}
           <Link
-            href="/reset-account"
+            href="/reset-password"
             className="block text-center text-sm text-slate-600 underline-offset-4 hover:underline"
           >
             {/* Link text displayed to user */}

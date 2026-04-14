@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const email = body.email as string | null;
     const password = body.password as string | null;
+    const remember = Boolean(body.remember);
 
     if (!email || !password) {
       return NextResponse.json(
@@ -78,13 +79,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    response.cookies.set("session_token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-    });
+    if (remember) {
+      response.cookies.set("session_token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24,
+        path: "/",
+      });
+    } else {
+      response.cookies.set("session_token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        path: "/",
+      });
+    }
 
     return response;
   } catch (error) {
