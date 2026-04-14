@@ -151,7 +151,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
 
       {loading ? (
         <div className="flex items-center justify-center gap-3 animate-pulse">
-          <h1 className="font-bold text-xl">AI Analytics incoming 💻...</h1>
+          <h3 className="text-xl">AI Analytics incoming 💻...</h3>
         </div>
       ) : words.length === 0 ? (
         <div className="text-sm text-slate-500">
