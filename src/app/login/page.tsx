@@ -118,9 +118,9 @@ export default function LoginPage() {
   // Renders the login form UI
   return (
     // Outer card container styled with Tailwind utility classes
-    <section className=" mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
+    <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm dark:border-slate-700 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800">
       {/* Page heading for login screen */}
-      <h1 className="text-center text-3xl font-semibold text-slate-900">
+      <h1 className="text-center text-3xl font-semibold text-slate-900 dark:text-slate-100">
         Log in
       </h1>
 
@@ -160,8 +160,8 @@ export default function LoginPage() {
         <div className="space-y-3 pt-1">
           {/* Native label wrapping checkbox for better click target */}
           <label
-            htmlFor="remember"
-            className="flex items-center justify-center gap-2 text-sm text-slate-600"
+             htmlFor="remember"
+               className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-300"
           >
             {/* Controlled checkbox tied to formState.remember */}
             <Input
@@ -179,7 +179,7 @@ export default function LoginPage() {
           {/* Link to reset-account route */}
           <Link
             href="/reset-password"
-            className="block text-center text-sm text-slate-600 underline-offset-4 hover:underline"
+            className="block text-center text-sm text-slate-600 dark:text-slate-300 underline-offset-4 hover:underline"
           >
             {/* Link text displayed to user */}
             Forgot password?
@@ -204,11 +204,11 @@ export default function LoginPage() {
       ) : null}
 
       {/* Register link */}
-      <p className="mt-4 text-center text-sm text-slate-600">
+     <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-300">
                Don&apos;t have an account?{" "}
          <Link
         href="/register"
-    className="font-medium text-slate-700 underline-offset-4 hover:underline"
+    className="font-medium text-slate-700 dark:text-slate-200 underline-offset-4 hover:underline"
      >
      Register
   </Link>

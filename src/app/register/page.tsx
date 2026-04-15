@@ -154,8 +154,8 @@ export default function RegisterPage() {
   const disableAll = loading || oauthLoading;
 
   return (
-    <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm">
-      <h1 className="text-center text-3xl font-semibold text-slate-900">
+    <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 p-8 shadow-sm dark:border-slate-700 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800">
+     <h1 className="text-center text-3xl font-semibold text-slate-900 dark:text-slate-100">
         Sign up
       </h1>
 
@@ -171,9 +171,9 @@ export default function RegisterPage() {
         </button>
 
         <div className="flex items-center gap-3 py-2">
-          <div className="h-px flex-1 bg-slate-300" />
-          <span className="text-xs font-medium text-slate-600">OR</span>
-          <div className="h-px flex-1 bg-slate-300" />
+          <div className="h-px flex-1 bg-slate-300 dark:bg-slate-600" />
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">OR</span>
+         <div className="h-px flex-1 bg-slate-300 dark:bg-slate-600" />
         </div>
       </div>
 
@@ -241,7 +241,7 @@ export default function RegisterPage() {
 
       <Link
         href="/login"
-        className="mt-4 block text-center text-sm text-slate-600 underline-offset-4 hover:underline"
+         className="mt-4 block text-center text-sm text-slate-600 dark:text-slate-300 underline-offset-4 hover:underline"
       >
         Already have an account? Log in
       </Link>

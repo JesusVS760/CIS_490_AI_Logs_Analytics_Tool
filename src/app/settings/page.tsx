@@ -210,15 +210,16 @@ export default function SettingClient() {
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
  const deleteAccount = async () => {
   // Confirm with the user before doing anything destructive.
   // If they cancel, bail out immediately.
-  if (!confirm("Are you sure you want to delete your account?")) return;
+  //if (!confirm("Are you sure you want to delete your account?")) return;
 
   try {
     // Disable the Delete button and show the spinner state.
     setDeletingAccount(true);
-
+    setShowDeleteConfirm(false);
     // Call the backend to permanently delete the account and all
     // associated data. withCredentials ensures the session_token
     // cookie is sent so the server knows which account to delete.
@@ -576,7 +577,7 @@ export default function SettingClient() {
                 </div>
               </div>
 
-              {/* Danger Zone */}
+             {/* Danger Zone */}
               <div className="rounded-2xl border border-red-300 bg-white p-6 shadow-sm dark:border-red-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                   <ShieldAlert className="h-5 w-5" />
@@ -595,9 +596,16 @@ export default function SettingClient() {
                     </p>
                   </div>
 
+                  {/*
+                    CHANGED: Button no longer calls deleteAccount() directly.
+                    It now opens an in-app confirmation modal by setting
+                    showDeleteConfirm to true, replacing the native
+                    browser confirm() popup with a styled modal that
+                    matches the app's theme (including dark mode).
+                  */}
                   <button
                     type="button"
-                    onClick={deleteAccount}
+                    onClick={() => setShowDeleteConfirm(true)}
                     disabled={deletingAccount}
                     className="flex items-center justify-center rounded-lg bg-red-700 px-4 py-2 text-white transition hover:bg-red-800 disabled:opacity-50"
                   >
@@ -614,6 +622,45 @@ export default function SettingClient() {
                     )}
                   </button>
                 </div>
+
+                {/*
+                  ADDED: Custom confirmation modal for account deletion.
+                  Renders only when showDeleteConfirm is true.
+                  - Full-screen dimmed overlay (bg-black/50)
+                  - Centered modal card styled to match other settings cards
+                  - Cancel closes the modal; Confirm calls deleteAccount()
+                */}
+                {showDeleteConfirm && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="mx-4 w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        Delete your account?
+                      </h3>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+     This action is permanent and cannot be undone. All
+                        your courses, assignments, student data, and uploaded
+                        logs will be permanently deleted.
+                      </p>
+
+                      <div className="mt-6 flex justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={deleteAccount}
+                          className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-800"
+                        >
+                          Yes, delete my account
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
