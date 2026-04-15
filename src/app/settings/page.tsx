@@ -210,40 +210,61 @@ export default function SettingClient() {
     }
   };
 
-  const deleteAccount = async () => {
-    if (!confirm("Are you sure you want to delete your account?")) return;
+ const deleteAccount = async () => {
+  // Confirm with the user before doing anything destructive.
+  // If they cancel, bail out immediately.
+  if (!confirm("Are you sure you want to delete your account?")) return;
 
-    try {
-      setDeletingAccount(true);
+  try {
+    // Disable the Delete button and show the spinner state.
+    setDeletingAccount(true);
 
-      await axios.delete("/api/auth/delete", {
-        withCredentials: true,
-      });
+    // Call the backend to permanently delete the account and all
+    // associated data. withCredentials ensures the session_token
+    // cookie is sent so the server knows which account to delete.
+    await axios.delete("/api/auth/delete", {
+      withCredentials: true,
+    });
 
-      localStorage.removeItem("dashboardUser");
-      localStorage.removeItem("dashboardTheme");
+    // Clear any cached user info and theme from localStorage so a
+    // new account created afterward starts with a clean slate.
+    localStorage.removeItem("dashboardUser");
+    localStorage.removeItem("dashboardTheme");
 
+    // Show a success toast confirming the account was removed.
+    toast.success("Account removed. You've been signed out. 👋");
+
+    // Delay the redirect briefly so the toast has time to render
+    // before the Toaster unmounts on navigation.
+    setTimeout(() => {
       router.push("/login");
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message =
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          error.message;
-        console.error(
-          "Delete account error:",
-          error.response?.status,
-          message
-        );
-        toast.error(`Deletion failed: ${message} ❌`);
-      } else {
-        console.error("Delete account unknown error:", error);
-        toast.error("Deletion failed ❌");
-      }
-    } finally {
-      setDeletingAccount(false);
+    }, 1500);
+  } catch (error) {
+    // Handle axios-specific errors so we can surface the server's
+    // error message (if any) to the user.
+    if (axios.isAxiosError(error)) {
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message;
+      console.error(
+        "Delete account error:",
+        error.response?.status,
+        message
+      );
+      toast.error(`Deletion failed: ${message} ❌`);
+    } else {
+      // Fallback for anything that isn't an axios error
+      // (network failure, unexpected runtime error, etc.).
+      console.error("Delete account unknown error:", error);
+      toast.error("Deletion failed ❌");
     }
-  };
+  } finally {
+    // Always re-enable the button, whether the request succeeded
+    // or failed, so the UI doesn't get stuck in a loading state.
+    setDeletingAccount(false);
+  }
+};
 
   const handleProfileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
