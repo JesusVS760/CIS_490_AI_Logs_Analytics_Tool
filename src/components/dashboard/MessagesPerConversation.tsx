@@ -160,7 +160,7 @@ export default function MessagesPerConversation() {
     <div className="rounded-2xl border p-6 w-full bg-white dark:bg-zinc-900">
       <div className="mb-4 flex justify-between">
         <div>
-          <h1 className="flex items-center gap-2 font-bold text-lg">
+          <h1 className="flex items-center gap-2 font-bold text-lg ">
             Messages Per Conversation <MessageSquareText size={18} />
           </h1>
           <p className="text-sm">
@@ -172,7 +172,8 @@ export default function MessagesPerConversation() {
         <select
           value={selectedStudentKey}
           onChange={(e) => setSelectedStudentKey(e.target.value)}
-          className="border px-3 py-1"
+          //Dropdown menu with white background and black text, and dark mode support
+          className="bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
         >
           <option value="all">All Students</option>
           {studentOptions.map((s) => (
