@@ -13,6 +13,7 @@ import axios from "axios"; // Import axios to simplify API calls from the client
 
 import { Input } from "@/components/ui/input"; // Import shared input component from the existing UI layer
 import { Label } from "@/components/ui/label"; // Import shared label component from the existing UI layer
+import { toast } from "sonner";
 
 // Defined the TypeScript shape for all login form fields
 type LoginFormState = {
@@ -92,6 +93,7 @@ export default function LoginPage() {
       // If segment for if the backend reports failure, shows this message and stops
       if (!data.success) {
         setStatusMessage(data.message);
+        toast("Login Success ✅");
         return;
       }
 
@@ -160,8 +162,8 @@ export default function LoginPage() {
         <div className="space-y-3 pt-1">
           {/* Native label wrapping checkbox for better click target */}
           <label
-             htmlFor="remember"
-               className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-300"
+            htmlFor="remember"
+            className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-300"
           >
             {/* Controlled checkbox tied to formState.remember */}
             <Input
@@ -204,17 +206,15 @@ export default function LoginPage() {
       ) : null}
 
       {/* Register link */}
-     <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-300">
-               Don&apos;t have an account?{" "}
-         <Link
-        href="/register"
-    className="font-medium text-slate-700 dark:text-slate-200 underline-offset-4 hover:underline"
-     >
-     Register
-  </Link>
-</p>
-
-
+      <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-300">
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/register"
+          className="font-medium text-slate-700 dark:text-slate-200 underline-offset-4 hover:underline"
+        >
+          Register
+        </Link>
+      </p>
     </section>
   );
 }
