@@ -97,6 +97,61 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ─── Print / PDF export styles ────────────────────────────────────────────
+   Triggered by window.print() in ExportPDFButton.tsx.
+   The dashboard wraps its content in a .print-area div so only that section
+   appears in the output. Everything else is hidden via visibility:hidden so
+   the sidebar, header, and export button are excluded from the PDF.
+   ─────────────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Force A4 portrait pages with consistent margins on every page */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  /* Hide the entire page by default, then selectively reveal .print-area.
+     Using visibility instead of display:none keeps the layout intact so
+     absolute/relative positioning inside .print-area still resolves correctly. */
+  body * { visibility: hidden; }
+
+  .print-area,
+  .print-area * { visibility: visible; }
+
+  /* Stretch the print area to fill the page from the top-left corner */
+  .print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+
+  /* Override the responsive multi-column grids so every section stacks
+     vertically (one card per row) in the portrait PDF.
+     !important is required because Tailwind utility classes are more
+     specific than a plain element/class selector. */
+  .print-area section,
+  .print-area .grid,
+  .print-area [class*="grid-cols"],
+  .print-area [class*="flex-row"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  /* Each card should span the full page width.
+     break-inside:avoid prevents a single card from splitting across two pages. */
+  .print-area section > *,
+  .print-area .grid > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    break-inside: avoid;
+  }
+
+  /* Hide any element tagged no-print (e.g. the Export PDF button itself) */
+  .no-print { display: none !important; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

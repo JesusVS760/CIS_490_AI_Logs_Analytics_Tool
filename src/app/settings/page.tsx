@@ -14,10 +14,9 @@ import {
   Trash2,
   Loader2,
   ShieldAlert,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 
+/** Shape of the user object persisted in localStorage under "dashboardUser". */
 type StoredUser = {
   nameUser: string;
   profilePic: string | null;
@@ -26,19 +25,30 @@ type StoredUser = {
 export default function SettingClient() {
   const router = useRouter();
 
+  // ── UI / loading state ──────────────────────────────────────────────────────
   const [modeDark, setModeDark] = useState(false);
-  const [nameUser, setNameUser] = useState("");
-  const [newNameUser, setNewNameUser] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
+
+  // ── User profile state ──────────────────────────────────────────────────────
+  const [nameUser, setNameUser] = useState("");       // current saved username
+  const [newNameUser, setNewNameUser] = useState(""); // controlled input value
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+
+  // ── Per-action loading flags (prevent duplicate requests) ───────────────────
   const [updatingTheme, setUpdatingTheme] = useState(false);
   const [updatingUsername, setUpdatingUsername] = useState(false);
-  const [updatingPassword, setUpdatingPassword] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  // Controls visibility of the delete-account confirmation modal.
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Persists the current username and profile picture URL to localStorage so
+   * other parts of the app (e.g. the sidebar) can read them without an API call.
+   */
   const saveUserToStorage = (
     userName: string,
     userProfilePic: string | null
@@ -50,35 +60,47 @@ export default function SettingClient() {
     localStorage.setItem("dashboardUser", JSON.stringify(storedUser));
   };
 
+  /**
+   * Fires a "profile-updated" CustomEvent on the window so any component that
+   * listens for it (e.g. the sidebar avatar) can re-render immediately without
+   * a page refresh.
+   */
   const dispatchProfileUpdated = (
     userName: string,
     userProfilePic: string | null
   ) => {
     window.dispatchEvent(
       new CustomEvent("profile-updated", {
-        detail: {
-          nameUser: userName,
-          profilePic: userProfilePic,
-        },
+        detail: { nameUser: userName, profilePic: userProfilePic },
       })
     );
   };
 
+  /**
+   * Applies a dark/light theme by toggling the "dark" class on <html>,
+   * persisting the choice to localStorage, and broadcasting a "theme-updated"
+   * event so other components can respond without a full reload.
+   */
   const applyTheme = (isDark: boolean) => {
     setModeDark(isDark);
     document.documentElement.classList.toggle("dark", isDark);
     localStorage.setItem("dashboardTheme", isDark ? "dark" : "light");
-
     window.dispatchEvent(
-      new CustomEvent("theme-updated", {
-        detail: { darkMode: isDark },
-      })
+      new CustomEvent("theme-updated", { detail: { darkMode: isDark } })
     );
   };
 
+  // ── Initialisation ───────────────────────────────────────────────────────────
+
+  /**
+   * On mount:
+   * 1. Reads any cached theme from localStorage and applies it immediately so
+   *    there is no flash of the wrong theme while the API call is in-flight.
+   * 2. Fetches the authenticated user's profile from /api/auth/me. On failure
+   *    (expired session, 401, etc.) redirects to /login.
+   */
   useEffect(() => {
     const savedTheme = localStorage.getItem("dashboardTheme");
-
     if (savedTheme === "dark") {
       document.documentElement.classList.add("dark");
       setModeDark(true);
@@ -89,10 +111,10 @@ export default function SettingClient() {
 
     const fetchUser = async () => {
       try {
-        const res = await axios.get("/api/auth/me", {
-          withCredentials: true,
-        });
+        const res = await axios.get("/api/auth/me", { withCredentials: true });
 
+        // The API may return the name under different keys depending on version;
+        // fall back through each until we find a value.
         const fetchedName =
           res.data?.user?.name || res.data?.username || "User";
         const fetchedProfilePic =
@@ -103,11 +125,10 @@ export default function SettingClient() {
 
         setNameUser(fetchedName);
         setProfilePic(fetchedProfilePic);
-
         saveUserToStorage(fetchedName, fetchedProfilePic);
         dispatchProfileUpdated(fetchedName, fetchedProfilePic);
         applyTheme(fetchedDarkMode);
-      } catch (error) {
+      } catch {
         router.push("/login");
       } finally {
         setLoadingUser(false);
@@ -117,162 +138,119 @@ export default function SettingClient() {
     fetchUser();
   }, [router]);
 
+  // ── Action handlers ──────────────────────────────────────────────────────────
+
+  /**
+   * Toggles dark/light mode for the current user. Persists the preference to
+   * the database via PUT /api/auth/theme so it survives across sessions and
+   * devices. Uses the value returned by the API as the source of truth in case
+   * the server normalises or rejects the value.
+   */
   const darkModeToggle = async () => {
     if (updatingTheme) return;
-
     try {
       setUpdatingTheme(true);
-
       const nextMode = !modeDark;
-
       const res = await axios.put(
         "/api/auth/theme",
         { darkMode: nextMode },
         { withCredentials: true }
       );
-
+      // Prefer the server-confirmed value; fall back to the optimistic value.
       const updatedDarkMode =
         typeof res.data?.darkMode === "boolean"
           ? res.data.darkMode
           : typeof res.data?.user?.darkMode === "boolean"
             ? res.data.user.darkMode
             : nextMode;
-
       applyTheme(updatedDarkMode);
       toast.success("Mode updated ✅");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update mode ❌");
     } finally {
       setUpdatingTheme(false);
     }
   };
 
+  /**
+   * Saves a new username via PUT /api/auth/username and immediately syncs the
+   * updated name to localStorage and any listening components so the sidebar
+   * reflects the change without a reload.
+   */
   const changeUsername = async () => {
     const trimmedName = newNameUser.trim();
-
     if (!trimmedName) {
       toast.error("Username cannot be empty ❌");
       return;
     }
-
     try {
       setUpdatingUsername(true);
-
       const res = await axios.put(
         "/api/auth/username",
         { name: trimmedName },
         { withCredentials: true }
       );
-
       const updatedName = res.data?.user?.name || trimmedName;
-
       setNameUser(updatedName);
       setNewNameUser("");
       saveUserToStorage(updatedName, profilePic);
       dispatchProfileUpdated(updatedName, profilePic);
-
       toast.success("Username updated ✅");
-    } catch (error) {
+    } catch {
       toast.error("Update failed ❌");
     } finally {
       setUpdatingUsername(false);
     }
   };
 
-  const changePassword = async () => {
-    const trimmedPassword = newPassword.trim();
-
-    if (!trimmedPassword) {
-      toast.error("Password cannot be empty ❌");
-      return;
-    }
-
-    if (trimmedPassword.length < 6) {
-      toast.error("Password must be at least 6 characters ❌");
-      return;
-    }
-
+  /**
+   * Permanently deletes the account via DELETE /api/auth/delete.
+   * Called only after the user confirms in the modal (setShowDeleteConfirm).
+   * Clears localStorage cache before redirecting to /login so a subsequent
+   * sign-up starts with a clean state.
+   */
+  const deleteAccount = async () => {
     try {
-      setUpdatingPassword(true);
+      setDeletingAccount(true);
+      setShowDeleteConfirm(false);
 
-      await axios.put(
-        "/api/auth/password",
-        { newPassword: trimmedPassword },
-        { withCredentials: true }
-      );
+      await axios.delete("/api/auth/delete", { withCredentials: true });
 
-      setNewPassword("");
-      toast.success("Password updated ✅");
+      localStorage.removeItem("dashboardUser");
+      localStorage.removeItem("dashboardTheme");
+
+      toast.success("Account removed. You've been signed out. 👋");
+
+      // Delay navigation so the toast is visible before the Toaster unmounts.
+      setTimeout(() => router.push("/login"), 1500);
     } catch (error) {
-      toast.error("Password update failed ❌");
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message;
+        console.error("Delete account error:", error.response?.status, message);
+        toast.error(`Deletion failed: ${message} ❌`);
+      } else {
+        console.error("Delete account unknown error:", error);
+        toast.error("Deletion failed ❌");
+      }
     } finally {
-      setUpdatingPassword(false);
+      setDeletingAccount(false);
     }
   };
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
- const deleteAccount = async () => {
-  // Confirm with the user before doing anything destructive.
-  // If they cancel, bail out immediately.
-  //if (!confirm("Are you sure you want to delete your account?")) return;
-
-  try {
-    // Disable the Delete button and show the spinner state.
-    setDeletingAccount(true);
-    setShowDeleteConfirm(false);
-    // Call the backend to permanently delete the account and all
-    // associated data. withCredentials ensures the session_token
-    // cookie is sent so the server knows which account to delete.
-    await axios.delete("/api/auth/delete", {
-      withCredentials: true,
-    });
-
-    // Clear any cached user info and theme from localStorage so a
-    // new account created afterward starts with a clean slate.
-    localStorage.removeItem("dashboardUser");
-    localStorage.removeItem("dashboardTheme");
-
-    // Show a success toast confirming the account was removed.
-    toast.success("Account removed. You've been signed out. 👋");
-
-    // Delay the redirect briefly so the toast has time to render
-    // before the Toaster unmounts on navigation.
-    setTimeout(() => {
-      router.push("/login");
-    }, 1500);
-  } catch (error) {
-    // Handle axios-specific errors so we can surface the server's
-    // error message (if any) to the user.
-    if (axios.isAxiosError(error)) {
-      const message =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        error.message;
-      console.error(
-        "Delete account error:",
-        error.response?.status,
-        message
-      );
-      toast.error(`Deletion failed: ${message} ❌`);
-    } else {
-      // Fallback for anything that isn't an axios error
-      // (network failure, unexpected runtime error, etc.).
-      console.error("Delete account unknown error:", error);
-      toast.error("Deletion failed ❌");
-    }
-  } finally {
-    // Always re-enable the button, whether the request succeeded
-    // or failed, so the UI doesn't get stuck in a loading state.
-    setDeletingAccount(false);
-  }
-};
-
-  const handleProfileUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  /**
+   * Handles profile picture selection. Shows a local object-URL preview
+   * immediately (optimistic UI), then uploads the file to /api/auth/profile-pic.
+   * A cache-busting query string is appended to the URL returned by the server
+   * so the browser doesn't serve the old image from its cache.
+   */
+  const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Show the local preview instantly while the upload is in-flight.
     const previewUrl = URL.createObjectURL(file);
     setProfilePic(previewUrl);
     saveUserToStorage(nameUser, previewUrl);
@@ -283,36 +261,40 @@ export default function SettingClient() {
 
     try {
       setUploadingPhoto(true);
-
       const res = await axios.put("/api/auth/profile-pic", formData, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       });
-
       const updatedProfilePic = res.data?.profilePic
         ? `${res.data.profilePic}?t=${Date.now()}`
         : previewUrl;
-
       setProfilePic(updatedProfilePic);
       saveUserToStorage(nameUser, updatedProfilePic);
       dispatchProfileUpdated(nameUser, updatedProfilePic);
-
       toast.success("Profile picture updated ✅");
-    } catch (error) {
+    } catch {
       toast.error("Upload failed ❌");
     } finally {
       setUploadingPhoto(false);
     }
   };
 
+  // ── Shared input styles ──────────────────────────────────────────────────────
+
+  // Tailwind class string shared by all text inputs on this page.
   const inputClassName =
     "settings-input w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400";
 
+  // Inline style to set text and caret color explicitly. Required because some
+  // browsers override Tailwind's text-color utilities when autocomplete is active.
   const inputStyle: React.CSSProperties = {
     color: modeDark ? "#ffffff" : "#111827",
     caretColor: modeDark ? "#ffffff" : "#111827",
   };
 
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  // Show a spinner while the initial /api/auth/me call is in-flight.
   if (loadingUser) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100">
@@ -329,6 +311,12 @@ export default function SettingClient() {
 
   return (
     <>
+      {/*
+        Global autofill overrides for .settings-input elements.
+        Browsers inject their own background/text colours on autofilled inputs;
+        these rules force the correct light/dark palette so autofill doesn't
+        visually break the form.
+      */}
       <style jsx global>{`
         .settings-input:-webkit-autofill,
         .settings-input:-webkit-autofill:hover,
@@ -339,7 +327,6 @@ export default function SettingClient() {
           caret-color: #111827 !important;
           transition: background-color 5000s ease-in-out 0s;
         }
-
         html.dark .settings-input:-webkit-autofill,
         html.dark .settings-input:-webkit-autofill:hover,
         html.dark .settings-input:-webkit-autofill:focus,
@@ -357,13 +344,14 @@ export default function SettingClient() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Manage your account, profile, appearance, and security
-              preferences.
+              Manage your account, profile, appearance, and security preferences.
             </p>
           </div>
 
+          {/* Page layout: narrow profile card on the left, settings panels on the right */}
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* Left column — Profile Overview */}
+
+            {/* ── Left column: Profile Overview ──────────────────────────────── */}
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <h2 className="text-xl font-semibold">Profile Overview</h2>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -371,6 +359,7 @@ export default function SettingClient() {
               </p>
 
               <div className="mt-6 flex flex-col items-center gap-4 text-center">
+                {/* Show the profile picture if set, otherwise a placeholder icon */}
                 {profilePic ? (
                   <img
                     src={profilePic}
@@ -390,6 +379,11 @@ export default function SettingClient() {
                   </p>
                 </div>
 
+                {/*
+                  Hidden file input triggered programmatically by the button below.
+                  Using a hidden input + button avoids native file-input styling
+                  inconsistencies across browsers.
+                */}
                 <input
                   id="profileUpload"
                   type="file"
@@ -397,12 +391,9 @@ export default function SettingClient() {
                   onChange={handleProfileUpload}
                   className="hidden"
                 />
-
                 <button
                   type="button"
-                  onClick={() =>
-                    document.getElementById("profileUpload")?.click()
-                  }
+                  onClick={() => document.getElementById("profileUpload")?.click()}
                   disabled={uploadingPhoto}
                   className="flex w-full items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-white transition hover:bg-purple-700 disabled:opacity-50"
                 >
@@ -420,6 +411,7 @@ export default function SettingClient() {
                 </button>
               </div>
 
+              {/* Read-only summary tiles showing the current username and theme */}
               <div className="mt-6 space-y-3">
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
                   <p className="text-sm font-medium">Current username</p>
@@ -427,7 +419,6 @@ export default function SettingClient() {
                     {nameUser || "No username set"}
                   </p>
                 </div>
-
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
                   <p className="text-sm font-medium">Theme</p>
                   <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -437,23 +428,18 @@ export default function SettingClient() {
               </div>
             </div>
 
-            {/* Right column — Settings panels */}
+            {/* ── Right column: Settings panels (spans 2 of 3 grid columns) ─── */}
             <div className="space-y-6 lg:col-span-2">
-              {/* Appearance */}
+
+              {/* Appearance — toggle between light and dark mode */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
-                  {modeDark ? (
-                    <Moon className="h-5 w-5" />
-                  ) : (
-                    <Sun className="h-5 w-5" />
-                  )}
+                  {modeDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                   <h2 className="text-xl font-semibold">Appearance</h2>
                 </div>
-
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   Customize how the application looks for your account.
                 </p>
-
                 <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-medium">Theme mode</p>
@@ -461,7 +447,6 @@ export default function SettingClient() {
                       Switch between light and dark mode.
                     </p>
                   </div>
-
                   <button
                     type="button"
                     onClick={darkModeToggle}
@@ -475,22 +460,17 @@ export default function SettingClient() {
                 </div>
               </div>
 
-              {/* Username */}
+              {/* Username — inline update via the changeUsername handler */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5" />
                   <h2 className="text-xl font-semibold">Username</h2>
                 </div>
-
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   Update the name shown for your account.
                 </p>
-
                 <div className="mt-4">
-                  <label
-                    htmlFor="new-username"
-                    className="mb-2 block text-sm font-medium"
-                  >
+                  <label htmlFor="new-username" className="mb-2 block text-sm font-medium">
                     New Username
                   </label>
                   <input
@@ -504,7 +484,6 @@ export default function SettingClient() {
                     style={inputStyle}
                   />
                 </div>
-
                 <div className="mt-4 flex justify-end">
                   <button
                     type="button"
@@ -517,73 +496,44 @@ export default function SettingClient() {
                 </div>
               </div>
 
-              {/* Password */}
+              {/*
+                Password — navigates to /reset-password instead of allowing an
+                inline change. The reset page handles the full email-verification
+                flow (send code → verify → set new password), which is safer than
+                letting a logged-in user overwrite the password without re-auth.
+              */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
                   <KeyRound className="h-5 w-5" />
                   <h2 className="text-xl font-semibold">Password</h2>
                 </div>
-
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   Change your password to keep your account secure.
                 </p>
-
-                <div className="mt-4">
-                  <label
-                    htmlFor="new-password"
-                    className="mb-2 block text-sm font-medium"
-                  >
-                    New Password
-                  </label>
-
-                  <div className="relative">
-                    <input
-                      id="new-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter a new password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      autoComplete="new-password"
-                      className={`${inputClassName} pr-11`}
-                      style={inputStyle}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium">Reset password</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      You'll be guided through a secure password reset flow.
+                    </p>
                   </div>
-                </div>
-
-                <div className="mt-4 flex justify-end">
+                  {/* router.push keeps the navigation client-side (no full reload) */}
                   <button
                     type="button"
-                    onClick={changePassword}
-                    disabled={updatingPassword}
-                    className="rounded-lg bg-yellow-600 px-4 py-2 text-white transition hover:bg-yellow-700 disabled:opacity-50"
+                    onClick={() => router.push("/reset-password")}
+                    className="rounded-lg bg-yellow-600 px-4 py-2 text-white transition hover:bg-yellow-700"
                   >
-                    {updatingPassword ? "Updating..." : "Reset Password"}
+                    Reset Password
                   </button>
                 </div>
               </div>
 
-             {/* Danger Zone */}
+              {/* Danger Zone — destructive, irreversible account actions */}
               <div className="rounded-2xl border border-red-300 bg-white p-6 shadow-sm dark:border-red-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                   <ShieldAlert className="h-5 w-5" />
                   <h2 className="text-xl font-semibold">Danger Zone</h2>
                 </div>
-
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   Permanent and destructive account actions.
                 </p>
@@ -595,14 +545,7 @@ export default function SettingClient() {
                       This action is permanent and cannot be undone.
                     </p>
                   </div>
-
-                  {/*
-                    CHANGED: Button no longer calls deleteAccount() directly.
-                    It now opens an in-app confirmation modal by setting
-                    showDeleteConfirm to true, replacing the native
-                    browser confirm() popup with a styled modal that
-                    matches the app's theme (including dark mode).
-                  */}
+                  {/* Opens the confirmation modal; does not delete immediately */}
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
@@ -624,11 +567,9 @@ export default function SettingClient() {
                 </div>
 
                 {/*
-                  ADDED: Custom confirmation modal for account deletion.
-                  Renders only when showDeleteConfirm is true.
-                  - Full-screen dimmed overlay (bg-black/50)
-                  - Centered modal card styled to match other settings cards
-                  - Cancel closes the modal; Confirm calls deleteAccount()
+                  Confirmation modal — rendered in-place inside the Danger Zone
+                  card. The fixed overlay covers the full viewport (z-50) and a
+                  centred card asks the user to confirm before deleteAccount() runs.
                 */}
                 {showDeleteConfirm && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -637,12 +578,12 @@ export default function SettingClient() {
                         Delete your account?
                       </h3>
                       <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-     This action is permanent and cannot be undone. All
-                        your courses, assignments, student data, and uploaded
-                        logs will be permanently deleted.
+                        This action is permanent and cannot be undone. All your
+                        courses, assignments, student data, and uploaded logs will
+                        be permanently deleted.
                       </p>
-
                       <div className="mt-6 flex justify-end gap-3">
+                        {/* Cancel dismisses the modal without taking any action */}
                         <button
                           type="button"
                           onClick={() => setShowDeleteConfirm(false)}
@@ -650,6 +591,7 @@ export default function SettingClient() {
                         >
                           Cancel
                         </button>
+                        {/* Confirm triggers the irreversible deleteAccount() call */}
                         <button
                           type="button"
                           onClick={deleteAccount}

@@ -14,6 +14,7 @@ import TrafficPerDayCard from "./TrafficPerDayCard";
 import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
 import { useAiAnalytics } from "@/app/dashboard/DashboardClient";
 import UniqueAssignmentsPerStudentCard from "./UniqueAssignmentsPerStudentCard";
+import ExportPDFButton from "./ExportPDFButton";
 
 const AnalyticsDashboard = () => {
   const { messages, loadingAnalytics, pendingUploadSuccess, hasSessions } =
@@ -42,6 +43,13 @@ const AnalyticsDashboard = () => {
       key={pendingUploadSuccess ? "uploaded" : "default"}
       className="w-full space-y-8 px-4 py-6"
     >
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-muted-foreground">
+          Analytics Report
+        </h2>
+        <ExportPDFButton />
+      </div>
+      <div className="print-area">
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         <div className="flex flex-col gap-3">
           <TopQuestionCard messages={messages} />
@@ -70,6 +78,7 @@ const AnalyticsDashboard = () => {
         <TrafficPerDayCard />
         <TimeOfDayCard />
       </section>
+      </div>
     </div>
   );
 };

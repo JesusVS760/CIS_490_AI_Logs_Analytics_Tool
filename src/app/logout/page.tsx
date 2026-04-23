@@ -23,6 +23,12 @@ export default function LogoutPage() {
 
       localStorage.removeItem("dashboardUser");
 
+      window.dispatchEvent(
+        new CustomEvent("profile-updated", {
+          detail: { nameUser: "User", profilePic: null },
+        }),
+      );
+
       toast.success("Logged out successfully");
       router.replace("/login");
     } catch (error) {

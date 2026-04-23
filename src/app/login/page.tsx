@@ -13,7 +13,6 @@ import axios from "axios"; // Import axios to simplify API calls from the client
 
 import { Input } from "@/components/ui/input"; // Import shared input component from the existing UI layer
 import { Label } from "@/components/ui/label"; // Import shared label component from the existing UI layer
-import { toast } from "sonner";
 
 // Defined the TypeScript shape for all login form fields
 type LoginFormState = {
@@ -88,14 +87,27 @@ export default function LoginPage() {
     try {
       const response = await axios.post("/api/auth/login", formState); // Sends login request to auth endpoint with current form state
       const data = parseLoginPayload(response.data); // Normalizes API response payload shape for safe usage
-      console.log("login creds: ", data);
 
       // If segment for if the backend reports failure, shows this message and stops
       if (!data.success) {
         setStatusMessage(data.message);
-        toast("Login Success ✅");
         return;
       }
+
+      // Sync the Navbar (which stays mounted in root layout) before navigation.
+      // Without this, the Navbar keeps its pre-login "User" state because it
+      // doesn't remount on client-side navigation.
+      const userName: string =
+        (response.data as { user?: { name?: string } })?.user?.name ?? "User";
+      localStorage.setItem(
+        "dashboardUser",
+        JSON.stringify({ nameUser: userName, profilePic: null }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("profile-updated", {
+          detail: { nameUser: userName, profilePic: null },
+        }),
+      );
 
       // On success, navigates to provided route or fallback dashboard
       router.push(data.redirectTo ?? "/dashboard");
