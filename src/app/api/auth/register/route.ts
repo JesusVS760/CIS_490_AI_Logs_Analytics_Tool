@@ -1,28 +1,7 @@
 import db from "@/lib/db";
-import { ensureInstructorsTable } from "@/lib/instructors";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
-
-ensureInstructorsTable();
-
-const instructorColumns = db
-  .prepare("PRAGMA table_info(instructors)")
-  .all() as { name: string }[];
-
-if (!instructorColumns.some((col) => col.name === "is_verified")) {
-  db.exec(
-    "ALTER TABLE instructors ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0",
-  );
-}
-
-if (!instructorColumns.some((col) => col.name === "verification_code")) {
-  db.exec("ALTER TABLE instructors ADD COLUMN verification_code TEXT");
-}
-
-if (!instructorColumns.some((col) => col.name === "verification_expires")) {
-  db.exec("ALTER TABLE instructors ADD COLUMN verification_expires TEXT");
-}
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -59,13 +38,12 @@ async function createAndSendVerificationCode(email: string) {
   const code = generateVerificationCode();
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-  db.prepare(
-    `
-    UPDATE instructors
-    SET verification_code = ?, verification_expires = ?, is_verified = 0
-    WHERE email = ?
-    `,
-  ).run(code, expires, email);
+  await db.execute({
+    sql: `UPDATE instructors
+          SET verification_code = ?, verification_expires = ?, is_verified = 0
+          WHERE email = ?`,
+    args: [code, expires, email],
+  });
 
   await sendVerificationEmail(email, code);
 }
@@ -78,7 +56,6 @@ export async function POST(req: NextRequest) {
       .toLowerCase();
     const password = String(formData.get("password") || "");
     const name = String(formData.get("name") || "").trim();
-    const normalizedEmail = email.toLowerCase().trim();
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -94,47 +71,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existing = db
-      .prepare(
-        `
-        SELECT id, auth_provider, github_id, has_local_password
-        FROM instructors
-        WHERE email = ?
-        `,
-      )
-      .get(normalizedEmail) as
-      | {
+    const existingResult = await db.execute({
+      sql: `SELECT id, auth_provider, github_id, has_local_password
+            FROM instructors WHERE email = ?`,
+      args: [email],
+    });
+
+    const cols = existingResult.columns;
+    const existingRow = existingResult.rows[0];
+    const existing = existingRow
+      ? (Object.fromEntries(cols.map((c, i) => [c, existingRow[i]])) as {
           id: number;
           auth_provider: string;
           github_id: string | null;
           has_local_password: number;
-        }
-      | undefined;
+        })
+      : undefined;
 
     const passwordHash = await bcrypt.hash(password, 12);
 
     if (!existing) {
-      const result = db
-        .prepare(
-          `
-          INSERT INTO instructors (
-            name,
-            email,
-            password_hash,
-            auth_provider,
-            has_local_password,
-            is_verified
-          )
-          VALUES (?, ?, ?, 'local', 1, 0)
-          `,
-        )
-        .run(name, normalizedEmail, passwordHash);
+      const insertResult = await db.execute({
+        sql: `INSERT INTO instructors (name, email, password_hash, auth_provider, has_local_password, is_verified)
+              VALUES (?, ?, ?, 'local', 1, 0)`,
+        args: [name, email, passwordHash],
+      });
 
       try {
-        await createAndSendVerificationCode(normalizedEmail);
+        await createAndSendVerificationCode(email);
       } catch (mailError) {
         console.error("Initial verification email failed:", mailError);
-
         return NextResponse.json(
           {
             error:
@@ -147,7 +113,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: true,
-          user: { id: result.lastInsertRowid, email: normalizedEmail, name },
+          user: { id: Number(insertResult.lastInsertRowid), email, name },
           message: "Account created. Verification code sent.",
         },
         { status: 201 },
@@ -164,24 +130,18 @@ export async function POST(req: NextRequest) {
     const nextProvider =
       existing.auth_provider === "github" ? "both" : existing.auth_provider;
 
-    db.prepare(
-      `
-      UPDATE instructors
-      SET
-        name = ?,
-        password_hash = ?,
-        has_local_password = 1,
-        auth_provider = ?,
-        is_verified = 0
-      WHERE id = ?
-      `,
-    ).run(name, passwordHash, nextProvider, existing.id);
+    await db.execute({
+      sql: `UPDATE instructors
+            SET name = ?, password_hash = ?, has_local_password = 1,
+                auth_provider = ?, is_verified = 0
+            WHERE id = ?`,
+      args: [name, passwordHash, nextProvider, existing.id],
+    });
 
     try {
-      await createAndSendVerificationCode(normalizedEmail);
+      await createAndSendVerificationCode(email);
     } catch (mailError) {
       console.error("Initial verification email failed:", mailError);
-
       return NextResponse.json(
         {
           error:
@@ -194,7 +154,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        user: { id: existing.id, email: normalizedEmail, name },
+        user: { id: existing.id, email, name },
         message: "Account created. Verification code sent.",
       },
       { status: 200 },

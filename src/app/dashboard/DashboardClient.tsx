@@ -87,8 +87,10 @@ export default function DashboardPage() {
   }, [setAssignmentOptions]);
 
   useEffect(() => {
+    console.log("Dashboard refresh triggered");
     refreshAnalyticsData();
-  }, [refreshAnalyticsData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -97,8 +99,8 @@ export default function DashboardPage() {
       new Set(
         messages
           .map((message) => message.assignmentName)
-          .filter((value): value is string => Boolean(value))
-      )
+          .filter((value): value is string => Boolean(value)),
+      ),
     ).sort((a, b) => a.localeCompare(b));
 
     setAssignmentOptions(options);
@@ -126,7 +128,7 @@ export default function DashboardPage() {
       messages,
       hasSessions,
       loadingAnalytics,
-    ]
+    ],
   );
 
   return (

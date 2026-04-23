@@ -15,19 +15,27 @@ export interface AuthPayload {
   profilePic: string | null;
 }
 
-/**
- * Looks up the session_token cookie in the DB.
- * Returns the instructor payload or null if not found / invalid.
- */
+// libsql returns rows as arrays — map by column index from the SELECT order:
+// 0: id, 1: email, 2: name, 3: dark_mode, 4: profile_pic
+function rowsAsObjects(result: Awaited<ReturnType<typeof db.execute>>) {
+  const cols = result.columns;
+  return result.rows.map((row) => {
+    const obj: Record<string, unknown> = {};
+    cols.forEach((col, i) => {
+      obj[col] = row[i];
+    });
+    return obj;
+  });
+}
+
 export async function verifyAuth(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<AuthPayload | null> {
   const token = req.cookies.get("session_token")?.value;
   if (!token) return null;
 
-  const row = db
-    .prepare(
-      `
+  const result = await db.execute({
+    sql: `
       SELECT
         i.id,
         i.email,
@@ -37,22 +45,23 @@ export async function verifyAuth(
       FROM instructor_sessions s
       JOIN instructors i ON i.id = s.instructor_id
       WHERE s.token = ?
-      `
-    )
-    .get(token) as
-    | {
-        id: number;
-        email: string;
-        name: string;
-        dark_mode: number;
-        profile_pic: string | null;
-      }
-    | undefined;
+    `,
+    args: [token],
+  });
 
-  if (!row) return null;
+  const rows = rowsAsObjects(result);
+  if (rows.length === 0) return null;
+
+  const row = rows[0] as {
+    id: number;
+    email: string;
+    name: string;
+    dark_mode: number;
+    profile_pic: string | null;
+  };
 
   return {
-    instructorId: row.id,
+    instructorId: Number(row.id),
     email: row.email,
     name: row.name,
     darkMode: Boolean(row.dark_mode),
@@ -60,41 +69,32 @@ export async function verifyAuth(
   };
 }
 
-/**
- * Returns a 401 response if the request is not authenticated.
- */
 export async function requireAuth(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<AuthPayload | NextResponse> {
   const payload = await verifyAuth(req);
-
   if (!payload) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   return payload;
 }
 
-/**
- * Generates a secure random token, stores it in the DB, and returns it.
- * Call this after verifying the instructor's password in the login route.
- */
-export function createSessionToken(instructorId: number): string {
+export async function createSessionToken(
+  instructorId: number,
+): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
 
-  db.prepare(
-    `
-    INSERT INTO instructor_sessions (instructor_id, token)
-    VALUES (?, ?)
-    `
-  ).run(instructorId, token);
+  await db.execute({
+    sql: `INSERT INTO instructor_sessions (instructor_id, token) VALUES (?, ?)`,
+    args: [instructorId, token],
+  });
 
   return token;
 }
 
-/**
- * Removes a session token from the DB. Called on logout.
- */
-export function deleteSessionToken(token: string): void {
-  db.prepare("DELETE FROM instructor_sessions WHERE token = ?").run(token);
+export async function deleteSessionToken(token: string): Promise<void> {
+  await db.execute({
+    sql: "DELETE FROM instructor_sessions WHERE token = ?",
+    args: [token],
+  });
 }

@@ -38,7 +38,7 @@ function buildStudentOptions(messages: Message[]): StudentOption[] {
 
 function buildConversationCounts(
   messages: Message[],
-  selectedStudentKey: string
+  selectedStudentKey: string,
 ) {
   const counts = new Map<string, number>();
 
@@ -115,7 +115,7 @@ export default function MessagesPerConversation() {
 
   const studentOptions = useMemo(
     () => buildStudentOptions(filteredMessages),
-    [filteredMessages]
+    [filteredMessages],
   );
 
   useEffect(() => {
@@ -129,12 +129,12 @@ export default function MessagesPerConversation() {
 
   const conversationCounts = useMemo(
     () => buildConversationCounts(filteredMessages, selectedStudentKey),
-    [filteredMessages, selectedStudentKey]
+    [filteredMessages, selectedStudentKey],
   );
 
   const buckets = useMemo(
     () => bucketize(conversationCounts),
-    [conversationCounts]
+    [conversationCounts],
   );
 
   const chartData = {
@@ -155,9 +155,8 @@ export default function MessagesPerConversation() {
   };
 
   const totalConversations = conversationCounts.length;
-
   return (
-    <div className="rounded-2xl border p-6 w-full bg-white dark:bg-zinc-900">
+    <div className="rounded-2xl border border-gray-100 p-6 shadow-sm w-full bg-white dark:bg-zinc-900">
       <div className="mb-4 flex justify-between">
         <div>
           <h1 className="flex items-center gap-2 font-bold text-lg ">

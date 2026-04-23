@@ -16,70 +16,37 @@ import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAs
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-type Assignment = {
-  id: number;
-  name: string;
-};
-
 type Session = {
   id: number;
   startedAt: string | null;
   endedAt: string | null;
-  assignment_id?: number;
-  assignmentId?: number;
+  assignmentName?: string;
 };
 
 const ChatDuration = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-
   const { selectedAssignment } = useDashboardAssignmentFilter();
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [sessionsRes, assignmentsRes] = await Promise.all([
-          axios.get("/api/sessions"),
-          axios.get("/api/assignments"),
-        ]);
-
+        const sessionsRes = await axios.get("/api/sessions");
         setSessions(Array.isArray(sessionsRes.data) ? sessionsRes.data : []);
-        setAssignments(
-          Array.isArray(assignmentsRes.data) ? assignmentsRes.data : [],
-        );
       } catch (error) {
         console.error("Failed to load chat duration analytics:", error);
         setSessions([]);
-        setAssignments([]);
       }
     }
 
     fetchData();
   }, []);
 
-  const assignmentNameById = useMemo(() => {
-    const map = new Map<number, string>();
-
-    assignments.forEach((assignment) => {
-      map.set(assignment.id, assignment.name);
-    });
-
-    return map;
-  }, [assignments]);
-
   const filteredSessions = useMemo(() => {
     if (selectedAssignment === "all") return sessions;
-
-    return sessions.filter((session) => {
-      const assignmentId = Number(
-        session.assignmentId ?? session.assignment_id,
-      );
-
-      if (Number.isNaN(assignmentId)) return false;
-
-      return assignmentNameById.get(assignmentId) === selectedAssignment;
-    });
-  }, [sessions, selectedAssignment, assignmentNameById]);
+    return sessions.filter(
+      (session) => session.assignmentName === selectedAssignment,
+    );
+  }, [sessions, selectedAssignment]);
 
   const { chartData, sessionsLength, averageTime } = useMemo(() => {
     const buckets = {
@@ -102,14 +69,7 @@ const ChatDuration = () => {
       if (Number.isNaN(start) || Number.isNaN(end)) return;
 
       const minutes = (end - start) / (1000 * 60);
-      if (minutes < 0 || minutes > 180) return; // cap at 3 hours — handles abandoned sessions
-
-      console.log({
-        id: session.id,
-        minutes,
-        startedAt: session.startedAt,
-        endedAt: session.endedAt,
-      });
+      if (minutes < 0 || minutes > 180) return;
 
       totalMinutes += minutes;
       validSessions++;
@@ -167,16 +127,8 @@ const ChatDuration = () => {
           data={chartData}
           options={{
             responsive: true,
-            plugins: {
-              legend: {
-                display: false,
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-              },
-            },
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } },
           }}
         />
       </div>

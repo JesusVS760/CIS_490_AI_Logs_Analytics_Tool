@@ -13,13 +13,10 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const darkMode = Boolean(body?.darkMode);
 
-    db.prepare(
-      `
-      UPDATE instructors
-      SET dark_mode = ?
-      WHERE id = ?
-      `
-    ).run(darkMode ? 1 : 0, auth.instructorId);
+    await db.execute({
+      sql: "UPDATE instructors SET dark_mode = ? WHERE id = ?",
+      args: [darkMode ? 1 : 0, auth.instructorId],
+    });
 
     return NextResponse.json({
       success: true,
@@ -36,7 +33,7 @@ export async function PUT(req: NextRequest) {
     console.error("THEME UPDATE ERROR:", error);
     return NextResponse.json(
       { error: "Failed to update theme" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

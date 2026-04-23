@@ -17,26 +17,23 @@ export async function PUT(req: NextRequest) {
     if (!newPassword) {
       return NextResponse.json(
         { error: "Password is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (newPassword.length < 6) {
       return NextResponse.json(
         { error: "Password must be at least 6 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    db.prepare(
-      `
-      UPDATE instructors
-      SET password_hash = ?
-      WHERE id = ?
-      `
-    ).run(passwordHash, auth.instructorId);
+    await db.execute({
+      sql: "UPDATE instructors SET password_hash = ? WHERE id = ?",
+      args: [passwordHash, auth.instructorId],
+    });
 
     return NextResponse.json({
       success: true,
@@ -46,7 +43,7 @@ export async function PUT(req: NextRequest) {
     console.error("PASSWORD UPDATE ERROR:", error);
     return NextResponse.json(
       { error: "Failed to update password" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

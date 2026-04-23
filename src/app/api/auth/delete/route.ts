@@ -25,25 +25,26 @@ export async function DELETE(req: NextRequest) {
 
     // Clear the session token
     const token = req.cookies.get("session_token")?.value;
-    if (token) deleteSessionToken(token);
+    if (token) await deleteSessionToken(token);
 
-    // Wipe all uploaded data from the database.
-    // Order: leaf tables → parent tables (respects foreign keys).
-    db.prepare("DELETE FROM terminal_snapshots").run();
-    db.prepare("DELETE FROM code_snapshots").run();
-    db.prepare("DELETE FROM messages").run();
-    db.prepare("DELETE FROM sessions").run();
-    db.prepare("DELETE FROM students").run();
-    db.prepare("DELETE FROM assignments").run();
-    db.prepare("DELETE FROM courses").run();
+    // Wipe all uploaded data — leaf tables first (respects foreign keys)
+    await db.execute("DELETE FROM terminal_snapshots");
+    await db.execute("DELETE FROM code_snapshots");
+    await db.execute("DELETE FROM messages");
+    await db.execute("DELETE FROM sessions");
+    await db.execute("DELETE FROM students");
+    await db.execute("DELETE FROM assignments");
+    await db.execute("DELETE FROM courses");
 
-    // Delete auth sessions for this instructor
-    db.prepare("DELETE FROM instructor_sessions WHERE instructor_id = ?").run(
-      auth.instructorId
-    );
+    await db.execute({
+      sql: "DELETE FROM instructor_sessions WHERE instructor_id = ?",
+      args: [auth.instructorId],
+    });
 
-    // Delete the instructor account
-    db.prepare("DELETE FROM instructors WHERE id = ?").run(auth.instructorId);
+    await db.execute({
+      sql: "DELETE FROM instructors WHERE id = ?",
+      args: [auth.instructorId],
+    });
 
     const response = NextResponse.json({
       success: true,
@@ -63,10 +64,7 @@ export async function DELETE(req: NextRequest) {
     console.error("DELETE ACCOUNT ERROR:", error);
     return NextResponse.json(
       { error: "Failed to delete account" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-//need to push to github to main test 
-// 

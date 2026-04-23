@@ -14,19 +14,13 @@ export async function PUT(req: NextRequest) {
     const name = String(body?.name || "").trim();
 
     if (!name) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    db.prepare(
-      `
-      UPDATE instructors
-      SET name = ?
-      WHERE id = ?
-      `
-    ).run(name, auth.instructorId);
+    await db.execute({
+      sql: "UPDATE instructors SET name = ? WHERE id = ?",
+      args: [name, auth.instructorId],
+    });
 
     return NextResponse.json({
       success: true,
@@ -42,7 +36,7 @@ export async function PUT(req: NextRequest) {
     console.error("USERNAME UPDATE ERROR:", error);
     return NextResponse.json(
       { error: "Failed to update username" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

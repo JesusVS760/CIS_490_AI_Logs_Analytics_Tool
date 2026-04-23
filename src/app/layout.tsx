@@ -5,11 +5,17 @@ import { AppSidebar } from "@/components/ui/app-sidebar";
 import ThemeProvider from "@/components/dashboard/ThemeProvider";
 import Navbar from "@/components/navbar/Navbar";
 import { DashboardAssignmentFilterProvider } from "@/components/dashboard/DashboardAssignmentFilterContext";
+import { initializeDb } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "AI Tutor Analytics",
   description: "AI Tutor Log Analytics Tool",
 };
+
+// Initialize the database schema once when the app starts.
+// This is safe to call on every cold start — all CREATE TABLE and
+// ALTER TABLE statements are idempotent (IF NOT EXISTS / try-catch).
+await initializeDb();
 
 export default function RootLayout({
   children,

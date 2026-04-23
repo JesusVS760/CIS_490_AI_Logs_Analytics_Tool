@@ -20,7 +20,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   Tooltip,
-  Legend
+  Legend,
 );
 
 type Assignment = {
@@ -29,24 +29,20 @@ type Assignment = {
 };
 
 type SessionWithAssignment = Session & {
-  assignment_id?: number;
-  assignmentId?: number;
+  assignment_id?: number | string;
+  assignmentId?: number | string;
+  assignmentName?: string;
   messages?: { role: string; timestamp: string; content?: string }[];
 };
 
 const TimeOfDayCard = () => {
   const [sessions, setSessions] = useState<SessionWithAssignment[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-
   const { selectedAssignment } = useDashboardAssignmentFilter();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sessionsRes, assignmentsRes] = await Promise.all([
-          axios.get("/api/sessions"),
-          axios.get("/api/assignments"),
-        ]);
+        const sessionsRes = await axios.get("/api/sessions");
 
         const processed: SessionWithAssignment[] = sessionsRes.data.map(
           (session: SessionWithAssignment) => {
@@ -54,53 +50,33 @@ const TimeOfDayCard = () => {
               ? session.messages
               : [];
             const firstAI = messages.find(
-              (message) => message.role === "ai_tutor" && message.timestamp
+              (message) => message.role === "ai_tutor" && message.timestamp,
             );
 
             return {
               ...session,
               startedAt: firstAI?.timestamp ?? session.startedAt ?? null,
             };
-          }
+          },
         );
 
         setSessions(Array.isArray(processed) ? processed : []);
-        setAssignments(
-          Array.isArray(assignmentsRes.data) ? assignmentsRes.data : []
-        );
       } catch (error) {
         console.error("Failed to load time-of-day analytics:", error);
         setSessions([]);
-        setAssignments([]);
       }
     };
 
     fetchData();
   }, []);
 
-  const assignmentNameById = useMemo(() => {
-    const map = new Map<number, string>();
-
-    assignments.forEach((assignment) => {
-      map.set(assignment.id, assignment.name);
-    });
-
-    return map;
-  }, [assignments]);
-
+  // Filter by assignmentName directly — avoids id type mismatch entirely
   const filteredSessions = useMemo(() => {
     if (selectedAssignment === "all") return sessions;
-
-    return sessions.filter((session) => {
-      const assignmentId = Number(
-        session.assignmentId ?? session.assignment_id
-      );
-
-      if (Number.isNaN(assignmentId)) return false;
-
-      return assignmentNameById.get(assignmentId) === selectedAssignment;
-    });
-  }, [selectedAssignment, sessions, assignmentNameById]);
+    return sessions.filter(
+      (session) => session.assignmentName === selectedAssignment,
+    );
+  }, [selectedAssignment, sessions]);
 
   const hourLabels = Array.from({ length: 24 }, (_, hour) => {
     const suffix = hour < 12 ? "AM" : "PM";
@@ -113,10 +89,8 @@ const TimeOfDayCard = () => {
 
     filteredSessions.forEach((session) => {
       if (!session.startedAt) return;
-
       const date = new Date(session.startedAt);
       if (Number.isNaN(date.getTime())) return;
-
       const hour = date.getHours();
       counts[hour] += 1;
     });
@@ -161,26 +135,16 @@ const TimeOfDayCard = () => {
         options={{
           responsive: true,
           plugins: {
-            legend: {
-              display: true,
-            },
+            legend: { display: true },
           },
           scales: {
             y: {
               beginAtZero: true,
-              ticks: {
-                precision: 0,
-              },
-              title: {
-                display: true,
-                text: "Sessions",
-              },
+              ticks: { precision: 0 },
+              title: { display: true, text: "Sessions" },
             },
             x: {
-              title: {
-                display: true,
-                text: "Hour of Day",
-              },
+              title: { display: true, text: "Hour of Day" },
             },
           },
         }}

@@ -1,10 +1,5 @@
-//the allowment to choose date of assignment is best ulitized in this section(s) as well as the API 
-//and database\
-//Code Changed to allow and to recieve file, assignmentName, 
-//startDate and endDate from the upload form and API.
 import db from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-
 
 import {
   anonymizeId,
@@ -90,7 +85,7 @@ function parseTranscriptTimestamp(value?: string | null): Date | null {
   if (!value) return null;
 
   const match = value.match(
-    /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})\s*([AP]M)$/
+    /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})\s*([AP]M)$/,
   );
 
   if (!match) return null;
@@ -143,14 +138,10 @@ function toDateOnly(value?: string | null): string {
   if (!trimmed) return "";
 
   const isoMatch = trimmed.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-  if (isoMatch) {
-    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
-  }
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
 
   const usMatch = trimmed.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
-  if (usMatch) {
-    return `${usMatch[3]}-${usMatch[1]}-${usMatch[2]}`;
-  }
+  if (usMatch) return `${usMatch[3]}-${usMatch[1]}-${usMatch[2]}`;
 
   const parsed = parseDateStringAsLocalDate(trimmed);
   if (!parsed) return "";
@@ -179,9 +170,7 @@ function getAssignmentNameFromLogs(raw: string): string {
 
   for (const pattern of patterns) {
     const match = raw.match(pattern);
-    if (match?.[1]) {
-      return match[1].trim();
-    }
+    if (match?.[1]) return match[1].trim();
   }
 
   return "";
@@ -199,17 +188,13 @@ function getUploadedFiles(formData: FormData): File[] {
   if (multiFiles.length > 0) return multiFiles;
 
   const singleFile = formData.get("file");
-  if (singleFile instanceof File && singleFile.size > 0) {
-    return [singleFile];
-  }
+  if (singleFile instanceof File && singleFile.size > 0) return [singleFile];
 
   return [];
 }
 
 function getSortedUniqueLogDates(
-  sessions: Array<{
-    messages: Array<{ timestamp?: string | null }>;
-  }>
+  sessions: Array<{ messages: Array<{ timestamp?: string | null }> }>,
 ): string[] {
   const uniqueDates = new Set<string>();
 
@@ -233,18 +218,14 @@ function parseFileConfigs(formData: FormData): {
 } {
   const raw = formData.get("fileConfigs");
 
-  if (typeof raw !== "string" || !raw.trim()) {
+  if (typeof raw !== "string" || !raw.trim())
     return { configs: [], error: null };
-  }
 
   try {
     const parsed = JSON.parse(raw);
 
     if (!Array.isArray(parsed)) {
-      return {
-        configs: [],
-        error: "Invalid file configuration payload.",
-      };
+      return { configs: [], error: "Invalid file configuration payload." };
     }
 
     const configs: FileConfig[] = parsed.map((item) => ({
@@ -258,19 +239,15 @@ function parseFileConfigs(formData: FormData): {
 
     return { configs, error: null };
   } catch {
-    return {
-      configs: [],
-      error: "Invalid file configuration payload.",
-    };
+    return { configs: [], error: "Invalid file configuration payload." };
   }
 }
 
 function findMatchingFileConfig(
   file: File,
-  fileConfigs: FileConfig[]
+  fileConfigs: FileConfig[],
 ): FileConfig | undefined {
   const uploadId = getUploadId(file);
-
   return (
     fileConfigs.find((config) => config.uploadId === uploadId) ??
     fileConfigs.find((config) => config.fileName === file.name)
@@ -279,16 +256,11 @@ function findMatchingFileConfig(
 
 export async function POST(req: NextRequest) {
   try {
-    // Authenticate first. If the user isn't logged in, requireAuth returns
-    // a 401 NextResponse — we just hand that back to the client.
     const authResult = await requireAuth(req);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-    const instructor = authResult; // { instructorId, email, name, ... }
+    if (authResult instanceof NextResponse) return authResult;
+    const instructor = authResult;
 
     const formData = await req.formData();
-
     const files = getUploadedFiles(formData);
     const { configs: fileConfigs, error: fileConfigError } =
       parseFileConfigs(formData);
@@ -344,21 +316,16 @@ export async function POST(req: NextRequest) {
             ? [fallbackGeneratedDate]
             : [];
 
-      const logDerivedStartDate =
-        logDates[0] ||
-        fallbackGeneratedDate ||
-        "";
-
+      const logDerivedStartDate = logDates[0] || fallbackGeneratedDate || "";
       const logDerivedEndDate =
-        logDates[logDates.length - 1] ||
-        fallbackGeneratedDate ||
-        "";
+        logDates[logDates.length - 1] || fallbackGeneratedDate || "";
 
       if (!logDerivedEndDate) {
         fileErrors.push({
           uploadId,
           fileName: file.name,
-          error: "Could not determine any valid log dates from this uploaded log.",
+          error:
+            "Could not determine any valid log dates from this uploaded log.",
         });
         continue;
       }
@@ -375,9 +342,7 @@ export async function POST(req: NextRequest) {
         getFileBaseName(file.name);
 
       const expectedEndDates =
-        logDates.length > 0
-          ? logDates
-          : [logDerivedEndDate];
+        logDates.length > 0 ? logDates : [logDerivedEndDate];
 
       const configNormalizedEndDate = fileConfig?.endDate
         ? toDateOnly(fileConfig.endDate)
@@ -385,9 +350,6 @@ export async function POST(req: NextRequest) {
 
       const normalizedEnteredEndDate =
         configNormalizedEndDate || logDerivedEndDate;
- 
-        //validation logic shouldn't force the end date to match a message timestamp. 
-        //It should just accept any valid date the user enters.
       const isAllowedEndDate = Boolean(normalizedEnteredEndDate);
 
       if (!isAllowedEndDate) {
@@ -432,14 +394,14 @@ export async function POST(req: NextRequest) {
               : "Some uploaded files have invalid dates or could not be parsed.",
           fileErrors,
         },
-        { status: hasParseError ? 422 : 400 }
+        { status: hasParseError ? 422 : 400 },
       );
     }
 
     if (preparedUploads.length === 0) {
       return NextResponse.json(
         { error: "No valid files were available to import." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -448,47 +410,49 @@ export async function POST(req: NextRequest) {
     let insertedMessages = 0;
     const assignmentsUsed = new Set<number>();
 
-    //a set to is used to track assignments that have been already cleared 
-    runInTransaction(() => {
-      const courseId = upsertCourse(
-    instructor.instructorId,
-   FIXED_COURSE_NAME,
-    preparedUploads[0]?.parsed.generatedAt ?? undefined
-  );
+    // runInTransaction now accepts an async function
+    await runInTransaction(async () => {
+      const courseId = await upsertCourse(
+        instructor.instructorId,
+        FIXED_COURSE_NAME,
+        preparedUploads[0]?.parsed.generatedAt ?? undefined,
+      );
 
       const clearedAssignments = new Set<number>();
 
       for (const preparedFile of preparedUploads) {
-        const assignmentId = upsertAssignment(
-        instructor.instructorId,
-         courseId,
-         preparedFile.resolvedAssignmentName,
-         undefined,
-         preparedFile.resolvedStartDate || undefined,
-         preparedFile.resolvedEndDate
-      );
+        const assignmentId = await upsertAssignment(
+          instructor.instructorId,
+          courseId,
+          preparedFile.resolvedAssignmentName,
+          undefined,
+          preparedFile.resolvedStartDate || undefined,
+          preparedFile.resolvedEndDate,
+        );
 
         assignmentsUsed.add(assignmentId);
 
         if (!clearedAssignments.has(assignmentId)) {
-          db.prepare("DELETE FROM sessions WHERE assignment_id = ?").run(assignmentId);
+          await db.execute({
+            sql: "DELETE FROM sessions WHERE assignment_id = ?",
+            args: [assignmentId],
+          });
           clearedAssignments.add(assignmentId);
         }
 
-        // Clear old sessions (and their messages via CASCADE) for this assignment
-        // so re-uploading replaces data instead of accumulating it
-        //db.prepare("DELETE FROM sessions WHERE assignment_id = ?").run(assignmentId);
-
         const stableSourceFile = buildStableSourceFile(
           preparedFile.fileName,
-          preparedFile.fileFingerprint
+          preparedFile.fileFingerprint,
         );
 
         for (const session of preparedFile.parsed.sessions) {
           const rawEmail = session.studentEmail?.trim();
           if (!rawEmail) continue;
 
-          const studentId = upsertStudent(instructor.instructorId, rawEmail);
+          const studentId = await upsertStudent(
+            instructor.instructorId,
+            rawEmail,
+          );
 
           const normalizedMessageTimestamps = session.messages
             .map((msg) => toIsoTimestamp(msg.timestamp))
@@ -505,25 +469,24 @@ export async function POST(req: NextRequest) {
             session.messages[session.messages.length - 1]?.content ?? "";
 
           const importKey = buildSessionImportKey({
-             instructorId: instructor.instructorId,
+            instructorId: instructor.instructorId,
             studentAnonymousId: anonymizeId(rawEmail),
-             assignmentId,
-             sourceFile: stableSourceFile,
-             startedAt,
-             endedAt,
-             firstMessage,
-             lastMessage,
-            });
+            assignmentId,
+            sourceFile: stableSourceFile,
+            startedAt,
+            endedAt,
+            firstMessage,
+            lastMessage,
+          });
 
-          const sessionResult = createOrGetSession
-          ({
-             instructorId: instructor.instructorId,
-             studentId,
-             assignmentId,
-             importKey,
-             sourceFile: stableSourceFile,
-              startedAt,
-              endedAt,
+          const sessionResult = await createOrGetSession({
+            instructorId: instructor.instructorId,
+            studentId,
+            assignmentId,
+            importKey,
+            sourceFile: stableSourceFile,
+            startedAt,
+            endedAt,
           });
 
           if (!sessionResult.inserted) {
@@ -536,26 +499,26 @@ export async function POST(req: NextRequest) {
           for (const msg of session.messages) {
             const normalizedTimestamp = toIsoTimestamp(msg.timestamp);
 
-            const messageId = createMessage(
+            const messageId = await createMessage(
               sessionResult.id,
               msg.role,
               msg.content,
-              normalizedTimestamp ?? undefined
+              normalizedTimestamp ?? undefined,
             );
 
             insertedMessages += 1;
 
             for (const codeFile of msg.codeFiles) {
-              createCodeSnapshot(
+              await createCodeSnapshot(
                 messageId,
                 codeFile.filename,
                 codeFile.content,
-                codeFile.isEmpty
+                codeFile.isEmpty,
               );
             }
 
             if (msg.terminalContent) {
-              createTerminalSnapshot(messageId, msg.terminalContent);
+              await createTerminalSnapshot(messageId, msg.terminalContent);
             }
           }
         }
@@ -587,10 +550,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Upload processing failed:", error);
-
     return NextResponse.json(
       { error: "Failed to process transcript" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
-import { ensureInstructorsTable } from "@/lib/instructors";
 import { createSessionToken } from "@/lib/auth";
-
-ensureInstructorsTable();
 
 type GitHubUser = {
   id: number;
@@ -18,6 +15,19 @@ type GitHubEmail = {
   verified: boolean;
 };
 
+type InstructorRow = {
+  id: number;
+  email: string;
+  auth_provider: string;
+  github_id: string | null;
+  has_local_password: number;
+};
+
+function toInstructor(cols: string[], row: unknown): InstructorRow {
+  const r = row as Record<number, unknown>;
+  return Object.fromEntries(cols.map((c, i) => [c, r[i]])) as InstructorRow;
+}
+
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -29,16 +39,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        redirect_uri: redirectUri,
-      }),
-    });
+    const tokenRes = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          redirect_uri: redirectUri,
+        }),
+      },
+    );
 
     const tokenData = (await tokenRes.json()) as { access_token?: string };
     const accessToken = tokenData.access_token;
@@ -83,60 +99,37 @@ export async function GET(req: NextRequest) {
     const displayName = ghUser.name?.trim() || ghUser.login;
     const githubId = String(ghUser.id);
 
-    let instructor = db
-      .prepare(
-        `
-        SELECT id, email, auth_provider, github_id, has_local_password
-        FROM instructors
-        WHERE github_id = ?
-        `,
-      )
-      .get(githubId) as
-      | {
-          id: number;
-          email: string;
-          auth_provider: string;
-          github_id: string | null;
-          has_local_password: number;
-        }
-      | undefined;
+    // Try to find existing instructor by GitHub ID first
+    const byGithubId = await db.execute({
+      sql: `SELECT id, email, auth_provider, github_id, has_local_password
+            FROM instructors WHERE github_id = ?`,
+      args: [githubId],
+    });
 
+    let instructor: InstructorRow | undefined = byGithubId.rows[0]
+      ? toInstructor(byGithubId.columns, byGithubId.rows[0])
+      : undefined;
+
+    // Fall back to lookup by email
     if (!instructor) {
-      instructor = db
-        .prepare(
-          `
-          SELECT id, email, auth_provider, github_id, has_local_password
-          FROM instructors
-          WHERE email = ?
-          `,
-        )
-        .get(normalizedEmail) as
-        | {
-            id: number;
-            email: string;
-            auth_provider: string;
-            github_id: string | null;
-            has_local_password: number;
-          }
-        | undefined;
+      const byEmail = await db.execute({
+        sql: `SELECT id, email, auth_provider, github_id, has_local_password
+              FROM instructors WHERE email = ?`,
+        args: [normalizedEmail],
+      });
+
+      instructor = byEmail.rows[0]
+        ? toInstructor(byEmail.columns, byEmail.rows[0])
+        : undefined;
     }
 
     if (!instructor) {
-      const result = db
-        .prepare(
-          `
-          INSERT INTO instructors (
-            name,
-            email,
-            password_hash,
-            auth_provider,
-            github_id,
-            has_local_password
-          )
-          VALUES (?, ?, ?, 'github', ?, 0)
-          `,
-        )
-        .run(displayName, normalizedEmail, "", githubId);
+      // New instructor — create account
+      const result = await db.execute({
+        sql: `INSERT INTO instructors (name, email, password_hash, auth_provider, github_id, has_local_password)
+              VALUES (?, ?, ?, 'github', ?, 0)`,
+        args: [displayName, normalizedEmail, "", githubId],
+      });
 
       instructor = {
         id: Number(result.lastInsertRowid),
@@ -146,26 +139,24 @@ export async function GET(req: NextRequest) {
         has_local_password: 0,
       };
     } else {
+      // Existing instructor — update GitHub linkage
       const nextProvider =
         instructor.has_local_password || instructor.auth_provider === "local"
           ? "both"
           : "github";
 
-      db.prepare(
-        `
-        UPDATE instructors
-        SET name = ?, github_id = ?, auth_provider = ?
-        WHERE id = ?
-        `,
-      ).run(displayName, githubId, nextProvider, instructor.id);
+      await db.execute({
+        sql: `UPDATE instructors SET name = ?, github_id = ?, auth_provider = ? WHERE id = ?`,
+        args: [displayName, githubId, nextProvider, instructor.id],
+      });
     }
 
-    const token = createSessionToken(instructor.id);
+    const token = await createSessionToken(instructor.id);
 
     const res = NextResponse.redirect(new URL("/dashboard", req.url));
     res.cookies.set("session_token", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 30,
       path: "/",

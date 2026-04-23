@@ -1,22 +1,7 @@
 import db from "@/lib/db";
-import { ensureInstructorsTable } from "@/lib/instructors";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
-
-ensureInstructorsTable();
-
-const instructorColumns = db
-  .prepare("PRAGMA table_info(instructors)")
-  .all() as { name: string }[];
-
-if (!instructorColumns.some((col) => col.name === "reset_code")) {
-  db.exec("ALTER TABLE instructors ADD COLUMN reset_code TEXT");
-}
-
-if (!instructorColumns.some((col) => col.name === "reset_expires")) {
-  db.exec("ALTER TABLE instructors ADD COLUMN reset_expires TEXT");
-}
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -61,7 +46,6 @@ type InstructorRow = {
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-
     const action = String(formData.get("action") || "request").trim();
     const email = String(formData.get("email") || "")
       .trim()
@@ -72,25 +56,23 @@ export async function POST(req: NextRequest) {
     if (!email) {
       return NextResponse.json(
         { success: false, message: "Email is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const user = db
-      .prepare(
-        `
-        SELECT
-          id,
-          email,
-          auth_provider,
-          has_local_password,
-          reset_code,
-          reset_expires
-        FROM instructors
-        WHERE email = ?
-        `
-      )
-      .get(email) as InstructorRow | undefined;
+    const userResult = await db.execute({
+      sql: `SELECT id, email, auth_provider, has_local_password, reset_code, reset_expires
+            FROM instructors WHERE email = ?`,
+      args: [email],
+    });
+
+    const cols = userResult.columns;
+    const userRow = userResult.rows[0];
+    const user = userRow
+      ? (Object.fromEntries(
+          cols.map((c, i) => [c, userRow[i]]),
+        ) as InstructorRow)
+      : undefined;
 
     if (action === "request") {
       if (!user) {
@@ -104,22 +86,18 @@ export async function POST(req: NextRequest) {
       const resetCode = generateResetCode();
       const resetExpires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-      db.prepare(
-        `
-        UPDATE instructors
-        SET reset_code = ?, reset_expires = ?
-        WHERE email = ?
-        `
-      ).run(resetCode, resetExpires, email);
+      await db.execute({
+        sql: "UPDATE instructors SET reset_code = ?, reset_expires = ? WHERE email = ?",
+        args: [resetCode, resetExpires, email],
+      });
 
       try {
         await sendResetEmail(email, resetCode);
       } catch (mailError) {
         console.error("Reset email failed:", mailError);
-
         return NextResponse.json(
           { success: false, message: "Could not send reset email." },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -133,21 +111,21 @@ export async function POST(req: NextRequest) {
       if (!user) {
         return NextResponse.json(
           { success: false, message: "Account not found." },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
       if (!/^\d{6}$/.test(code)) {
         return NextResponse.json(
           { success: false, message: "Enter a valid 6-digit reset code." },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (!newPassword) {
         return NextResponse.json(
           { success: false, message: "New password is required." },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -157,7 +135,7 @@ export async function POST(req: NextRequest) {
             success: false,
             message: "Password must be at least 6 characters.",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -167,43 +145,38 @@ export async function POST(req: NextRequest) {
             success: false,
             message: "No reset request found. Please request a new code.",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       const expiresAt = new Date(user.reset_expires).getTime();
-      const now = Date.now();
-
-      if (Number.isNaN(expiresAt) || now > expiresAt) {
+      if (Number.isNaN(expiresAt) || Date.now() > expiresAt) {
         return NextResponse.json(
           { success: false, message: "Reset code expired. Request a new one." },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (user.reset_code !== code) {
         return NextResponse.json(
           { success: false, message: "Invalid reset code." },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       const passwordHash = await bcrypt.hash(newPassword, 10);
       const nextProvider =
-        user.auth_provider === "github" ? "both" : user.auth_provider || "local";
+        user.auth_provider === "github"
+          ? "both"
+          : user.auth_provider || "local";
 
-      db.prepare(
-        `
-        UPDATE instructors
-        SET
-          password_hash = ?,
-          has_local_password = 1,
-          auth_provider = ?,
-          reset_code = NULL,
-          reset_expires = NULL
-        WHERE email = ?
-        `
-      ).run(passwordHash, nextProvider, email);
+      await db.execute({
+        sql: `UPDATE instructors
+              SET password_hash = ?, has_local_password = 1,
+                  auth_provider = ?, reset_code = NULL, reset_expires = NULL
+              WHERE email = ?`,
+        args: [passwordHash, nextProvider, email],
+      });
 
       return NextResponse.json({
         success: true,
@@ -214,14 +187,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       { success: false, message: "Invalid action." },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("Reset route error:", error);
-
     return NextResponse.json(
       { success: false, message: "Internal server error." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -12,6 +12,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Clean up profile picture file if it exists
     if (
       auth.profilePic &&
       auth.profilePic.startsWith("/uploads/profile-pics/")
@@ -22,15 +23,28 @@ export async function DELETE(req: NextRequest) {
       } catch {}
     }
 
+    // Clear the session token
     const token = req.cookies.get("session_token")?.value;
-    if (token) deleteSessionToken(token);
+    if (token) await deleteSessionToken(token);
 
-    db.prepare(
-      `
-      DELETE FROM instructors
-      WHERE id = ?
-      `
-    ).run(auth.instructorId);
+    // Wipe all uploaded data — leaf tables first (respects foreign keys)
+    await db.execute("DELETE FROM terminal_snapshots");
+    await db.execute("DELETE FROM code_snapshots");
+    await db.execute("DELETE FROM messages");
+    await db.execute("DELETE FROM sessions");
+    await db.execute("DELETE FROM students");
+    await db.execute("DELETE FROM assignments");
+    await db.execute("DELETE FROM courses");
+
+    await db.execute({
+      sql: "DELETE FROM instructor_sessions WHERE instructor_id = ?",
+      args: [auth.instructorId],
+    });
+
+    await db.execute({
+      sql: "DELETE FROM instructors WHERE id = ?",
+      args: [auth.instructorId],
+    });
 
     const response = NextResponse.json({
       success: true,
@@ -50,7 +64,7 @@ export async function DELETE(req: NextRequest) {
     console.error("DELETE ACCOUNT ERROR:", error);
     return NextResponse.json(
       { error: "Failed to delete account" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

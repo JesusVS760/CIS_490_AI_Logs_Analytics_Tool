@@ -20,32 +20,23 @@ ChartJS.register(
   LinearScale,
   PointElement,
   Tooltip,
-  Legend
+  Legend,
 );
 
-type Assignment = {
-  id: number;
-  name: string;
-};
-
 type SessionWithAssignment = Session & {
-  assignment_id?: number;
-  assignmentId?: number;
+  assignment_id?: number | string;
+  assignmentId?: number | string;
+  assignmentName?: string;
 };
 
 const TrafficPerDayCard = () => {
   const [sessions, setSessions] = useState<SessionWithAssignment[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-
   const { selectedAssignment } = useDashboardAssignmentFilter();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sessionsRes, assignmentsRes] = await Promise.all([
-          axios.get("/api/sessions"),
-          axios.get("/api/assignments"),
-        ]);
+        const sessionsRes = await axios.get("/api/sessions");
 
         const processed: SessionWithAssignment[] = sessionsRes.data.map(
           (session: SessionWithAssignment) => {
@@ -53,53 +44,33 @@ const TrafficPerDayCard = () => {
               ? session.messages
               : [];
             const firstAI = messages.find(
-              (message) => message.role === "ai_tutor" && message.timestamp
+              (message) => message.role === "ai_tutor" && message.timestamp,
             );
 
             return {
               ...session,
               startedAt: firstAI?.timestamp ?? null,
             };
-          }
+          },
         );
 
         setSessions(Array.isArray(processed) ? processed : []);
-        setAssignments(
-          Array.isArray(assignmentsRes.data) ? assignmentsRes.data : []
-        );
       } catch (error) {
         console.error("Failed to load traffic-per-day analytics:", error);
         setSessions([]);
-        setAssignments([]);
       }
     };
 
     fetchData();
   }, []);
 
-  const assignmentNameById = useMemo(() => {
-    const map = new Map<number, string>();
-
-    assignments.forEach((assignment) => {
-      map.set(assignment.id, assignment.name);
-    });
-
-    return map;
-  }, [assignments]);
-
+  // Filter by assignmentName directly — avoids id type mismatch entirely
   const filteredSessions = useMemo(() => {
     if (selectedAssignment === "all") return sessions;
-
-    return sessions.filter((session) => {
-      const assignmentId = Number(
-        session.assignmentId ?? session.assignment_id
-      );
-
-      if (Number.isNaN(assignmentId)) return false;
-
-      return assignmentNameById.get(assignmentId) === selectedAssignment;
-    });
-  }, [selectedAssignment, sessions, assignmentNameById]);
+    return sessions.filter(
+      (session) => session.assignmentName === selectedAssignment,
+    );
+  }, [selectedAssignment, sessions]);
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
@@ -111,9 +82,9 @@ const TrafficPerDayCard = () => {
             if (!session.startedAt) return false;
             const date = new Date(session.startedAt);
             return !Number.isNaN(date.getTime()) && date.getDate() === day;
-          }).length
+          }).length,
       ),
-    [days, filteredSessions]
+    [days, filteredSessions],
   );
 
   const data = {
@@ -151,10 +122,7 @@ const TrafficPerDayCard = () => {
           scales: {
             y: {
               beginAtZero: true,
-              ticks: {
-                stepSize: 1,
-                precision: 0,
-              },
+              ticks: { stepSize: 1, precision: 0 },
             },
           },
         }}
