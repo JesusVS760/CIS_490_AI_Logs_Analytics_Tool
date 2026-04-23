@@ -540,7 +540,7 @@ export async function getMessagesByInstructor(instructorId: number) {
     args: [instructorId],
   });
 
-  return rowsAsObjects(result).map((row) => ({
+  return rowsAsObjects(result).map((row: any) => ({
     ...row,
     workedDate: toDateOnly(row.timestamp as string | null),
   }));
