@@ -110,6 +110,13 @@
     margin: 15mm;
   }
 
+  /* Tell the browser to preserve background colours and images exactly.
+     Without this, Chrome/Edge strip chart bar/line colours in print mode. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   /* Hide the entire page by default, then selectively reveal .print-area.
      Using visibility instead of display:none keeps the layout intact so
      absolute/relative positioning inside .print-area still resolves correctly. */
