@@ -71,8 +71,9 @@ export default function ExportPDFButton() {
     // Accumulates canvas ↔ img pairs so afterprint can fully reverse the swap.
     const snapshots: Snapshot[] = [];
 
-    // Only target canvases inside .print-area so charts outside the export
-    // region (e.g. hidden debug charts) are never touched.
+    // Query every canvas inside .print-area at export time. This includes
+    // any bar or line graph cards added to the dashboard after mount —
+    // no additional wiring is needed when new card types are introduced.
     const canvases = Array.from(
       document.querySelectorAll<HTMLCanvasElement>(".print-area canvas")
     );
