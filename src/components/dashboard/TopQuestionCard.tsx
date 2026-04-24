@@ -39,23 +39,77 @@ const cleanText = (text: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const extractQuestionCandidates = (content: string): string[] => {
-  const matches = content.match(/[^?\n]*\?/g) ?? [];
+const codeLikePattern =
+  /(#include|using namespace|std::|cout\s*<<|cin\s*>>|printf\s*\(|scanf\s*\(|int\s+main\s*\(|\breturn\s+\d+;|^\s*[{};])/i;
 
-  return matches
-    .map((question) => cleanText(question))
-    .filter((question) => question.length >= 6);
+const questionStarterPattern =
+  /^(how|what|why|when|where|which|who|can|could|should|is|are|do|does|did|will|would|am)\b/i;
+
+const helpSeekingPattern =
+  /\b(help|please help|need help|i need help|stuck|confused|dont understand|don't understand|check my work|look at my code|fix this|fix my code|debug|error|why isnt|why isn't|how do i|how can i)\b/i;
+
+const isCodeLikeLine = (text: string) => codeLikePattern.test(text);
+
+const hasEnoughNaturalLanguage = (text: string) => {
+  const words = text.split(/\s+/).filter(Boolean);
+  const letterCount = (text.match(/[a-z]/gi) ?? []).length;
+  return words.length >= 2 && letterCount >= 5;
+};
+
+const isLikelyNaturalLanguageQuestion = (text: string) => {
+  const cleaned = cleanText(text);
+
+  if (cleaned.length < 6 || !cleaned.endsWith("?")) {
+    return false;
+  }
+
+  if (isCodeLikeLine(cleaned)) {
+    return false;
+  }
+
+  return hasEnoughNaturalLanguage(cleaned);
+};
+
+const isLikelyQuestionLikeStatement = (text: string) => {
+  const cleaned = cleanText(text);
+
+  if (cleaned.length < 6) {
+    return false;
+  }
+
+  if (isCodeLikeLine(cleaned)) {
+    return false;
+  }
+
+  if (!hasEnoughNaturalLanguage(cleaned)) {
+    return false;
+  }
+
+  return (
+    questionStarterPattern.test(cleaned) || helpSeekingPattern.test(cleaned)
+  );
+};
+
+const extractQuestionCandidates = (content: string): string[] => {
+  const sanitized = content.replace(/```[\s\S]*?```/g, " ");
+
+  return sanitized
+    .split("\n")
+    .map((line) => cleanText(line))
+    .filter((line) => isLikelyNaturalLanguageQuestion(line));
 };
 
 const getFallbackCandidates = (content: string): string[] => {
-  const cleaned = cleanText(content);
+  const sanitized = content.replace(/```[\s\S]*?```/g, " ");
 
-  if (!cleaned || cleaned.length < 6) {
-    return [];
-  }
-
-  return [cleaned];
+  return sanitized
+    .split("\n")
+    .map((line) => cleanText(line))
+    .filter((line) => isLikelyQuestionLikeStatement(line));
 };
+
+
+
 
 const pickTopText = (items: string[]) => {
   const counts = new Map<string, number>();
