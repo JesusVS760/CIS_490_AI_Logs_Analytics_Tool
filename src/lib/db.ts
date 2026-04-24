@@ -229,9 +229,9 @@ function normalizeDateOnly(value?: string | null): string | null {
 // using the column names from the ResultSet.
 function rowsAsObjects(result: Awaited<ReturnType<typeof db.execute>>) {
   const cols = result.columns;
-  return result.rows.map((row) => {
+  return result.rows.map((row: any) => {
     const obj: Record<string, unknown> = {};
-    cols.forEach((col, i) => {
+    cols.forEach((col: any, i: any) => {
       obj[col] = row[i];
     });
     return obj;

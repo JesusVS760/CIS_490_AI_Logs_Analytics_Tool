@@ -13,11 +13,10 @@ export default function UniqueStudentTotalMsgCard({
 
   const filteredMessages = useMemo(() => {
     if (selectedAssignment === "all") return messages;
-
     return messages.filter((m) => m.assignmentName === selectedAssignment);
   }, [messages, selectedAssignment]);
 
-  const chartData = useMemo(() => {
+  const { chartData, idToDisplay } = useMemo(() => {
     const counts = new Map<string, number>();
 
     for (const m of filteredMessages) {
@@ -25,17 +24,21 @@ export default function UniqueStudentTotalMsgCard({
       counts.set(student, (counts.get(student) ?? 0) + 1);
     }
 
-    return Array.from(counts.entries())
-      .map(([student, totalMessages]) => ({
-        student,
-        totalMessages,
-      }))
+    const allIds = Array.from(counts.keys())
+      .map(Number)
+      .sort((a, b) => a - b);
+    const idToDisplay = new Map(allIds.map((id, i) => [String(id), i + 1]));
+
+    const chartData = Array.from(counts.entries())
+      .map(([student, totalMessages]) => ({ student, totalMessages }))
       .sort((a, b) => b.totalMessages - a.totalMessages);
+
+    return { chartData, idToDisplay };
   }, [filteredMessages]);
 
   const maxMessages = Math.max(
     ...chartData.map((item) => item.totalMessages),
-    1
+    1,
   );
 
   return (
@@ -92,12 +95,12 @@ export default function UniqueStudentTotalMsgCard({
                           style={{
                             height: `${Math.max(heightPercent, 6)}%`,
                           }}
-                          title={`${item.student}: ${item.totalMessages} messages`}
+                          title={`Student ${idToDisplay.get(item.student)}: ${item.totalMessages} messages`}
                         />
                       </div>
 
                       <span className="mt-2 w-full break-words text-center text-[10px] text-slate-600">
-                        Student: {item.student}
+                        Student: {idToDisplay.get(item.student)}
                       </span>
                     </div>
                   );

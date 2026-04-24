@@ -13,13 +13,12 @@ export default function UniqueAssignmentsPerStudentCard({
 
   const filteredMessages = useMemo(() => {
     if (selectedAssignment === "all") return messages;
-
     return messages.filter(
-      (message) => message.assignmentName === selectedAssignment
+      (message) => message.assignmentName === selectedAssignment,
     );
   }, [messages, selectedAssignment]);
 
-  const chartData = useMemo(() => {
+  const { chartData, idToDisplay } = useMemo(() => {
     const studentAssignments = new Map<string, Set<string>>();
 
     for (const message of filteredMessages) {
@@ -29,16 +28,22 @@ export default function UniqueAssignmentsPerStudentCard({
       if (!studentAssignments.has(student)) {
         studentAssignments.set(student, new Set());
       }
-
       studentAssignments.get(student)!.add(assignment);
     }
 
-    return Array.from(studentAssignments.entries())
+    const allIds = Array.from(studentAssignments.keys())
+      .map(Number)
+      .sort((a, b) => a - b);
+    const idToDisplay = new Map(allIds.map((id, i) => [String(id), i + 1]));
+
+    const chartData = Array.from(studentAssignments.entries())
       .map(([student, assignments]) => ({
         student,
         uniqueHWCount: assignments.size,
       }))
       .sort((a, b) => b.uniqueHWCount - a.uniqueHWCount);
+
+    return { chartData, idToDisplay };
   }, [filteredMessages]);
 
   const maxCount = Math.max(...chartData.map((item) => item.uniqueHWCount), 1);
@@ -77,14 +82,14 @@ export default function UniqueAssignmentsPerStudentCard({
 
           <div className="overflow-x-auto">
             <div className="min-w-[500px]">
-              <div className="flex h-[210px] items-end gap-2 rounded-lg border  border-slate-200 bg-slate-50  p-2">
+              <div className="flex h-[210px] items-end gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                 {chartData.map((item) => {
                   const heightPercent = (item.uniqueHWCount / maxCount) * 100;
 
                   return (
                     <div
                       key={item.student}
-                      className="flex min-w-[48px] flex-1 flex-col items-center justify-end "
+                      className="flex min-w-[48px] flex-1 flex-col items-center justify-end"
                     >
                       <span className="mb-1 text-[10px] font-semibold text-slate-700">
                         {item.uniqueHWCount}
@@ -96,16 +101,12 @@ export default function UniqueAssignmentsPerStudentCard({
                           style={{
                             height: `${Math.max(heightPercent, 6)}%`,
                           }}
-                          title={`${item.student}: ${
-                            item.uniqueHWCount
-                          } unique assignment${
-                            item.uniqueHWCount === 1 ? "" : "s"
-                          }`}
+                          title={`Student ${idToDisplay.get(item.student)}: ${item.uniqueHWCount} unique assignment${item.uniqueHWCount === 1 ? "" : "s"}`}
                         />
                       </div>
 
                       <span className="mt-2 w-full break-words text-center text-[10px] text-slate-600">
-                        Student: {item.student}
+                        Student: {idToDisplay.get(item.student)}
                       </span>
                     </div>
                   );

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractText as extractPdfText } from "unpdf";
 import { parseTranscript } from "@/lib/parseTranscript";
 
-
 type FileConfig = {
   uploadId?: string;
   fileName?: string;
@@ -44,7 +43,7 @@ function parseTranscriptTimestamp(value?: string | null): Date | null {
   if (!value) return null;
 
   const match = value.match(
-    /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})\s*([AP]M)$/
+    /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})\s*([AP]M)$/,
   );
 
   if (!match) return null;
@@ -61,7 +60,7 @@ function parseTranscriptTimestamp(value?: string | null): Date | null {
     Number(dd),
     hours,
     Number(min),
-    Number(ss)
+    Number(ss),
   );
 
   return Number.isNaN(date.getTime()) ? null : date;
@@ -112,13 +111,13 @@ function toDateOnly(value: string): string | null {
   return formatLocalDate(parsed);
 }
 //walkForDates was completely deleted replaced with getSortedUniqueLogDates
-//getLogdates was deleted, replaced with getSortedUniqueLogDates 
+//getLogdates was deleted, replaced with getSortedUniqueLogDates
 //getSortedUniqueLogDates Recursively scans the entire raw text and
 //entire parsed object for anything that looks like a date
 function getSortedUniqueLogDates(
   sessions: Array<{
     messages: Array<{ timestamp?: string | null }>;
-  }>
+  }>,
 ): string[] {
   const uniqueDates = new Set<string>();
 
@@ -143,7 +142,7 @@ export async function POST(req: NextRequest) {
     if (files.length === 0) {
       return NextResponse.json(
         { error: "No files were uploaded." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -156,7 +155,7 @@ export async function POST(req: NextRequest) {
       } catch {
         return NextResponse.json(
           { error: "Invalid file configuration payload." },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -171,9 +170,8 @@ export async function POST(req: NextRequest) {
         const raw = await extractText(file);
         const parsed = parseTranscript(raw);
         //deleted const logDates = collectLogDates(raw, parsed);
+        const detectedEndDate = undefined;
         const logDates = getSortedUniqueLogDates(parsed.sessions);
-        const detectedEndDate =
-          logDates.length > 0 ? logDates[logDates.length - 1] : undefined;
 
         results.push({
           uploadId: fileConfig?.uploadId,
@@ -200,7 +198,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json(
       { error: "Could not detect end dates." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
