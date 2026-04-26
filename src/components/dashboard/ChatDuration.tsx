@@ -1,20 +1,25 @@
 "use client";
 
-import { TimerIcon } from "lucide-react";
+import { TimerIcon, Info } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import axios from "axios";
 import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTooltip, Legend);
 
 type Session = {
   id: number;
@@ -44,7 +49,7 @@ const ChatDuration = () => {
   const filteredSessions = useMemo(() => {
     if (selectedAssignment === "all") return sessions;
     return sessions.filter(
-      (session) => session.assignmentName === selectedAssignment,
+      (session) => session.assignmentName === selectedAssignment
     );
   }, [sessions, selectedAssignment]);
 
@@ -106,9 +111,25 @@ const ChatDuration = () => {
   return (
     <div className="rounded-2xl border border-gray-100 p-6 shadow-sm w-full bg-white dark:bg-zinc-900">
       <div className="mb-4">
-        <h1 className="flex items-center gap-2 font-bold text-lg">
-          Chat Duration <TimerIcon size={18} />
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="flex items-center gap-2 font-bold text-lg">
+            Chat Duration <TimerIcon size={18} />
+          </h1>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="text-slate-500 hover:text-black dark:hover:text-white">
+                <Info size={16} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Shows how long each student session lasted. Sessions are grouped
+              into time ranges and average time is calculated from start and end
+              timestamps.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
         <p className="mt-1 text-sm text-slate-600">
           Viewing:{" "}
           {selectedAssignment === "all"

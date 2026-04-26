@@ -7,14 +7,19 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
 } from "chart.js";
-import { MessageSquareText } from "lucide-react";
+import { MessageSquareText, Info } from "lucide-react";
 import { useDashboardAssignmentFilter } from "@/components/dashboard/DashboardAssignmentFilterContext";
 import { Message } from "@/types";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTooltip, Legend);
 
 type StudentOption = {
   key: string;
@@ -38,7 +43,7 @@ function buildStudentOptions(messages: Message[]): StudentOption[] {
 
 function buildConversationCounts(
   messages: Message[],
-  selectedStudentKey: string,
+  selectedStudentKey: string
 ) {
   const counts = new Map<string, number>();
 
@@ -51,7 +56,6 @@ function buildConversationCounts(
     }
 
     const key = String(m.sessionId);
-
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
@@ -94,7 +98,6 @@ export default function MessagesPerConversation() {
         if (!res.ok) throw new Error();
 
         const data = await res.json();
-        console.log("messages received", data);
         setMessages(Array.isArray(data) ? data : []);
       } catch {
         setError("Failed to load messages");
@@ -109,32 +112,24 @@ export default function MessagesPerConversation() {
 
   const filteredMessages = useMemo(() => {
     if (selectedAssignment === "all") return messages;
-
-    return messages.filter((m) => m.assignmentName === selectedAssignment);
+    return messages.filter(
+      (m) => m.assignmentName === selectedAssignment
+    );
   }, [messages, selectedAssignment]);
 
   const studentOptions = useMemo(
     () => buildStudentOptions(filteredMessages),
-    [filteredMessages],
+    [filteredMessages]
   );
-
-  useEffect(() => {
-    if (
-      selectedStudentKey !== "all" &&
-      !studentOptions.some((s) => s.key === selectedStudentKey)
-    ) {
-      setSelectedStudentKey("all");
-    }
-  }, [selectedStudentKey, studentOptions]);
 
   const conversationCounts = useMemo(
     () => buildConversationCounts(filteredMessages, selectedStudentKey),
-    [filteredMessages, selectedStudentKey],
+    [filteredMessages, selectedStudentKey]
   );
 
   const buckets = useMemo(
     () => bucketize(conversationCounts),
-    [conversationCounts],
+    [conversationCounts]
   );
 
   const chartData = {
@@ -155,13 +150,29 @@ export default function MessagesPerConversation() {
   };
 
   const totalConversations = conversationCounts.length;
+
   return (
     <div className="rounded-2xl border border-gray-100 p-6 shadow-sm w-full bg-white dark:bg-zinc-900">
-      <div className="mb-4 flex justify-between">
+      <div className="mb-4 flex justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 font-bold text-lg ">
-            Messages Per Conversation <MessageSquareText size={18} />
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="flex items-center gap-2 font-bold text-lg">
+              Messages Per Conversation <MessageSquareText size={18} />
+            </h1>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-slate-500 hover:text-black dark:hover:text-white">
+                  <Info size={16} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Shows how many messages exist in each conversation. Data is
+                grouped into ranges and can be filtered by student.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
           <p className="text-sm">
             Assignment:{" "}
             {selectedAssignment === "all" ? "All" : selectedAssignment}
@@ -171,8 +182,7 @@ export default function MessagesPerConversation() {
         <select
           value={selectedStudentKey}
           onChange={(e) => setSelectedStudentKey(e.target.value)}
-          //Dropdown menu with white background and black text, and dark mode support
-          className="bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
+          className="bg-white text-black dark:bg-zinc-800 dark:text-white"
         >
           <option value="all">All Students</option>
           {studentOptions.map((s) => (
