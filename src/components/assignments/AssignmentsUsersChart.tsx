@@ -20,6 +20,12 @@ type AssignmentUserCount = {
   userCount: number;
 };
 
+function getHomeworkSortNumber(name: string) {
+  const normalized = name.toLowerCase().trim();
+  const match = normalized.match(/\d+/);
+  return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
+}
+
 const AssignmentsUsersChart = () => {
   const [data, setData] = useState<AssignmentUserCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,13 +54,23 @@ const AssignmentsUsersChart = () => {
     loadAssignmentUserCounts();
   }, []);
 
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => {
+      const aNum = getHomeworkSortNumber(a.assignmentName);
+      const bNum = getHomeworkSortNumber(b.assignmentName);
+
+      if (aNum !== bNum) return aNum - bNum;
+      return a.assignmentName.localeCompare(b.assignmentName);
+    });
+  }, [data]);
+
   const chartData = useMemo(() => {
     return {
-      labels: data.map((item) => item.assignmentName),
+      labels: sortedData.map((item) => item.assignmentName),
       datasets: [
         {
           label: "Number of Users",
-          data: data.map((item) => item.userCount),
+          data: sortedData.map((item) => item.userCount),
           backgroundColor: [
             "#FF6384",
             "#36A2EB",
@@ -68,12 +84,12 @@ const AssignmentsUsersChart = () => {
         },
       ],
     };
-  }, [data]);
+  }, [sortedData]);
 
-  const totalAssignments = data.length;
-  const totalUsersAcrossAssignments = data.reduce(
+  const totalAssignments = sortedData.length;
+  const totalUsersAcrossAssignments = sortedData.reduce(
     (sum, item) => sum + item.userCount,
-    0,
+    0
   );
 
   return (
@@ -96,7 +112,7 @@ const AssignmentsUsersChart = () => {
             </div>
           </div>
 
-          {data.length === 0 ? (
+          {sortedData.length === 0 ? (
             <p>No assignment user data available.</p>
           ) : (
             <Bar

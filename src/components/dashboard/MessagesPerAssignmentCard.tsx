@@ -16,6 +16,12 @@ import { Message } from "@/types";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
+function getHomeworkSortNumber(name: string) {
+  const normalized = name.toLowerCase().trim();
+  const match = normalized.match(/\d+/);
+  return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
+}
+
 const MessagesPerAssignmentCard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,12 +55,19 @@ const MessagesPerAssignmentCard = () => {
 
     messages.forEach((message) => {
       const assignmentLabel = message.assignmentName;
+      if (!assignmentLabel) return;
       counts.set(assignmentLabel, (counts.get(assignmentLabel) ?? 0) + 1);
     });
 
     return Array.from(counts.entries())
       .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => b.count - a.count);
+      .sort((a, b) => {
+        const aNum = getHomeworkSortNumber(a.label);
+        const bNum = getHomeworkSortNumber(b.label);
+
+        if (aNum !== bNum) return aNum - bNum;
+        return a.label.localeCompare(b.label);
+      });
   }, [messages]);
 
   const chartData = useMemo(() => {
@@ -148,4 +161,4 @@ const MessagesPerAssignmentCard = () => {
   );
 };
 
-export default MessagesPerAssignmentCard;
+export default MessagesPerAssignmentCard; 
