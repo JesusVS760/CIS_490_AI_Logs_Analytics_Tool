@@ -26,19 +26,28 @@ type StudentOption = {
   label: string;
 };
 
-function buildStudentOptions(messages: Message[]): StudentOption[] {
-  const map = new Map<string, string>();
-
-  for (const m of messages) {
-    const key = String(m.studentId);
-    if (!map.has(key)) {
-      map.set(key, `Student ${key}`);
-    }
+// Builds the dropdown options for the student filter.
+// Receives idToDisplay so labels match the sequential numbers shown on the charts.
+// filteredMessages is used so only students relevant to the current assignment appear.
+function buildStudentOptions(
+  filteredMessages: Message[],
+  idToDisplay: Map<string, number>
+): StudentOption[] {
+  // Collect unique student IDs present in the current filtered view.
+  const keys = new Set<string>();
+  for (const m of filteredMessages) {
+    keys.add(String(m.studentId));
   }
 
-  return Array.from(map.entries())
-    .map(([key, label]) => ({ key, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  return Array.from(keys)
+    // Label each student with their global display number, not their raw ID.
+    .map((key) => ({ key, label: `Student ${idToDisplay.get(key) ?? key}` }))
+    // Sort numerically by display number so the list appears in order.
+    .sort((a, b) => {
+      const na = idToDisplay.get(a.key) ?? Infinity;
+      const nb = idToDisplay.get(b.key) ?? Infinity;
+      return na - nb;
+    });
 }
 
 function buildConversationCounts(
@@ -117,9 +126,17 @@ export default function MessagesPerConversation() {
     );
   }, [messages, selectedAssignment]);
 
+  // Build a stable display-number map from ALL messages so student numbers
+  // stay consistent across assignment filters and match the chart labels.
+  const idToDisplay = useMemo(() => {
+    const allIds = Array.from(new Set(messages.map((m) => Number(m.studentId))))
+      .sort((a, b) => a - b);
+    return new Map(allIds.map((id, i) => [String(id), i + 1]));
+  }, [messages]);
+
   const studentOptions = useMemo(
-    () => buildStudentOptions(filteredMessages),
-    [filteredMessages]
+    () => buildStudentOptions(filteredMessages, idToDisplay),
+    [filteredMessages, idToDisplay]
   );
 
   const conversationCounts = useMemo(
