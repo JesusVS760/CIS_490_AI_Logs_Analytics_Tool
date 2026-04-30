@@ -22,8 +22,9 @@ export default function UniqueAssignmentsPerStudentCard({
     // Build a stable display-number map from ALL messages (not just the filtered subset).
     // This ensures "Student 1", "Student 2", etc. always refer to the same real student
     // regardless of which assignment filter is active.
-    const allIds = Array.from(new Set(messages.map((m) => Number(m.studentId))))
-      .sort((a, b) => a - b);
+    const allIds = Array.from(
+      new Set(messages.map((m) => Number(m.studentId))),
+    ).sort((a, b) => a - b);
     const idToDisplay = new Map(allIds.map((id, i) => [String(id), i + 1]));
 
     // Count unique assignments per student using only the filtered messages.
@@ -44,8 +45,10 @@ export default function UniqueAssignmentsPerStudentCard({
         student,
         uniqueHWCount: assignments.size,
       }))
-      .sort((a, b) => b.uniqueHWCount - a.uniqueHWCount);
-
+      .sort(
+        (a, b) =>
+          (idToDisplay.get(a.student) ?? 0) - (idToDisplay.get(b.student) ?? 0),
+      );
     return { chartData, idToDisplay };
   }, [filteredMessages]);
 

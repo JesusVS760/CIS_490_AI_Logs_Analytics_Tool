@@ -17,16 +17,12 @@ export default function UniqueStudentTotalMsgCard({
   }, [messages, selectedAssignment]);
 
   const { chartData, idToDisplay } = useMemo(() => {
-    // Build a stable display-number map from ALL messages (not just the filtered subset).
-    // This ensures "Student 1", "Student 2", etc. always refer to the same real student
-    // regardless of which assignment filter is active.
-    const allIds = Array.from(new Set(messages.map((m) => Number(m.studentId))))
-      .sort((a, b) => a - b);
+    const allIds = Array.from(
+      new Set(messages.map((m) => Number(m.studentId))),
+    ).sort((a, b) => a - b);
     const idToDisplay = new Map(allIds.map((id, i) => [String(id), i + 1]));
 
-    // Count total messages per student using only the filtered messages.
     const counts = new Map<string, number>();
-
     for (const m of filteredMessages) {
       const student = String(m.studentId);
       counts.set(student, (counts.get(student) ?? 0) + 1);
@@ -34,7 +30,10 @@ export default function UniqueStudentTotalMsgCard({
 
     const chartData = Array.from(counts.entries())
       .map(([student, totalMessages]) => ({ student, totalMessages }))
-      .sort((a, b) => b.totalMessages - a.totalMessages);
+      .sort(
+        (a, b) =>
+          (idToDisplay.get(a.student) ?? 0) - (idToDisplay.get(b.student) ?? 0),
+      );
 
     return { chartData, idToDisplay };
   }, [filteredMessages]);

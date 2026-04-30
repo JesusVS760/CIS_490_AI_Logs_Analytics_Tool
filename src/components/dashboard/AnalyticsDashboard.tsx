@@ -49,35 +49,34 @@ const AnalyticsDashboard = () => {
         </h2>
         <ExportPDFButton />
       </div>
-      <div className="print-area">
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-        <div className="flex flex-col gap-3">
-          <TopQuestionCard messages={messages} />
-          <TodaysTrafficCard messages={messages} />
-        </div>
+      <div className="print-area space-y-8">
+        {" "}
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          <div className="flex flex-col gap-3">
+            <TopQuestionCard messages={messages} />
+            <TodaysTrafficCard messages={messages} />
+          </div>
 
-        <div className="flex items-stretch">
-          <MessagesPerConversation />
-        </div>
+          <div className="flex items-stretch">
+            <MessagesPerConversation />
+          </div>
 
-        <div className="flex items-stretch">
-          <ChatDuration />
-        </div>
+          <div className="flex items-stretch">
+            <ChatDuration />
+          </div>
 
-        <div className="flex items-stretch">
-          <WordCloudCard messages={messages} />
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <UniqueStudentTotalMsgCard messages={messages} />
-        <UniqueAssignmentsPerStudentCard messages={messages} />
-      </section>
-
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <TrafficPerDayCard />
-        <TimeOfDayCard />
-      </section>
+          <div className="flex items-stretch">
+            <WordCloudCard messages={messages} />
+          </div>
+        </section>
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <UniqueStudentTotalMsgCard messages={messages} />
+          <UniqueAssignmentsPerStudentCard messages={messages} />
+        </section>
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <TrafficPerDayCard />
+          <TimeOfDayCard />
+        </section>
       </div>
     </div>
   );
