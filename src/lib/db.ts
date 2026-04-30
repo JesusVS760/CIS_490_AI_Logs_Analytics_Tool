@@ -14,7 +14,6 @@ import crypto from "crypto";
 import { Session } from "@/types";
 
 function createDb() {
-  // Vercel/production: use Turso remote database
   if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
     return createClient({
       url: process.env.TURSO_DATABASE_URL,
@@ -22,7 +21,6 @@ function createDb() {
     });
   }
 
-  // Local: use SQLite file via libsql (same driver, file:// protocol)
   const dbPath = path.resolve(
     process.env.DATABASE_PATH ?? path.join(process.cwd(), "database.db"),
   );
@@ -31,10 +29,6 @@ function createDb() {
 }
 
 const db = createDb();
-
-// ---------------------------------------------------------------------------
-// Schema bootstrap
-// ---------------------------------------------------------------------------
 
 export async function initializeDb(): Promise<void> {
   await db.executeMultiple(`
@@ -115,10 +109,6 @@ export async function initializeDb(): Promise<void> {
     );
   `);
 
-  // --- Migrations: add columns if they don't exist ---
-  // libsql doesn't support PRAGMA table_info the same way, so we use
-  // ALTER TABLE IF NOT EXISTS (supported in SQLite 3.37+ and libsql).
-  // These are safe to run repeatedly — they no-op if column already exists.
   const alterStatements = [
     `ALTER TABLE instructors ADD COLUMN dark_mode INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE instructors ADD COLUMN profile_pic TEXT`,
@@ -148,7 +138,6 @@ export async function initializeDb(): Promise<void> {
     }
   }
 
-  // --- Indexes ---
   await db.executeMultiple(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_instructors_email_unique
       ON instructors(email);
@@ -177,10 +166,6 @@ export async function initializeDb(): Promise<void> {
       ON sessions(import_key);
   `);
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function parseTranscriptTimestamp(value?: string | null): Date | null {
   if (!value) return null;
@@ -225,8 +210,6 @@ function normalizeDateOnly(value?: string | null): string | null {
   return toDateOnly(value);
 }
 
-// libsql returns row values as an array — this maps them to a plain object
-// using the column names from the ResultSet.
 function rowsAsObjects(result: Awaited<ReturnType<typeof db.execute>>) {
   const cols = result.columns;
   return result.rows.map((row: any) => {
@@ -237,10 +220,6 @@ function rowsAsObjects(result: Awaited<ReturnType<typeof db.execute>>) {
     return obj;
   });
 }
-
-// ---------------------------------------------------------------------------
-// Public API — all functions are now async
-// ---------------------------------------------------------------------------
 
 export function anonymizeId(email: string): string {
   return crypto
@@ -449,6 +428,69 @@ export async function createTerminalSnapshot(
   return Number(result.lastInsertRowid);
 }
 
+export async function bulkInsertMessages(
+  rows: Array<{
+    sessionId: number;
+    role: "student" | "ai_tutor";
+    content: string;
+    timestamp?: string | null;
+  }>,
+): Promise<number[]> {
+  if (rows.length === 0) return [];
+
+  const statements = rows.map((row) => ({
+    sql: "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
+    args: [
+      row.sessionId,
+      row.role,
+      row.content,
+      normalizeTimestamp(row.timestamp) ?? null,
+    ] as any[],
+  }));
+
+  const results = await db.batch(statements, "write");
+  return results.map((r) => Number(r.lastInsertRowid));
+}
+
+export async function bulkInsertCodeSnapshots(
+  rows: Array<{
+    messageId: number;
+    filename: string;
+    content: string | null;
+    isEmpty: boolean;
+  }>,
+): Promise<void> {
+  if (rows.length === 0) return;
+
+  const statements = rows.map((row) => ({
+    sql: "INSERT INTO code_snapshots (message_id, filename, content, is_empty) VALUES (?, ?, ?, ?)",
+    args: [
+      row.messageId,
+      row.filename,
+      row.content ?? null,
+      row.isEmpty ? 1 : 0,
+    ] as any[],
+  }));
+
+  await db.batch(statements, "write");
+}
+
+export async function bulkInsertTerminalSnapshots(
+  rows: Array<{
+    messageId: number;
+    content: string;
+  }>,
+): Promise<void> {
+  if (rows.length === 0) return;
+
+  const statements = rows.map((row) => ({
+    sql: "INSERT INTO terminal_snapshots (message_id, content) VALUES (?, ?)",
+    args: [row.messageId, row.content] as any[],
+  }));
+
+  await db.batch(statements, "write");
+}
+
 export async function runInTransaction(fn: () => Promise<void>): Promise<void> {
   await fn();
 }
@@ -514,7 +556,6 @@ export async function getSessionsByInstructor(instructorId: number): Promise<
     }),
   );
 }
-
 export async function getMessagesByInstructor(instructorId: number) {
   const result = await db.execute({
     sql: `

@@ -60,7 +60,7 @@ export default function UniqueAssignmentsPerStudentCard({
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 className="flex items-center gap-2 font-bold text-lg">
-              Unique HW Assignments per Student
+              Unique HW Assignments Per Student
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Based on uploaded transcript log data.

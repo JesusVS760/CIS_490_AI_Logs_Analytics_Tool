@@ -1,13 +1,11 @@
-import db from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-
-import {
+import db, {
   anonymizeId,
   buildSessionImportKey,
-  createCodeSnapshot,
-  createMessage,
+  bulkInsertCodeSnapshots,
+  bulkInsertMessages,
+  bulkInsertTerminalSnapshots,
   createOrGetSession,
-  createTerminalSnapshot,
   runInTransaction,
   upsertAssignment,
   upsertCourse,
@@ -410,7 +408,6 @@ export async function POST(req: NextRequest) {
     let insertedMessages = 0;
     const assignmentsUsed = new Set<number>();
 
-    // runInTransaction now accepts an async function
     await runInTransaction(async () => {
       const courseId = await upsertCourse(
         instructor.instructorId,
@@ -496,31 +493,41 @@ export async function POST(req: NextRequest) {
 
           insertedSessions += 1;
 
-          for (const msg of session.messages) {
-            const normalizedTimestamp = toIsoTimestamp(msg.timestamp);
+          const messageIds = await bulkInsertMessages(
+            session.messages.map((msg) => ({
+              sessionId: sessionResult.id,
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp,
+            })),
+          );
 
-            const messageId = await createMessage(
-              sessionResult.id,
-              msg.role,
-              msg.content,
-              normalizedTimestamp ?? undefined,
+          insertedMessages += messageIds.length;
+
+          const codeSnapshotRows = session.messages.flatMap((msg, i) =>
+            msg.codeFiles.map((codeFile) => ({
+              messageId: messageIds[i],
+              filename: codeFile.filename,
+              content: codeFile.content,
+              isEmpty: codeFile.isEmpty,
+            })),
+          );
+
+          const terminalSnapshotRows = session.messages
+            .map((msg, i) =>
+              msg.terminalContent
+                ? { messageId: messageIds[i], content: msg.terminalContent }
+                : null,
+            )
+            .filter(
+              (row): row is { messageId: number; content: string } =>
+                row !== null,
             );
 
-            insertedMessages += 1;
-
-            for (const codeFile of msg.codeFiles) {
-              await createCodeSnapshot(
-                messageId,
-                codeFile.filename,
-                codeFile.content,
-                codeFile.isEmpty,
-              );
-            }
-
-            if (msg.terminalContent) {
-              await createTerminalSnapshot(messageId, msg.terminalContent);
-            }
-          }
+          await Promise.all([
+            bulkInsertCodeSnapshots(codeSnapshotRows),
+            bulkInsertTerminalSnapshots(terminalSnapshotRows),
+          ]);
         }
       }
     });
