@@ -41,15 +41,26 @@ export const AiAnalyticsContext = createContext<AiAnalyticsContextType>({
 
 export const useAiAnalytics = () => useContext(AiAnalyticsContext);
 
+// Module-level — survives navigation/remounts
+let persistedIsAiAccepted = false;
+
 export default function DashboardPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
-  const [isAiAccepted, setIsAiAccepted] = useState<boolean>(false);
+  const [isAiAccepted, setIsAiAcceptedState] = useState<boolean>(
+    persistedIsAiAccepted, // initialize from persisted value on remount
+  );
   const [pendingUploadSuccess, setPendingUploadSuccess] =
     useState<boolean>(false);
 
   const { setAssignmentOptions } = useDashboardAssignmentFilter();
+
+  // Wrap setter to keep module-level variable in sync
+  const setIsAiAccepted = useCallback((value: boolean) => {
+    persistedIsAiAccepted = value;
+    setIsAiAcceptedState(value);
+  }, []);
 
   const refreshAnalyticsData = useCallback(async () => {
     try {
@@ -122,6 +133,7 @@ export default function DashboardPage() {
     }),
     [
       isAiAccepted,
+      setIsAiAccepted,
       pendingUploadSuccess,
       refreshAnalyticsData,
       sessions,
