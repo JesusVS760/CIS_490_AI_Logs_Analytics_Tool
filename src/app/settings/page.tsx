@@ -30,7 +30,7 @@ export default function SettingClient() {
   const [loadingUser, setLoadingUser] = useState(true);
 
   // ── User profile state ──────────────────────────────────────────────────────
-  const [nameUser, setNameUser] = useState("");       // current saved username
+  const [nameUser, setNameUser] = useState(""); // current saved username
   const [newNameUser, setNewNameUser] = useState(""); // controlled input value
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
@@ -51,7 +51,7 @@ export default function SettingClient() {
    */
   const saveUserToStorage = (
     userName: string,
-    userProfilePic: string | null
+    userProfilePic: string | null,
   ) => {
     const storedUser: StoredUser = {
       nameUser: userName,
@@ -67,12 +67,12 @@ export default function SettingClient() {
    */
   const dispatchProfileUpdated = (
     userName: string,
-    userProfilePic: string | null
+    userProfilePic: string | null,
   ) => {
     window.dispatchEvent(
       new CustomEvent("profile-updated", {
         detail: { nameUser: userName, profilePic: userProfilePic },
-      })
+      }),
     );
   };
 
@@ -86,7 +86,7 @@ export default function SettingClient() {
     document.documentElement.classList.toggle("dark", isDark);
     localStorage.setItem("dashboardTheme", isDark ? "dark" : "light");
     window.dispatchEvent(
-      new CustomEvent("theme-updated", { detail: { darkMode: isDark } })
+      new CustomEvent("theme-updated", { detail: { darkMode: isDark } }),
     );
   };
 
@@ -120,7 +120,7 @@ export default function SettingClient() {
         const fetchedProfilePic =
           res.data?.user?.profilePic ?? res.data?.profilePic ?? null;
         const fetchedDarkMode = Boolean(
-          res.data?.user?.darkMode ?? res.data?.darkMode ?? false
+          res.data?.user?.darkMode ?? res.data?.darkMode ?? false,
         );
 
         setNameUser(fetchedName);
@@ -154,7 +154,7 @@ export default function SettingClient() {
       const res = await axios.put(
         "/api/auth/theme",
         { darkMode: nextMode },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       // Prefer the server-confirmed value; fall back to the optimistic value.
       const updatedDarkMode =
@@ -188,7 +188,7 @@ export default function SettingClient() {
       const res = await axios.put(
         "/api/auth/username",
         { name: trimmedName },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       const updatedName = res.data?.user?.name || trimmedName;
       setNameUser(updatedName);
@@ -246,7 +246,9 @@ export default function SettingClient() {
    * A cache-busting query string is appended to the URL returned by the server
    * so the browser doesn't serve the old image from its cache.
    */
-  const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -298,7 +300,6 @@ export default function SettingClient() {
   if (loadingUser) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100">
-        <Toaster />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -338,19 +339,17 @@ export default function SettingClient() {
       `}</style>
 
       <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100">
-        <Toaster />
-
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Manage your account, profile, appearance, and security preferences.
+              Manage your account, profile, appearance, and security
+              preferences.
             </p>
           </div>
 
           {/* Page layout: narrow profile card on the left, settings panels on the right */}
           <div className="grid gap-6 lg:grid-cols-3">
-
             {/* ── Left column: Profile Overview ──────────────────────────────── */}
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <h2 className="text-xl font-semibold">Profile Overview</h2>
@@ -393,7 +392,9 @@ export default function SettingClient() {
                 />
                 <button
                   type="button"
-                  onClick={() => document.getElementById("profileUpload")?.click()}
+                  onClick={() =>
+                    document.getElementById("profileUpload")?.click()
+                  }
                   disabled={uploadingPhoto}
                   className="flex w-full items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-white transition hover:bg-purple-700 disabled:opacity-50"
                 >
@@ -430,11 +431,14 @@ export default function SettingClient() {
 
             {/* ── Right column: Settings panels (spans 2 of 3 grid columns) ─── */}
             <div className="space-y-6 lg:col-span-2">
-
               {/* Appearance — toggle between light and dark mode */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center gap-2">
-                  {modeDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  {modeDark ? (
+                    <Moon className="h-5 w-5" />
+                  ) : (
+                    <Sun className="h-5 w-5" />
+                  )}
                   <h2 className="text-xl font-semibold">Appearance</h2>
                 </div>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -470,7 +474,10 @@ export default function SettingClient() {
                   Update the name shown for your account.
                 </p>
                 <div className="mt-4">
-                  <label htmlFor="new-username" className="mb-2 block text-sm font-medium">
+                  <label
+                    htmlFor="new-username"
+                    className="mb-2 block text-sm font-medium"
+                  >
                     New Username
                   </label>
                   <input
@@ -579,8 +586,8 @@ export default function SettingClient() {
                       </h3>
                       <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         This action is permanent and cannot be undone. All your
-                        courses, assignments, student data, and uploaded logs will
-                        be permanently deleted.
+                        courses, assignments, student data, and uploaded logs
+                        will be permanently deleted.
                       </p>
                       <div className="mt-6 flex justify-end gap-3">
                         {/* Cancel dismisses the modal without taking any action */}

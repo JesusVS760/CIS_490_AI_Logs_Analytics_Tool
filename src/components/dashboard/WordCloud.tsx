@@ -52,7 +52,7 @@ export const WordCloudCard: React.FC<WordCloudCardProps> = ({ messages }) => {
     if (selectedAssignment === "all") return messages;
 
     return messages.filter(
-      (message) => getAssignmentLabel(message) === selectedAssignment
+      (message) => getAssignmentLabel(message) === selectedAssignment,
     );
   }, [messages, selectedAssignment]);
 

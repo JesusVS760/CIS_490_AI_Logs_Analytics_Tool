@@ -15,6 +15,7 @@ import UniqueStudentTotalMsgCard from "./UniqueStudentTotalMsgCard";
 import { useAiAnalytics } from "@/app/dashboard/DashboardClient";
 import UniqueAssignmentsPerStudentCard from "./UniqueAssignmentsPerStudentCard";
 import ExportPDFButton from "./ExportPDFButton";
+import { TooltipProvider } from "../ui/tooltip";
 
 const AnalyticsDashboard = () => {
   const { messages, loadingAnalytics, pendingUploadSuccess, hasSessions } =
@@ -57,13 +58,15 @@ const AnalyticsDashboard = () => {
             <TodaysTrafficCard messages={messages} />
           </div>
 
-          <div className="flex items-stretch">
-            <MessagesPerConversation />
-          </div>
+          <TooltipProvider delayDuration={0}>
+            <div className="flex items-stretch">
+              <MessagesPerConversation />
+            </div>
 
-          <div className="flex items-stretch">
-            <ChatDuration />
-          </div>
+            <div className="flex items-stretch">
+              <ChatDuration />
+            </div>
+          </TooltipProvider>
 
           <div className="flex items-stretch">
             <WordCloudCard messages={messages} />

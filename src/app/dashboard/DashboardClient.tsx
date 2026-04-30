@@ -136,7 +136,7 @@ export default function DashboardPage() {
       <div>
         {loadingAnalytics ? (
           <div className="flex justify-center items-center min-h-screen">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-lg text-muted-foreground">
               Loading your personalized dashboard ⏳
             </div>
           </div>

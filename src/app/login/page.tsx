@@ -14,6 +14,8 @@ import axios from "axios"; // Import axios to simplify API calls from the client
 import { Input } from "@/components/ui/input"; // Import shared input component from the existing UI layer
 import { Label } from "@/components/ui/label"; // Import shared label component from the existing UI layer
 
+import { toast } from "sonner";
+
 // Defined the TypeScript shape for all login form fields
 type LoginFormState = {
   email: string; // User email input value
@@ -111,6 +113,11 @@ export default function LoginPage() {
 
       // On success, navigates to provided route or fallback dashboard
       router.push(data.redirectTo ?? "/dashboard");
+
+      toast.success("Welcome back 👋!", {
+        description: `Logged in as ${userName}`,
+        duration: 3000,
+      });
     } catch (error) {
       // If segment that handles axios specific errors to extract the server message when its available, and if not just an error message
       if (axios.isAxiosError(error)) {
