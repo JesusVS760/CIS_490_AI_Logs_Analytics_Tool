@@ -12,6 +12,11 @@ type TopQuestionResult = {
   count: number;
 };
 
+type NormalizedQuestionEntry = {
+  original: string;
+  normalized: string;
+};
+
 const getAssignmentLabel = (message: Message): string | null => {
   const msg = message as Record<string, unknown>;
 
@@ -108,19 +113,61 @@ const getFallbackCandidates = (content: string): string[] => {
     .filter((line) => isLikelyQuestionLikeStatement(line));
 };
 
+const fillerWords = new Set([
+  "a",
+  "an",
+  "the",
+  "i",
+  "am",
+  "im",
+  "i'm",
+  "supposed",
+  "to",
+  "this",
+  "that",
+  "my",
+  "your",
+  "please",
+]);
 
+const normalizeQuestionText = (text: string) => {
+  return cleanText(text)
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\bhow\s+am\s+i\s+supposed\s+to\b/g, "how do i")
+    .replace(/\bhow\s+can\s+i\b/g, "how do i")
+    .replace(/\bhow\s+do\s+i\s+go\s+about\b/g, "how do i")
+    .replace(/\bfixing\b/g, "fix")
+    .replace(/\bfixed\b/g, "fix")
+    .replace(/\bbeginning\b/g, "begin")
+    .replace(/\bstarting\b/g, "begin")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((word) => !fillerWords.has(word))
+    .join(" ");
+};
 
+const toNormalizedEntries = (items: string[]): NormalizedQuestionEntry[] =>
+  items
+    .map((item) => ({
+      original: item,
+      normalized: normalizeQuestionText(item),
+    }))
+    .filter((item) => item.normalized.length > 0);
 
-const pickTopText = (items: string[]) => {
+const pickTopText = (items: string[]): [string, number] | null => {
+  const normalizedItems = toNormalizedEntries(items);
   const counts = new Map<string, number>();
+  const displayByNormalized = new Map<string, string>();
   const firstSeenOrder: string[] = [];
 
-  items.forEach((item) => {
-    if (!counts.has(item)) {
-      counts.set(item, 1);
-      firstSeenOrder.push(item);
+  normalizedItems.forEach(({ original, normalized }) => {
+    if (!counts.has(normalized)) {
+      counts.set(normalized, 1);
+      displayByNormalized.set(normalized, original);
+      firstSeenOrder.push(normalized);
     } else {
-      counts.set(item, (counts.get(item) ?? 0) + 1);
+      counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
     }
   });
 
@@ -129,7 +176,12 @@ const pickTopText = (items: string[]) => {
     return firstSeenOrder.indexOf(a[0]) - firstSeenOrder.indexOf(b[0]);
   });
 
-  return ranked[0];
+  if (ranked.length === 0) {
+    return null;
+  }
+
+  const [normalizedQuestion, count] = ranked[0];
+  return [displayByNormalized.get(normalizedQuestion) ?? normalizedQuestion, count];
 };
 
 const getTopQuestion = (messages: Message[]): TopQuestionResult => {
@@ -147,8 +199,11 @@ const getTopQuestion = (messages: Message[]): TopQuestionResult => {
   });
 
   if (questionCandidates.length > 0) {
-    const [question, count] = pickTopText(questionCandidates);
-    return { question, count };
+    const top = pickTopText(questionCandidates);
+    if (top) {
+      const [question, count] = top;
+      return { question, count };
+    }
   }
 
   const fallbackCandidates: string[] = [];
@@ -158,8 +213,11 @@ const getTopQuestion = (messages: Message[]): TopQuestionResult => {
   });
 
   if (fallbackCandidates.length > 0) {
-    const [question, count] = pickTopText(fallbackCandidates);
-    return { question, count };
+    const top = pickTopText(fallbackCandidates);
+    if (top) {
+      const [question, count] = top;
+      return { question, count };
+    }
   }
 
   return { question: "No student message data available.", count: 0 };
